@@ -10,6 +10,25 @@ Telegram.Commands.Core.TelegramCommandService for automatic resolving telegram b
 5. Release needed commands for bot in your project
 6. From Update methods call Telegram.Commands.Core.TelegramCommandService.Handle for automatic handling commands.
 
+## Example for implementing ITelegramCommandFactory
+
+```
+public class TelegramCommandFactory : ITelegramCommandFactory
+{
+    private readonly IServiceProvider _serviceProvider;
+
+    public TelegramCommandFactory(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+
+    public async Task<ITelegramCommand<T>> GetCommand<T>(T message, Type commandType)
+    {
+        return await Task.FromResult((ITelegramCommand<T>)_serviceProvider.GetService(commandType));
+    }
+}
+```
+
 ## Make command
 Use CommandAttribute for your class of command and you have to implement Telegram.Commands.Abstract.Interfaces.ITelegramCommand.
 
