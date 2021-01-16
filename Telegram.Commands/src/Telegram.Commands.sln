@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Core", "Telegram.Commands.Core\Telegram.Commands.Core.csproj", "{5185D497-65B5-4C29-8C27-CDAF293AB1B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Abstract", "Telegram.Commands.Abstract\Telegram.Commands.Abstract.csproj", "{07B1F737-144B-4C45-A507-1D68C7ADEF2E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.DependencyInjection", "Telegram.Commands.DependencyInjection\Telegram.Commands.DependencyInjection.csproj", "{30E69E2D-D1ED-4462-9189-F3746C33B92A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5185D497-65B5-4C29-8C27-CDAF293AB1B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5185D497-65B5-4C29-8C27-CDAF293AB1B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5185D497-65B5-4C29-8C27-CDAF293AB1B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5185D497-65B5-4C29-8C27-CDAF293AB1B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07B1F737-144B-4C45-A507-1D68C7ADEF2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07B1F737-144B-4C45-A507-1D68C7ADEF2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07B1F737-144B-4C45-A507-1D68C7ADEF2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07B1F737-144B-4C45-A507-1D68C7ADEF2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30E69E2D-D1ED-4462-9189-F3746C33B92A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30E69E2D-D1ED-4462-9189-F3746C33B92A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30E69E2D-D1ED-4462-9189-F3746C33B92A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30E69E2D-D1ED-4462-9189-F3746C33B92A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
