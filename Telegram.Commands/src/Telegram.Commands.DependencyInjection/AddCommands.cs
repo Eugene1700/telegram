@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Services;
 
@@ -25,6 +26,11 @@ namespace Telegram.Commands.DependencyInjection
             {
                 services.AddSingleton(type);
             }
+        }
+
+        public static void AddCommandFactory(this IServiceCollection services)
+        {
+            services.AddSingleton<TelegramCommandFactory>();
         }
     }
 }

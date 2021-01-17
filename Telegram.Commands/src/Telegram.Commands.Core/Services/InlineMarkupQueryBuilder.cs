@@ -2,6 +2,7 @@
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Linq;
+using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core.Services
 {

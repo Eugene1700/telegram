@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using Telegram.Bot;
+using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core
 {

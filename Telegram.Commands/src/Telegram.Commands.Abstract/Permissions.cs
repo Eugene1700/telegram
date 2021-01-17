@@ -1,4 +1,4 @@
-﻿namespace Telegram.Commands.Core
+﻿namespace Telegram.Commands.Abstract
 {
     public enum Permissions
     {
