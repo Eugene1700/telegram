@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Services;
+using Telegram.Commands.Sessions;
 
 namespace Telegram.Commands.DependencyInjection
 {
@@ -30,7 +31,12 @@ namespace Telegram.Commands.DependencyInjection
 
         public static void AddCommandFactory(this IServiceCollection services)
         {
-            services.AddSingleton<TelegramCommandFactory>();
+            services.AddSingleton<ITelegramCommandFactory, TelegramCommandFactory>();
+        }
+        
+        public static void AddSessionManager(this IServiceCollection services)
+        {
+            services.AddSingleton<ISessionManager, SessionManager>();
         }
     }
 }
