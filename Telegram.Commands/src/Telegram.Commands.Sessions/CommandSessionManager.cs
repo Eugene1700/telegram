@@ -5,19 +5,12 @@ using Telegram.Commands.Core;
 
 namespace Telegram.Commands.Sessions
 {
-    public class SessionManager : ISessionManager
+    public class CommandSessionManager : ICommandSessionManager
     {
-        private readonly ISessionStore _store;
-
-        public SessionManager(ISessionStore store)
+        public SessionInfo OpenSession<T, TEntity, TQuery>(long chatId, TEntity[] entities) where T : ITelegramCommand<TQuery>
         {
-            _store = store;
-        }
-        
-        public Session<TEntity> StoreSession<T, TEntity, TQuery>(long chatId, TEntity[] entities) where T : ITelegramCommand<TQuery>
-        {
-            var sessionObj = CreateSessionObject<T, TEntity, TQuery>(chatId, entities);
-            _store.Save(sessionObj);
+            var sessionInfo = CreateSessionInfo<T, TQuery>(chatId);
+            var sessionObj = CreateSessionData(sessionInfo, entities);
             return sessionObj;
         }
 
@@ -48,20 +41,29 @@ namespace Telegram.Commands.Sessions
             return sessionObj != null;
         }
         
-        private static Session<TEntity> CreateSessionObject<T, TEntity, TQuery>(long chatId, TEntity[] entities) where T : ITelegramCommand<TQuery>
+        private static SessionData<TEntity> CreateSessionData<TEntity>(SessionInfo sessionInfo, TEntity[] entities)
         {
-            return new Session<TEntity>
+            return new SessionData<TEntity>
             {
-                ChatId = chatId,
-                //todo implement IClockProvider
-                OpenedAt = DateTimeOffset.Now,
-                ReleasedAt = null,
-                CommandId = TelegramCommandExtensions.GetCommandInfo<T, TQuery>().Name,
+                SessionId = sessionInfo.Id,
                 StoreObjects = entities.Select(x=> new StoreObject<TEntity>
                 {
                     Id = Guid.NewGuid(),
                     Data = x
                 }).ToArray()
+            };
+        }
+
+        private static SessionInfo CreateSessionInfo<TCommand, TQuery>(long chatId) where TCommand : ITelegramCommand<TQuery>
+        {
+            return new SessionInfo
+            {
+                Id = Guid.NewGuid(),
+                ChatId = chatId,
+                //todo implement IClockProvider
+                OpenedAt = DateTimeOffset.Now,
+                ReleasedAt = null,
+                CommandId = TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery>().Name,
             };
         }
         

@@ -36,7 +36,7 @@ namespace Telegram.Commands.DependencyInjection
         
         public static void AddSessionManager(this IServiceCollection services)
         {
-            services.AddSingleton<ISessionManager, SessionManager>();
+            services.AddSingleton<ICommandSessionManager, CommandSessionManager>();
         }
     }
 }
