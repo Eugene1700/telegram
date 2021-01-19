@@ -15,13 +15,17 @@ namespace Telegram.Commands.Core.Services
         private readonly TelegramClient _telegramClient;
         private readonly ITelegramCommandFactory _commandFactory;
         private readonly IAuthProvider _authProvider;
+        private readonly ISessionManager _sessionManager;
 
         public TelegramCommandService(TelegramClient telegramClient,
-            ITelegramCommandFactory commandFactory, IAuthProvider authProvider)
+            ITelegramCommandFactory commandFactory, 
+            IAuthProvider authProvider,
+            ISessionManager sessionManager)
         {
             _telegramClient = telegramClient;
             _commandFactory = commandFactory;
             _authProvider = authProvider;
+            _sessionManager = sessionManager;
         }
 
         public async Task<TelegramResult> Handle(Update update)
@@ -69,27 +73,55 @@ namespace Telegram.Commands.Core.Services
 
         private async Task<ITelegramCommand<T>> GetCommand<T>(T query)
         {
+            if (!TryGetSessionCommandStr(query, out var commandStr ))
+                if (!TryGetQueryCommandStr(query, out commandStr))
+                    throw new InvalidOperationException("Wrong state");
+
+            var commandType = FindCommandByQuery<T>(commandStr);
+
+            var attr = commandType?.GetCustomAttribute<CommandAttribute>();
+            if (commandType == null || attr == null)
+                throw new TelegramException("Command not found");
+
+            var user = await _authProvider.AuthUser(query.GetFromId());
+            if (user == null)
+                throw new TelegramException("User not found");
+
+            if (user.Permission < attr.Permission)
+                throw new TelegramException("You doesn't have permission for this command");
+
+            return await _commandFactory.GetCommand(query, commandType);
+        }
+
+        private bool TryGetSessionCommandStr<T>(T query, out string commandStr)
+        {
+            commandStr = null;
+            var chatId = query.GetChatId();
+            var userId = query.GetFromId();
+            var sessionInfo = _sessionManager.GetCurrentSession(chatId, userId);
+            if (sessionInfo == null) return false;
+            commandStr = sessionInfo.CommandQuery;
+            return true;
+
+        }
+
+        private static bool TryGetQueryCommandStr<T>(T query, out string commandStr)
+        {
+             commandStr = query.GetData();
+             return commandStr[0] == '/';
+        }
+
+        private static Type FindCommandByQuery<T>(string queryString)
+        {
             var comType = typeof(ITelegramCommand<T>);
             var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
                 .SingleOrDefault(p =>
                 {
                     var attrLoc = p.GetCustomAttribute<CommandAttribute>();
                     return p.IsClass && !p.IsAbstract &&
-                           comType.IsAssignableFrom(p) && attrLoc != null && attrLoc.MatchCommand(query.GetData());
+                           comType.IsAssignableFrom(p) && attrLoc != null && attrLoc.MatchCommand(queryString);
                 });
-
-            var attr = commandType?.GetCustomAttribute<CommandAttribute>();
-            if (commandType == null || attr == null)
-                throw new TelegramException("Command not found");
-
-            var user = await _authProvider.AuthUser(query.GetId());
-            if (user == null)
-                throw new TelegramException("User not found");
-
-            if (user.Permission < attr.Permission)
-                throw new TelegramException("У вас недостаточно прав для выполнения этой команды");
-
-            return await _commandFactory.GetCommand(query, commandType);
+            return commandType;
         }
     }
 
