@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Services;
@@ -13,7 +14,7 @@ namespace Telegram.Commands.DependencyInjection
     {
         public static void AddTelegramCommands(this IServiceCollection services)
         {
-            services.AddSingleton<TelegramCommandService>();
+            services.AddScoped<TelegramCommandService>();
             var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
                 .Where(p =>
                 {
@@ -25,13 +26,13 @@ namespace Telegram.Commands.DependencyInjection
                 }).ToArray();
             foreach (var type in commandType)
             {
-                services.AddSingleton(type);
+                services.AddScoped(type);
             }
         }
 
         public static void AddCommandFactory(this IServiceCollection services)
         {
-            services.AddSingleton<ITelegramCommandFactory, TelegramCommandFactory>();
+            services.AddScoped<ITelegramCommandFactory, TelegramCommandFactory>();
         }
     }
 }

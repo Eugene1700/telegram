@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core.Services
@@ -79,16 +80,17 @@ namespace Telegram.Commands.Core.Services
 
             var commandType = FindCommandByQuery<T>(commandStr);
 
-            var attr = commandType?.GetCustomAttribute<CommandAttribute>();
-            if (commandType == null || attr == null)
-                throw new TelegramException("Command not found");
+            var commandInfo = TelegramCommandExtensions.GetCommandInfo(commandType);
 
-            var user = await _authProvider.AuthUser(query.GetFromId());
-            if (user == null)
-                throw new TelegramException("User not found");
+            if (commandInfo.Permission != Permissions.Guest)
+            {
+                var user = await _authProvider.AuthUser(query.GetFromId());
+                if (user == null)
+                    throw new TelegramException("User not found");
 
-            if (user.Permission < attr.Permission)
-                throw new TelegramException("You doesn't have permission for this command");
+                if (user.Permission < commandInfo.Permission)
+                    throw new TelegramException("You doesn't have permission for this command");
+            }
 
             return await _commandFactory.GetCommand(query, commandType);
         }

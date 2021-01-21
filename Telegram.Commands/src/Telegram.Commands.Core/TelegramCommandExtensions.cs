@@ -39,11 +39,11 @@ namespace Telegram.Commands.Core
             return GetCommandInfo(typeof(TCommand));
         }
 
-        private static ITelegramCommandDescriptor GetCommandInfo(Type comamndType)
+        public static ITelegramCommandDescriptor GetCommandInfo(Type comamndType)
         {
-            var commandAttr = comamndType.GetCustomAttribute<CommandAttribute>();
+            var commandAttr = comamndType?.GetCustomAttribute<CommandAttribute>();
             if (commandAttr == null)
-                throw new InvalidOperationException("UnknownCommand for store");
+                throw new TelegramException("Unknown Command for store");
             return commandAttr;
         }
     }
