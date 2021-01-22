@@ -2,6 +2,7 @@
 using System.Reflection;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.Payments;
 
 namespace Telegram.Commands.Core
 {
@@ -29,12 +30,13 @@ namespace Telegram.Commands.Core
 
         public static int GetFromId<T>(this T query)
         {
-            return query.Switch(m => m.From.Id, cb => cb.From.Id);
+            return query.Switch(m => m.From.Id, cb => cb.From.Id, prq => prq.From.Id);
         }
         
         public static long GetChatId<T>(this T query)
         {
-            return query.Switch(m => m.Chat.Id, cb => cb.Message.Chat.Id);
+            return query.Switch(m => m.Chat.Id, cb => cb.Message.Chat.Id, 
+                prq => prq.From.Id);
         }
         
         public static long GetChatId<T>(this Update update)
@@ -45,19 +47,22 @@ namespace Telegram.Commands.Core
                     return update.Message.GetChatId(); 
                 case UpdateType.CallbackQuery:
                     return update.CallbackQuery.GetChatId();
+                case UpdateType.PreCheckoutQuery:
+                    return update.PreCheckoutQuery.GetChatId();
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
         private static TResult Switch<T, TResult>(this T query, Func<Message, TResult> messageFunc,
-            Func<CallbackQuery, TResult> callbackQueryFunc)
+            Func<CallbackQuery, TResult> callbackQueryFunc, Func<PreCheckoutQuery, TResult> preCheckoutQueryFunc)
         {
             return query switch
             {
                 Message message => messageFunc(message),
                 CallbackQuery callbackQuery => callbackQueryFunc(callbackQuery),
-                _ => throw new ArgumentOutOfRangeException()
+                PreCheckoutQuery preCheckoutQuery => preCheckoutQueryFunc(preCheckoutQuery),
+                _ => throw new ArgumentOutOfRangeException(),
             };
         }
 

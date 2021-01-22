@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.Payments;
 using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
 
@@ -17,16 +18,19 @@ namespace Telegram.Commands.Core.Services
         private readonly ITelegramCommandFactory _commandFactory;
         private readonly IAuthProvider _authProvider;
         private readonly ISessionManager _sessionManager;
+        private readonly IPaymentProvider _paymentProvider;
 
         public TelegramCommandService(TelegramClient telegramClient,
             ITelegramCommandFactory commandFactory, 
             IAuthProvider authProvider,
-            ISessionManager sessionManager)
+            ISessionManager sessionManager,
+            IPaymentProvider paymentProvider)
         {
             _telegramClient = telegramClient;
             _commandFactory = commandFactory;
             _authProvider = authProvider;
             _sessionManager = sessionManager;
+            _paymentProvider = paymentProvider;
         }
 
         public async Task<TelegramResult> Handle(Update update)
@@ -41,6 +45,9 @@ namespace Telegram.Commands.Core.Services
                     case UpdateType.CallbackQuery:
                         await QueryHandler(update.CallbackQuery);
                         break;
+                    case UpdateType.PreCheckoutQuery:
+                        await PaymentQueryHandler(update.PreCheckoutQuery);
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -52,6 +59,16 @@ namespace Telegram.Commands.Core.Services
                 await _telegramClient.SendTextMessageAsync(update.GetChatId(), ex.Message);
                 return new TelegramResult(true);
             }
+        }
+
+        private async Task PaymentQueryHandler(PreCheckoutQuery updatePreCheckoutQuery)
+        {
+            await _paymentProvider.HandlePreCheckoutQuery(updatePreCheckoutQuery);
+        }
+        
+        private async Task SuccessfulPaymentHandler(SuccessfulPayment successfulPayment)
+        {
+            await _paymentProvider.HandleSuccessfulPayment(successfulPayment);
         }
 
         private async Task QueryHandler<T>(T query)
@@ -82,14 +99,26 @@ namespace Telegram.Commands.Core.Services
 
             var commandInfo = TelegramCommandExtensions.GetCommandInfo(commandType);
 
-            if (commandInfo.Permission != Permissions.Guest)
+            switch (commandInfo.Permission)
             {
-                var user = await _authProvider.AuthUser(query.GetFromId());
-                if (user == null)
-                    throw new TelegramException("User not found");
+                case Permissions.Guest:
+                    return await _commandFactory.GetCommand(query, commandType);
+                case Permissions.Callback:
+                {
+                    if (!(query is CallbackQuery))
+                        throw new TargetException($"This command only for callbackquery");
+                    break;
+                }
+                default:
+                {
+                    var user = await _authProvider.AuthUser(query.GetFromId());
+                    if (user == null)
+                        throw new TelegramException("User not found");
 
-                if (user.Permission < commandInfo.Permission)
-                    throw new TelegramException("You doesn't have permission for this command");
+                    if (user.Permission < commandInfo.Permission)
+                        throw new TelegramException("You doesn't have permission for this command");
+                    break;
+                }
             }
 
             return await _commandFactory.GetCommand(query, commandType);
