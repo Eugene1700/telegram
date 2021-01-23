@@ -92,7 +92,7 @@ namespace Telegram.Commands.Core.Services
                     return await _commandFactory.GetCommand(query, commandType);
                 case Permissions.Callback:
                 {
-                    if (!(query is CallbackQuery))
+                    if (!QueryIsCallback(query))
                         throw new TargetException($"This command only for callbackquery");
                     break;
                 }
@@ -109,6 +109,14 @@ namespace Telegram.Commands.Core.Services
             }
 
             return await _commandFactory.GetCommand(query, commandType);
+        }
+
+        private static bool QueryIsCallback<T>(T query)
+        {
+            if (query is CallbackQuery || query is PreCheckoutQuery)
+                return true;
+            var successfulPayment = query as Message;
+            return successfulPayment?.SuccessfulPayment != null;
         }
 
         private bool TryGetSessionCommandStr<T>(T query, out string commandStr)
