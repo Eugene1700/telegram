@@ -18,19 +18,16 @@ namespace Telegram.Commands.Core.Services
         private readonly ITelegramCommandFactory _commandFactory;
         private readonly IAuthProvider _authProvider;
         private readonly ISessionManager _sessionManager;
-        private readonly IPaymentProvider _paymentProvider;
 
         public TelegramCommandService(TelegramClient telegramClient,
             ITelegramCommandFactory commandFactory, 
             IAuthProvider authProvider,
-            ISessionManager sessionManager,
-            IPaymentProvider paymentProvider)
+            ISessionManager sessionManager)
         {
             _telegramClient = telegramClient;
             _commandFactory = commandFactory;
             _authProvider = authProvider;
             _sessionManager = sessionManager;
-            _paymentProvider = paymentProvider;
         }
 
         public async Task<TelegramResult> Handle(Update update)
@@ -46,7 +43,7 @@ namespace Telegram.Commands.Core.Services
                         await QueryHandler(update.CallbackQuery);
                         break;
                     case UpdateType.PreCheckoutQuery:
-                        await PaymentQueryHandler(update.PreCheckoutQuery);
+                        await QueryHandler(update.PreCheckoutQuery);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -57,18 +54,8 @@ namespace Telegram.Commands.Core.Services
             catch (NotImplementedException ex)
             {
                 await _telegramClient.SendTextMessageAsync(update.GetChatId(), ex.Message);
-                return new TelegramResult(true);
+                return new TelegramResult(false);
             }
-        }
-
-        private async Task PaymentQueryHandler(PreCheckoutQuery updatePreCheckoutQuery)
-        {
-            await _paymentProvider.HandlePreCheckoutQuery(updatePreCheckoutQuery);
-        }
-        
-        private async Task SuccessfulPaymentHandler(SuccessfulPayment successfulPayment)
-        {
-            await _paymentProvider.HandleSuccessfulPayment(successfulPayment);
         }
 
         private async Task QueryHandler<T>(T query)

@@ -24,6 +24,7 @@ namespace Telegram.Commands.Core
             {
                 Message message => message.Text,
                 CallbackQuery callbackQuery => callbackQuery.Data,
+                PreCheckoutQuery preCheckoutQuery => preCheckoutQuery.InvoicePayload,
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
