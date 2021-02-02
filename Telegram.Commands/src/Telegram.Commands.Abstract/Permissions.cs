@@ -5,6 +5,7 @@
         Guest,
         User,
         Admin,
-        Callback
+        Callback,
+        Session
     }
 }

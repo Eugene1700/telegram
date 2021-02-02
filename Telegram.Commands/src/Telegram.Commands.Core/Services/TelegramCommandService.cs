@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.Payments;
@@ -14,12 +15,12 @@ namespace Telegram.Commands.Core.Services
 {
     public class TelegramCommandService
     {
-        private readonly TelegramClient _telegramClient;
+        private readonly ITelegramBotClient _telegramClient;
         private readonly ITelegramCommandFactory _commandFactory;
         private readonly IAuthProvider _authProvider;
         private readonly ISessionManager _sessionManager;
 
-        public TelegramCommandService(TelegramClient telegramClient,
+        public TelegramCommandService(ITelegramBotClient telegramClient,
             ITelegramCommandFactory commandFactory, 
             IAuthProvider authProvider,
             ISessionManager sessionManager)
@@ -78,9 +79,13 @@ namespace Telegram.Commands.Core.Services
 
         private async Task<ITelegramCommand<T>> GetCommand<T>(T query)
         {
-            if (!TryGetSessionCommandStr(query, out var commandStr ))
-                if (!TryGetQueryCommandStr(query, out commandStr))
-                    throw new InvalidOperationException("Wrong state");
+            var fromSession = false;
+            if (TryGetSessionCommandStr(query, out var commandStr))
+            {
+                fromSession = true;
+            }
+            else if (!TryGetQueryCommandStr(query, out commandStr))
+                throw new TelegramException("Could not extract command");
 
             var commandType = FindCommandByQuery<T>(commandStr);
 
@@ -93,9 +98,13 @@ namespace Telegram.Commands.Core.Services
                 case Permissions.Callback:
                 {
                     if (!QueryIsCallback(query))
-                        throw new TargetException($"This command only for callbackquery");
+                        throw new TelegramException($"This command only for callbackquery");
                     break;
                 }
+                case Permissions.Session:
+                    if (!fromSession)
+                        throw new TelegramException("This command only for session");
+                    break;
                 default:
                 {
                     var user = await _authProvider.AuthUser(query.GetFromId());

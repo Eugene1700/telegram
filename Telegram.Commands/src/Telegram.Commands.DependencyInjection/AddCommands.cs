@@ -2,17 +2,16 @@
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Bot;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Services;
-using Telegram.Commands.Sessions;
 
 namespace Telegram.Commands.DependencyInjection
 {
     public static class TelegramDependencyExtensions
     {
-        public static void AddTelegramCommands(this IServiceCollection services)
+        private static void AddTelegramCommands(this IServiceCollection services)
         {
             services.AddScoped<TelegramCommandService>();
             var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
@@ -30,9 +29,21 @@ namespace Telegram.Commands.DependencyInjection
             }
         }
 
-        public static void AddCommandFactory(this IServiceCollection services)
+        private static void AddCommandFactory(this IServiceCollection services)
         {
             services.AddScoped<ITelegramCommandFactory, TelegramCommandFactory>();
+        }
+
+        private static void AddTelegramClient(this IServiceCollection services)
+        {
+            services.AddScoped<ITelegramBotClient, TelegramClient>();
+        }
+
+        public static void UseTelegramCommandsServices(this IServiceCollection services)
+        {
+            services.AddTelegramCommands();
+            services.AddCommandFactory();
+            services.AddTelegramClient();
         }
     }
 }
