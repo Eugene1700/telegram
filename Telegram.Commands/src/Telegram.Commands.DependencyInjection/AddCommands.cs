@@ -38,6 +38,11 @@ namespace Telegram.Commands.DependencyInjection
         {
             services.AddScoped<ITelegramBotClient, TelegramClient>();
         }
+        
+        private static void AddSesionManager(this IServiceCollection services)
+        {
+            services.AddScoped<SessionManager>();
+        }
 
         public static void UseTelegramCommandsServices(this IServiceCollection services)
         {

@@ -18,12 +18,12 @@ namespace Telegram.Commands.Core.Services
         private readonly ITelegramBotClient _telegramClient;
         private readonly ITelegramCommandFactory _commandFactory;
         private readonly IAuthProvider _authProvider;
-        private readonly ISessionManager _sessionManager;
+        private readonly SessionManager _sessionManager;
 
         public TelegramCommandService(ITelegramBotClient telegramClient,
             ITelegramCommandFactory commandFactory, 
             IAuthProvider authProvider,
-            ISessionManager sessionManager)
+            SessionManager sessionManager)
         {
             _telegramClient = telegramClient;
             _commandFactory = commandFactory;
@@ -63,7 +63,9 @@ namespace Telegram.Commands.Core.Services
         {
             try
             {
-                var command = await GetCommand(query);
+                ITelegramCommandDescriptor commandDescriptor;
+                ITelegramCommand<T> command;
+                (commandDescriptor,command) = await GetCommand(query);
                 if (command != null)
                 {
                     await command.Execute(query);
@@ -77,7 +79,7 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private async Task<ITelegramCommand<T>> GetCommand<T>(T query)
+        private async Task<(ITelegramCommandDescriptor,ITelegramCommand<T>)> GetCommand<T>(T query)
         {
             var fromSession = false;
             if (TryGetSessionCommandStr(query, out var commandStr))
@@ -94,7 +96,8 @@ namespace Telegram.Commands.Core.Services
             switch (commandInfo.Permission)
             {
                 case Permissions.Guest:
-                    return await _commandFactory.GetCommand(query, commandType);
+                    var command =  await _commandFactory.GetCommand(query, commandType);
+                    return (commandInfo, command);
                 case Permissions.Callback:
                 {
                     if (!QueryIsCallback(query))
@@ -117,7 +120,8 @@ namespace Telegram.Commands.Core.Services
                 }
             }
 
-            return await _commandFactory.GetCommand(query, commandType);
+            var com = await _commandFactory.GetCommand(query, commandType);
+            return (commandInfo, com);
         }
 
         private static bool QueryIsCallback<T>(T query)
