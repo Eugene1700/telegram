@@ -9,10 +9,17 @@ namespace Telegram.Commands.Core
         public Permissions Permission { get; set; }
         public CommandChain Chain { get; set; }
         public string NextCommandName { get; set; }
+
+        public CommandAttribute()
+        {
+            Chain = CommandChain.None;
+            Permission = Permissions.User;
+        }
     }
 
     public enum CommandChain
     {
+        None,
         StartPoint,
         TransitPoint,
         EndPoint

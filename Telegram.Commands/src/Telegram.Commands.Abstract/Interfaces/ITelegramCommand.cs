@@ -4,6 +4,7 @@ namespace Telegram.Commands.Abstract.Interfaces
 {
     public interface ITelegramCommand<in T>
     {
-        Task Execute(T query);
+        Task<object> Execute(T query);
+        
     }
 }

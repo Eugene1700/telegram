@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Telegram.Commands.Abstract.Interfaces;
 
-namespace Telegram.Commands.Core
+namespace Telegram.Commands.Abstract.Interfaces
 {
     public interface ITelegramCommandFactory
     {

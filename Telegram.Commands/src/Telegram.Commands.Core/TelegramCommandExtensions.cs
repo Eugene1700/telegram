@@ -46,5 +46,10 @@ namespace Telegram.Commands.Core
                 throw new TelegramException("Unknown Command for store");
             return commandAttr;
         }
+        
+        public static string GetCommandQuery(this ITelegramCommandDescriptor commandInfo)
+        {
+            return $"/{commandInfo.Name}";
+        }
     }
 }

@@ -13,7 +13,7 @@ using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core.Services
 {
-    public class TelegramCommandService
+    internal sealed class TelegramCommandService : ITelegramCommandResolver
     {
         private readonly ITelegramBotClient _telegramClient;
         private readonly ITelegramCommandFactory _commandFactory;
@@ -63,12 +63,32 @@ namespace Telegram.Commands.Core.Services
         {
             try
             {
+                var chatId = query.GetChatId();
+                var userId = query.GetFromId();
                 ITelegramCommandDescriptor commandDescriptor;
                 ITelegramCommand<T> command;
                 (commandDescriptor,command) = await GetCommand(query);
                 if (command != null)
                 {
-                    await command.Execute(query);
+                    var data = await command.Execute(query);
+                    if (commandDescriptor.Chain != CommandChain.None)
+                    {
+                        switch (commandDescriptor.Chain)
+                        {
+                            case CommandChain.StartPoint:
+                                await _sessionManager.OpenSession( GetNextCommandDescriptor(commandDescriptor), chatId, userId, data);
+                                return;
+                            case CommandChain.TransitPoint:
+                                await _sessionManager.ContinueSession( GetNextCommandDescriptor(commandDescriptor), chatId,
+                                    userId);
+                                return;
+                            case CommandChain.EndPoint:
+                                await _sessionManager.ReleaseSessionIfExists(chatId, userId);
+                                return;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                    }
                 }
             }
             catch (TelegramException ex)
@@ -79,7 +99,17 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private async Task<(ITelegramCommandDescriptor,ITelegramCommand<T>)> GetCommand<T>(T query)
+        private static ITelegramCommandDescriptor GetNextCommandDescriptor(ITelegramCommandDescriptor currentCommandDescriptor)
+        {
+            var nextCommandType = FindCommandByClassName(currentCommandDescriptor.NextCommandName);
+            if (nextCommandType == null)
+                throw new InvalidOperationException(
+                    $"Next command {currentCommandDescriptor.NextCommandName} not found");
+            var nextComDesc = TelegramCommandExtensions.GetCommandInfo(nextCommandType);
+            return nextComDesc;
+        }
+
+        private async Task<(ITelegramCommandDescriptor, ITelegramCommand<T>)> GetCommand<T>(T query)
         {
             var fromSession = false;
             if (TryGetSessionCommandStr(query, out var commandStr))
@@ -152,6 +182,7 @@ namespace Telegram.Commands.Core.Services
 
         private static Type FindCommandByQuery<T>(string queryString)
         {
+            //todo need cache
             var comType = typeof(ITelegramCommand<T>);
             var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
                 .SingleOrDefault(p =>
@@ -162,15 +193,19 @@ namespace Telegram.Commands.Core.Services
                 });
             return commandType;
         }
-    }
-
-    public class TelegramResult
-    {
-        public bool Ok { get; }
-
-        public TelegramResult(bool ok)
+        
+        private static Type FindCommandByClassName(string commandClassName)
         {
-            Ok = ok;
+            //todo need cache
+            var comType = typeof(ITelegramCommand<>);
+            var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
+                .SingleOrDefault(p =>
+                {
+                    var attrLoc = p.GetCustomAttribute<CommandAttribute>();
+                    return p.IsClass && !p.IsAbstract &&
+                           comType.IsAssignableFrom(p) && attrLoc != null && p.Name == commandClassName;
+                });
+            return commandType;
         }
     }
 }

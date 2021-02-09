@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
-using Telegram.Commands.Core.Services;
+using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.DependencyInjection
 {
@@ -13,7 +13,6 @@ namespace Telegram.Commands.DependencyInjection
     {
         private static void AddTelegramCommands(this IServiceCollection services)
         {
-            services.AddScoped<TelegramCommandService>();
             var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
                 .Where(p =>
                 {
@@ -38,17 +37,15 @@ namespace Telegram.Commands.DependencyInjection
         {
             services.AddScoped<ITelegramBotClient, TelegramClient>();
         }
-        
-        private static void AddSesionManager(this IServiceCollection services)
-        {
-            services.AddScoped<SessionManager>();
-        }
 
         public static void UseTelegramCommandsServices(this IServiceCollection services)
         {
             services.AddTelegramCommands();
             services.AddCommandFactory();
             services.AddTelegramClient();
+            services.AddSessionManager();
+            services.AddSessionManager();
+            services.AddResolver();
         }
     }
 }

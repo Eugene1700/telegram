@@ -1,10 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core.Services
 {
-    public class SessionManager
+    internal sealed class SessionManager : ISessionManager
     {
         private readonly IClock _clock;
         private readonly ISessionsStore _sessionsStore;
@@ -27,63 +28,61 @@ namespace Telegram.Commands.Core.Services
             return s.ExpiredAt > now;
         }
 
-        public async Task<CommandSession<TData>> OpenSession<TNextCommand, TQuery, TData>(long chatId, long telegramUserId, TData data,
+        public async Task<CommandSession> OpenSession(ITelegramCommandDescriptor nextCommandDescriptor, long chatId,
+            long telegramUserId, object sessionData,
             int sessionTimeInMinutes = 10)
-            where TNextCommand : ITelegramCommand<TQuery>
         {
             var now = _clock.Now;
             if (GetCurrentSession(chatId, telegramUserId) != null)
                 throw new TelegramException("Нельзя открывать новую сессию пока есть старая");
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
-            var commandSession = new CommandSession<TData>()
+            var commandSession = new CommandSession()
             {
-                CommandQuery = commandInfo.GetCommandQuery(),
+                CommandQuery = nextCommandDescriptor.GetCommandQuery(),
                 OpenedAt = now,
                 TelegramChatId = chatId,
                 TelegramUserId = telegramUserId,
                 ExpiredAt = now.AddMinutes(sessionTimeInMinutes),
-                Data = data
+                Data = sessionData
             };
             await _sessionsStore.CreateSession(commandSession);
             return commandSession;
         }
 
-        public async Task<CommandSession<TData>> ContinueSession<TNextCommand, TQuery, TData>(long chatId,
+        public async Task<CommandSession> ContinueSession(
+            ITelegramCommandDescriptor nextCommandDescriptor, long chatId,
             long telegramUserId)
-            where TNextCommand : ITelegramCommand<TQuery>
         {
-            var session = GetCurrentSession(chatId, telegramUserId) as CommandSession<TData>;
+            var session = GetCurrentSession(chatId, telegramUserId) as CommandSession;
             if (!SessionIsNotExpired(session) || session == null)
                 throw new TelegramException("Session has been released");
 
-            var commandDescriptor = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
-            session.CommandQuery = commandDescriptor.GetCommandQuery();
+            session.CommandQuery = nextCommandDescriptor.GetCommandQuery();
             session.ExpiredAt = session.ExpiredAt.AddMinutes(10);
             await _sessionsStore.UpdateSession(session);
             return session;
         }
 
-        public CommandSession<TData> GetSession<TCommand, TQuery, TData>(int chatId, long telegramUserId)
+        public CommandSession GetSession<TCommand, TQuery>(long chatId, long telegramUserId)
             where TCommand : ITelegramCommand<TQuery>
         {
-            var session = (CommandSession<TData>) GetCurrentSession(chatId, telegramUserId);
+            var session = (CommandSession) GetCurrentSession(chatId, telegramUserId);
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery>();
             if (TelegramQueryExtensions.ExtractCommand(session.CommandQuery) != commandInfo.Name)
                 throw new TelegramException("Session is not consist");
             return session;
         }
 
-        private async Task ReleaseSessionInternal<TData>(CommandSession<TData> currentSession)
+        private async Task ReleaseSessionInternal(CommandSession currentSession)
         {
             currentSession.ExpiredAt = _clock.Now;
             await _sessionsStore.UpdateSession(currentSession);
         }
 
-        public async Task ReleaseSessionIfExists<TData>(long chatId, long telegramUserId)
+        public async Task ReleaseSessionIfExists(long chatId, long telegramUserId)
         {
             var currentSession = GetCurrentSession(chatId, telegramUserId);
             if (currentSession != null)
-                await ReleaseSessionInternal(currentSession as CommandSession<TData>);
+                await ReleaseSessionInternal(currentSession as CommandSession);
         }
     }
 }

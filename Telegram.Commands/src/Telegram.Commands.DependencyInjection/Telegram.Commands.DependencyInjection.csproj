@@ -12,7 +12,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Telegram.Commands.Core\Telegram.Commands.Core.csproj" />
-      <ProjectReference Include="..\Telegram.Commands.Sessions\Telegram.Commands.Sessions.csproj" />
     </ItemGroup>
 
 </Project>
