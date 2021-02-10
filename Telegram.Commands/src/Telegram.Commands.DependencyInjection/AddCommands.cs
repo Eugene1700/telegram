@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
+using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Models;

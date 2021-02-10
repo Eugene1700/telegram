@@ -3,6 +3,7 @@ using System.Reflection;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.Payments;
+using Telegram.Commands.Abstract;
 
 namespace Telegram.Commands.Core
 {

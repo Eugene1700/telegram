@@ -1,10 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace Telegram.Commands.Abstract.Interfaces
 {
-    public interface ITelegramCommand<in T>
+    public interface ITelegramCommand<in TQuery>
     {
-        Task<object> Execute(T query);
-        
+        Task<ITelegramCommandExecutionResult> Execute(TQuery query);
     }
 }

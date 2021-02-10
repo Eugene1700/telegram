@@ -21,7 +21,7 @@ namespace Telegram.Commands.Core.Services
         private readonly SessionManager _sessionManager;
 
         public TelegramCommandService(ITelegramBotClient telegramClient,
-            ITelegramCommandFactory commandFactory, 
+            ITelegramCommandFactory commandFactory,
             IAuthProvider authProvider,
             SessionManager sessionManager)
         {
@@ -70,20 +70,33 @@ namespace Telegram.Commands.Core.Services
                 (commandDescriptor,command) = await GetCommand(query);
                 if (command != null)
                 {
-                    var data = await command.Execute(query);
-                    if (commandDescriptor.Chain != CommandChain.None)
+                    var commandExecutionResult = await command.Execute(query);
+                    if (commandExecutionResult.Result == ExecuteResult.Freeze)
+                        return;
+
+                    if (commandExecutionResult.Result == ExecuteResult.Break)
+                    {
+                        await _sessionManager.ReleaseSessionIfExists(chatId, userId);
+                        return;
+                    }
+
+                    if (commandExecutionResult.Result == ExecuteResult.Ahead)
                     {
                         switch (commandDescriptor.Chain)
                         {
                             case CommandChain.StartPoint:
-                                await _sessionManager.OpenSession( GetNextCommandDescriptor(commandDescriptor), chatId, userId, data);
+                                await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor, chatId,
+                                    userId, commandExecutionResult.Data);
                                 return;
                             case CommandChain.TransitPoint:
-                                await _sessionManager.ContinueSession( GetNextCommandDescriptor(commandDescriptor), chatId,
+                                await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
+                                    chatId,
                                     userId);
                                 return;
                             case CommandChain.EndPoint:
                                 await _sessionManager.ReleaseSessionIfExists(chatId, userId);
+                                return;
+                            case CommandChain.None:
                                 return;
                             default:
                                 throw new ArgumentOutOfRangeException();
@@ -97,16 +110,6 @@ namespace Telegram.Commands.Core.Services
                 await _telegramClient.SendTextMessageAsync(message.Chat.Id, ex.Message,
                     replyToMessageId: message.MessageId);
             }
-        }
-
-        private static ITelegramCommandDescriptor GetNextCommandDescriptor(ITelegramCommandDescriptor currentCommandDescriptor)
-        {
-            var nextCommandType = FindCommandByClassName(currentCommandDescriptor.NextCommandName);
-            if (nextCommandType == null)
-                throw new InvalidOperationException(
-                    $"Next command {currentCommandDescriptor.NextCommandName} not found");
-            var nextComDesc = TelegramCommandExtensions.GetCommandInfo(nextCommandType);
-            return nextComDesc;
         }
 
         private async Task<(ITelegramCommandDescriptor, ITelegramCommand<T>)> GetCommand<T>(T query)
@@ -171,13 +174,12 @@ namespace Telegram.Commands.Core.Services
             if (sessionInfo == null) return false;
             commandStr = sessionInfo.CommandQuery;
             return true;
-
         }
 
         private static bool TryGetQueryCommandStr<T>(T query, out string commandStr)
         {
-             commandStr = query.GetData();
-             return commandStr[0] == '/';
+            commandStr = query.GetData();
+            return !string.IsNullOrWhiteSpace(commandStr) && commandStr[0] == '/';
         }
 
         private static Type FindCommandByQuery<T>(string queryString)
@@ -190,20 +192,6 @@ namespace Telegram.Commands.Core.Services
                     var attrLoc = p.GetCustomAttribute<CommandAttribute>();
                     return p.IsClass && !p.IsAbstract &&
                            comType.IsAssignableFrom(p) && attrLoc != null && attrLoc.MatchCommand(queryString);
-                });
-            return commandType;
-        }
-        
-        private static Type FindCommandByClassName(string commandClassName)
-        {
-            //todo need cache
-            var comType = typeof(ITelegramCommand<>);
-            var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
-                .SingleOrDefault(p =>
-                {
-                    var attrLoc = p.GetCustomAttribute<CommandAttribute>();
-                    return p.IsClass && !p.IsAbstract &&
-                           comType.IsAssignableFrom(p) && attrLoc != null && p.Name == commandClassName;
                 });
             return commandType;
         }

@@ -1,9 +1,9 @@
 ﻿using System;
 using Telegram.Commands.Abstract.Interfaces;
 
-namespace Telegram.Commands.Abstract
+namespace Telegram.Commands.Core.Models
 {
-    public class CommandSession : ISessionInfo
+    internal class CommandSession : ISessionInfo
     {
         public string CommandQuery { get; set; }
         public DateTime OpenedAt { get; set; }
