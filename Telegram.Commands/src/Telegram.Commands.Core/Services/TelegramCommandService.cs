@@ -126,6 +126,8 @@ namespace Telegram.Commands.Core.Services
 
             var commandInfo = TelegramCommandExtensions.GetCommandInfo(commandType);
 
+            AssertChatType(query, commandInfo);
+
             switch (commandInfo.Permission)
             {
                 case Permissions.Guest:
@@ -155,6 +157,34 @@ namespace Telegram.Commands.Core.Services
 
             var com = await _commandFactory.GetCommand(query, commandType);
             return (commandInfo, com);
+        }
+
+        private void AssertChatType<T>(T query, ITelegramCommandDescriptor commandInfo)
+        {
+            if (commandInfo == null) 
+                throw new ArgumentNullException(nameof(commandInfo));
+            var chatType = query.GetChatType();
+            switch (chatType)
+            {
+                case ChatType.Private:
+                    if ((commandInfo.Area & ChatArea.Private) != ChatArea.Private)
+                        throw new TelegramException("This command is not for private chat");
+                    return;
+                case ChatType.Group:
+                    if ((commandInfo.Area & ChatArea.Group) != ChatArea.Group)
+                        throw new TelegramException("This command is not for group");
+                    return;
+                case ChatType.Channel:
+                    if ((commandInfo.Area & ChatArea.Channel) != ChatArea.Channel)
+                        throw new TelegramException("This command is not for channel");
+                    return;
+                case ChatType.Supergroup:
+                    if ((commandInfo.Area & ChatArea.SuperGroup) != ChatArea.SuperGroup)
+                        throw new TelegramException("This command is not for supergroup");
+                    return;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private static bool QueryIsCallback<T>(T query)

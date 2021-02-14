@@ -38,6 +38,29 @@ namespace Telegram.Commands.Core.Services
         {
             return AddInlineKeyboardButtons<TCommand>(new[] {callbackData});
         }
+        
+        public InlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackData[] callbackQueries)
+        {
+            if (callbackQueries.Any(x=>x.CallbackText.Length > 64))
+                throw new TelegramException("Сallback message is too long");
+
+            _buttons.AddRange(callbackQueries.Select(
+                x => new[]
+                {
+                    new InlineKeyboardButton
+                    {
+                        Text = x.Text,
+                        CallbackData = $"{x.CallbackText}",
+                    }
+                }
+            ).ToArray());
+            return this;
+        }
+
+        public InlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackData callbackData)
+        {
+            return AddInlineKeyboardButton(new[] {callbackData});
+        }
 
         public IReplyMarkup GetResult()
         {

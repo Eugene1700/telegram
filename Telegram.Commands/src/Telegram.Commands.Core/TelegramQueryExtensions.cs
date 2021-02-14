@@ -41,6 +41,12 @@ namespace Telegram.Commands.Core
                 prq => prq.From.Id);
         }
         
+        public static ChatType GetChatType<T>(this T query)
+        {
+            return query.Switch(m => m.Chat.Type, cb => cb.Message.Chat.Type,
+                prq => ChatType.Private);
+        }
+        
         public static long GetChatId<T>(this Update update)
         {
             switch (update.Type)
