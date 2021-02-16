@@ -11,7 +11,65 @@ Telegram.Commands.Core.TelegramCommandService for automatic resolving telegram b
 6. From Update methods call Telegram.Commands.Core.TelegramCommandService.Handle for automatic handling commands.
 
 ## Make command
-Use CommandAttribute for your class of command and you have to implement Telegram.Commands.Abstract.Interfaces.ITelegramCommand.
+Use CommandAttribute for your class of command and you have to implement Telegram.Commands.Abstract.Interfaces.ITelegramCommand and add CommandAttribute.
+
+```
+public interface ITelegramCommand<in TQuery>
+{
+    Task<ITelegramCommandExecutionResult> Execute(TQuery query);
+}
+```
+
+### Example
+```
+//Chain = [StartPoint, TransitPoint, EndPoint]
+[Command(Name = "my", Permission = Permissions.User, Chain = CommandChain.StartPoint)]
+    public class MyCommand : ITelegramCommand<Message>
+    {
+        private readonly ITelegramBotClient _telegramClient;
+
+        public MyCommand(ITelegramBotClient telegramClient)
+        {
+            _telegramClient = telegramClient;
+        }
+        public async Task<ITelegramCommandExecutionResult> Execute(Message query)
+        {
+            var chatId = query.GetChatId();
+            if (query.Text.Contains("goOut"))
+            {
+                await _telegramClient.SendTextMessageAsync(chatId,
+                    $"Your message");
+                //End of chain
+                return TelegramCommandExecutionResult.GoOut();
+            }
+            
+            if (query.Text.Contains("ahead"))
+            {
+                await _telegramClient.SendTextMessageAsync(chatId,
+                    $"Your message");
+                //Next command of chain, you can store data between commands
+                return TelegramCommandExecutionResult.Ahead<NextCommand, Message, long>(1);
+            }
+            
+            if (query.Text.Contains("break"))
+            {
+                await _telegramClient.SendTextMessageAsync(chatId,
+                    $"Your message");
+                //interrupt execution of chain
+                return TelegramCommandExecutionResult.Break();
+            }
+            
+            if (query.Text.Contains("freeze"))
+            {
+                await _telegramClient.SendTextMessageAsync(chatId,
+                    $"Your message");
+                //freeze state of chains and you go this command again
+                return TelegramCommandExecutionResult.Freeze();
+            }
+            return TelegramCommandExecutionResult.GoOut();
+        }
+
+```
 
 # Other helpers
 
