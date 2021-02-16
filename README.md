@@ -3,7 +3,7 @@ Helpers for telegram api dotnet client, which has been implemeted in https://git
 ## How to use it
 Telegram.Commands.Core.TelegramCommandService for automatic resolving telegram bot commands for the format: ```/<command> <args>``` from update message or CallbackQuery or PreCheckoutQuery. And you can make chains of commands as state machine.
   
-1. For dotnetcore dependency injection call Telegram.Commands.DependencyInjection.TelegramDependencyExtensions.AddCommands from startup file.
+1. For dotnetcore dependency injection call Telegram.Commands.DependencyInjection.TelegramDependencyExtensions.UseTelegramCommandsServices from startup file.
 2. Implement Telegram.Commands.Abstract.IAuthProvider
 3. Implement Telegram.Commands.Abstract.ITelegramBotProfile for Webhook.
 5. Implement Telegram.Commands.Abstract.ISessionStore for chains of commands
