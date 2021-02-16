@@ -5,6 +5,7 @@
         string Key { get; set; }
         string BaseUrl { get; set; }
         string UpdateRoute { get; set; }
+        string BotName { get; set; }
         
     }
 }

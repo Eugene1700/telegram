@@ -87,7 +87,9 @@ namespace Telegram.Commands.Core
             string com = "";
             if (query[0] == '/')
             {
-                com = query.Substring(1).Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries)[0];
+                var botNameStart = query.IndexOf("@");
+                var len = botNameStart == -1 ? query.Length - 1 : botNameStart - 1;
+                com = query.Substring(1, len).Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries)[0];
             }
             return com;
         }
