@@ -136,20 +136,24 @@ namespace Telegram.Commands.Core.Services
                 case Permissions.Callback:
                 {
                     if (!QueryIsCallback(query))
+                        //todo add onlycallback exception
                         throw new TelegramException($"This command only for callbackquery");
                     break;
                 }
                 case Permissions.Session:
                     if (!fromSession)
+                        //todo add only session exception
                         throw new TelegramException("This command only for session");
                     break;
                 default:
                 {
                     var user = await _authProvider.AuthUser(query.GetFromId());
                     if (user == null)
+                        //todo auth exception
                         throw new TelegramException("User not found");
 
                     if (user.Permission < commandInfo.Permission)
+                        //todo permission exception
                         throw new TelegramException("You doesn't have permission for this command");
                     break;
                 }
@@ -168,17 +172,21 @@ namespace Telegram.Commands.Core.Services
             {
                 case ChatType.Private:
                     if ((commandInfo.Area & ChatArea.Private) != ChatArea.Private)
+                        //todo chat area exception
                         throw new TelegramException("This command is not for private chat");
                     return;
                 case ChatType.Group:
                     if ((commandInfo.Area & ChatArea.Group) != ChatArea.Group)
+                        //todo chat area exception
                         throw new TelegramException("This command is not for group");
                     return;
                 case ChatType.Channel:
                     if ((commandInfo.Area & ChatArea.Channel) != ChatArea.Channel)
+                        //todo chat area exception
                         throw new TelegramException("This command is not for channel");
                     return;
                 case ChatType.Supergroup:
+                    //todo chat area exception
                     if ((commandInfo.Area & ChatArea.SuperGroup) != ChatArea.SuperGroup)
                         throw new TelegramException("This command is not for supergroup");
                     return;
