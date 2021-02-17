@@ -8,6 +8,8 @@ namespace Telegram.Commands.Core.Models
         public object Data { get; private set; }
         public ITelegramCommandDescriptor NextCommandDescriptor { get; private set; }
         public ExecuteResult Result { get; private set; }
+        
+        public long? WaitFromChatId { get; private set; }
 
         private TelegramCommandExecutionResult()
         {
@@ -21,7 +23,21 @@ namespace Telegram.Commands.Core.Models
             {
                 Data = data,
                 Result = ExecuteResult.Ahead,
-                NextCommandDescriptor = commandInfo
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = null
+            };
+        }
+        
+        public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data, long moveToChatId)
+            where TNextCommand : ITelegramCommand<TQuery>
+        {
+            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
+            return new TelegramCommandExecutionResult
+            {
+                Data = data,
+                Result = ExecuteResult.Ahead,
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = moveToChatId
             };
         }
         

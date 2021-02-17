@@ -5,6 +5,7 @@
         public object Data { get;}
         public ITelegramCommandDescriptor NextCommandDescriptor { get;}
         public ExecuteResult Result { get;}
+        public long? WaitFromChatId { get; }
     }
 
     public enum ExecuteResult

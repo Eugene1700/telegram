@@ -19,16 +19,19 @@ namespace Telegram.Commands.Core.Services
         private readonly ITelegramCommandFactory _commandFactory;
         private readonly IAuthProvider _authProvider;
         private readonly SessionManager _sessionManager;
+        private readonly ITelegramBotProfile _telegramBotProfile;
 
         public TelegramCommandService(ITelegramBotClient telegramClient,
             ITelegramCommandFactory commandFactory,
             IAuthProvider authProvider,
-            SessionManager sessionManager)
+            SessionManager sessionManager,
+            ITelegramBotProfile telegramBotProfile)
         {
             _telegramClient = telegramClient;
             _commandFactory = commandFactory;
             _authProvider = authProvider;
             _sessionManager = sessionManager;
+            _telegramBotProfile = telegramBotProfile;
         }
 
         public async Task<TelegramResult> Handle(Update update)
@@ -82,19 +85,20 @@ namespace Telegram.Commands.Core.Services
 
                     if (commandExecutionResult.Result == ExecuteResult.Ahead)
                     {
+                        var sessionChatId = commandExecutionResult.WaitFromChatId ?? chatId;
                         switch (commandDescriptor.Chain)
                         {
                             case CommandChain.StartPoint:
-                                await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor, chatId,
+                                await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor, sessionChatId,
                                     userId, commandExecutionResult.Data);
                                 return;
                             case CommandChain.TransitPoint:
                                 await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
-                                    chatId,
+                                    sessionChatId,
                                     userId);
                                 return;
                             case CommandChain.EndPoint:
-                                await _sessionManager.ReleaseSessionIfExists(chatId, userId);
+                                await _sessionManager.ReleaseSessionIfExists(sessionChatId, userId);
                                 return;
                             case CommandChain.None:
                                 return;
@@ -119,8 +123,11 @@ namespace Telegram.Commands.Core.Services
             {
                 fromSession = true;
             }
-            else if (!TryGetQueryCommandStr(query, out commandStr))
-                throw new TelegramException("Could not extract command");
+            else if (!TryGetQueryCommandStr(query, out commandStr)) 
+                if (query.IsGroupMessage())
+                    return (null, null);
+                else
+                    throw new TelegramException("Could not extract command");
 
             var commandType = FindCommandByQuery<T>(commandStr);
 
@@ -214,10 +221,15 @@ namespace Telegram.Commands.Core.Services
             return true;
         }
 
-        private static bool TryGetQueryCommandStr<T>(T query, out string commandStr)
+        private bool TryGetQueryCommandStr<T>(T query, out string commandStr)
         {
             commandStr = query.GetData();
-            return !string.IsNullOrWhiteSpace(commandStr) && commandStr[0] == '/';
+            var isCommand = !string.IsNullOrWhiteSpace(commandStr) && commandStr[0] == '/';
+            if (!isCommand)
+                return false;
+            if (!query.IsGroupMessage()) return true;
+            var botName = _telegramBotProfile.BotName;
+            return commandStr.EndsWith($"@{botName}");
         }
 
         private static Type FindCommandByQuery<T>(string queryString)

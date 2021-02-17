@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -9,6 +10,8 @@ namespace Telegram.Commands.Core
 {
     internal static class TelegramQueryExtensions
     {
+        private static readonly ChatType[] GroupChatTypes = new [] {ChatType.Group, ChatType.Supergroup};
+
         public static Message AsMessage<T>(this T query)
         {
             return query switch
@@ -45,6 +48,11 @@ namespace Telegram.Commands.Core
         {
             return query.Switch(m => m.Chat.Type, cb => cb.Message.Chat.Type,
                 prq => ChatType.Private);
+        }
+        
+        public static bool IsGroupMessage<T>(this T query)
+        {
+            return GroupChatTypes.Contains(query.GetChatType());
         }
         
         public static long GetChatId<T>(this Update update)

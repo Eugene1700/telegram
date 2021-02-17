@@ -44,7 +44,7 @@ namespace Telegram.Commands.Core
         {
             var commandAttr = comamndType?.GetCustomAttribute<CommandAttribute>();
             if (commandAttr == null)
-                throw new TelegramException("Unknown Command for store");
+                throw new TelegramException("Unknown Command");
             return commandAttr;
         }
         
