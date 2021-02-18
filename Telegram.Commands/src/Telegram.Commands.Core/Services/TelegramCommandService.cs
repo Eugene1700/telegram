@@ -70,7 +70,7 @@ namespace Telegram.Commands.Core.Services
                 var userId = query.GetFromId();
                 ITelegramCommandDescriptor commandDescriptor;
                 ITelegramCommand<T> command;
-                (commandDescriptor,command) = await GetCommand(query);
+                (commandDescriptor, command) = await GetCommand(query);
                 if (command != null)
                 {
                     var commandExecutionResult = await command.Execute(query);
@@ -89,11 +89,13 @@ namespace Telegram.Commands.Core.Services
                         switch (commandDescriptor.Chain)
                         {
                             case CommandChain.StartPoint:
-                                await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor, sessionChatId,
+                                await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor,
+                                    sessionChatId,
                                     userId, commandExecutionResult.Data);
                                 return;
                             case CommandChain.TransitPoint:
                                 await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
+                                    chatId,
                                     sessionChatId,
                                     userId);
                                 return;
@@ -123,7 +125,7 @@ namespace Telegram.Commands.Core.Services
             {
                 fromSession = true;
             }
-            else if (!TryGetQueryCommandStr(query, out commandStr)) 
+            else if (!TryGetQueryCommandStr(query, out commandStr))
                 if (query.IsGroupMessage())
                     return (null, null);
                 else
@@ -138,7 +140,7 @@ namespace Telegram.Commands.Core.Services
             switch (commandInfo.Permission)
             {
                 case Permissions.Guest:
-                    var command =  await _commandFactory.GetCommand(query, commandType);
+                    var command = await _commandFactory.GetCommand(query, commandType);
                     return (commandInfo, command);
                 case Permissions.Callback:
                 {
@@ -172,7 +174,7 @@ namespace Telegram.Commands.Core.Services
 
         private void AssertChatType<T>(T query, ITelegramCommandDescriptor commandInfo)
         {
-            if (commandInfo == null) 
+            if (commandInfo == null)
                 throw new ArgumentNullException(nameof(commandInfo));
             var chatType = query.GetChatType();
             switch (chatType)

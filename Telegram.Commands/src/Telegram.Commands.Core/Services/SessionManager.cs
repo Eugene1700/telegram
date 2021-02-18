@@ -50,15 +50,15 @@ namespace Telegram.Commands.Core.Services
         }
 
         public async Task<ISessionInfo> ContinueSession(
-            ITelegramCommandDescriptor nextCommandDescriptor, long chatId,
+            ITelegramCommandDescriptor nextCommandDescriptor, long chatIdFrom, long chatIdTo,
             long telegramUserId)
         {
-            var session = GetCurrentSession(chatId, telegramUserId);
+            var session = GetCurrentSession(chatIdFrom, telegramUserId);
             if (!SessionIsNotExpired(session) || session == null)
                 throw new TelegramException("Session has been released");
 
             var ses = CreateCommandSession(session, session.ExpiredAt.AddMinutes(10),
-                nextCommandDescriptor.GetCommandQuery());
+                nextCommandDescriptor.GetCommandQuery(), chatIdTo);
             await _sessionsStore.UpdateSession(ses);
             return ses;
         }
@@ -75,18 +75,19 @@ namespace Telegram.Commands.Core.Services
 
         private async Task ReleaseSessionInternal(ISessionInfo currentSession)
         {
-            var commandSession = CreateCommandSession(currentSession, _clock.Now, currentSession.CommandQuery);
+            var commandSession = CreateCommandSession(currentSession, _clock.Now, currentSession.CommandQuery,
+                currentSession.TelegramChatId);
             await _sessionsStore.UpdateSession(commandSession);
         }
 
         private CommandSession CreateCommandSession(ISessionInfo currentSession, DateTime expiredAt,
-            string commandQuery)
+            string commandQuery, long chatId)
         {
             return new CommandSession
             {
                 CommandQuery = commandQuery,
                 OpenedAt = currentSession.OpenedAt,
-                TelegramChatId = currentSession.TelegramChatId,
+                TelegramChatId = chatId,
                 TelegramUserId = currentSession.TelegramUserId,
                 ExpiredAt = expiredAt,
                 Data = currentSession.Data
