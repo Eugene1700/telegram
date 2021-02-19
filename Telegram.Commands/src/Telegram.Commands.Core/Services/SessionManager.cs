@@ -59,7 +59,7 @@ namespace Telegram.Commands.Core.Services
 
             var ses = CreateCommandSession(session, session.ExpiredAt.AddMinutes(10),
                 nextCommandDescriptor.GetCommandQuery(), chatIdTo);
-            await _sessionsStore.UpdateSession(ses);
+            await _sessionsStore.UpdateSession(ses, chatIdFrom);
             return ses;
         }
 
@@ -77,7 +77,7 @@ namespace Telegram.Commands.Core.Services
         {
             var commandSession = CreateCommandSession(currentSession, _clock.Now, currentSession.CommandQuery,
                 currentSession.TelegramChatId);
-            await _sessionsStore.UpdateSession(commandSession);
+            await _sessionsStore.UpdateSession(commandSession, currentSession.TelegramChatId);
         }
 
         private CommandSession CreateCommandSession(ISessionInfo currentSession, DateTime expiredAt,
