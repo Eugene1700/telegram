@@ -4,6 +4,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Core.Exceptions;
 
 namespace Telegram.Commands.Core
 {
@@ -44,7 +45,7 @@ namespace Telegram.Commands.Core
         {
             var commandAttr = comamndType?.GetCustomAttribute<CommandAttribute>();
             if (commandAttr == null)
-                throw new TelegramException("Unknown Command");
+                throw new TelegramExtractionCommandException("Unknown Command");
             return commandAttr;
         }
         

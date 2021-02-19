@@ -3,6 +3,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Linq;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Core.Exceptions;
 
 namespace Telegram.Commands.Core.Services
 {
@@ -19,7 +20,7 @@ namespace Telegram.Commands.Core.Services
         {
             var callbackCommandName = TelegramCommandExtensions.GetCommandInfo<TCommand, CallbackQuery>().Name;
             if (callbackQueries.Any(x=>x.CallbackText.Length > 64 - callbackCommandName.Length - 2))
-                throw new TelegramException("Сallback message is too long");
+                throw new TelegramCommandsInternalException("Сallback message is too long");
 
             _buttons.AddRange(callbackQueries.Select(
                 x => new[]
@@ -42,7 +43,7 @@ namespace Telegram.Commands.Core.Services
         public InlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackData[] callbackQueries)
         {
             if (callbackQueries.Any(x=>x.CallbackText.Length > 64))
-                throw new TelegramException("Сallback message is too long");
+                throw new TelegramCommandsInternalException("Сallback message is too long");
 
             _buttons.AddRange(callbackQueries.Select(
                 x => new[]

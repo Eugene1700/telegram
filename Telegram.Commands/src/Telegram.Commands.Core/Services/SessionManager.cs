@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Services
@@ -35,7 +36,7 @@ namespace Telegram.Commands.Core.Services
         {
             var now = _clock.Now;
             if (GetCurrentSession(chatId, telegramUserId) != null)
-                throw new TelegramException("Нельзя открывать новую сессию пока есть старая");
+                throw new TelegramCommandsInternalException("Session has been already opened");
             var commandSession = new CommandSession
             {
                 CommandQuery = nextCommandDescriptor.GetCommandQuery(),
@@ -55,7 +56,7 @@ namespace Telegram.Commands.Core.Services
         {
             var session = GetCurrentSession(chatIdFrom, telegramUserId);
             if (!SessionIsNotExpired(session) || session == null)
-                throw new TelegramException("Session has been released");
+                throw new TelegramCommandsInternalException("Session has been released");
 
             var ses = CreateCommandSession(session, session.ExpiredAt.AddMinutes(10),
                 nextCommandDescriptor.GetCommandQuery(), chatIdTo);
@@ -69,7 +70,7 @@ namespace Telegram.Commands.Core.Services
             var session = GetCurrentSession(chatId, telegramUserId);
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery>();
             if (TelegramQueryExtensions.ExtractCommand(session.CommandQuery) != commandInfo.Name)
-                throw new TelegramException("Session is not consist");
+                throw new TelegramCommandsInternalException("Session is not consist");
             return session;
         }
 
