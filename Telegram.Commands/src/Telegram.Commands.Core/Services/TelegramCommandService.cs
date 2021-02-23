@@ -97,7 +97,7 @@ namespace Telegram.Commands.Core.Services
                                 await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
                                     chatId,
                                     sessionChatId,
-                                    userId);
+                                    userId, commandExecutionResult.Data);
                                 return;
                             case CommandChain.EndPoint:
                                 await _sessionManager.ReleaseSessionIfExists(sessionChatId, userId);
