@@ -57,8 +57,14 @@ namespace Telegram.Commands.Core.Services
             if (!SessionIsNotExpired(session) || session == null)
                 throw new TelegramException("Session has been released");
 
+            var sessionToChatSession
+                = GetCurrentSession(chatIdTo, telegramUserId);
+            if (sessionToChatSession != null &&
+                sessionToChatSession.CommandQuery == nextCommandDescriptor.GetCommandQuery())
+                throw new TelegramException("You must complete session in next chat");
             var ses = CreateCommandSession(session, session.ExpiredAt.AddMinutes(10),
                 nextCommandDescriptor.GetCommandQuery(), chatIdTo, sessionData);
+            
             await _sessionsStore.UpdateSession(ses, chatIdFrom);
             return ses;
         }
