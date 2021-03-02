@@ -52,5 +52,10 @@ namespace Telegram.Commands.Core
         {
             return $"/{commandInfo.Name}";
         }
+        
+        public static string GetCommandQuery<TCommand>() where TCommand : ITelegramCommand<Message>
+        {
+            return GetCommandInfo<TCommand, Message>().GetCommandQuery();
+        }
     }
 }
