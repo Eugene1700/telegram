@@ -10,12 +10,13 @@ namespace Telegram.Commands.Core.Models
         public ExecuteResult Result { get; private set; }
         
         public long? WaitFromChatId { get; private set; }
+        public uint SessionDurationInSec { get; private set; }
 
         private TelegramCommandExecutionResult()
         {
             
         }
-        public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data)
+        public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data, uint sessionDurationInSec = 600)
             where TNextCommand : ITelegramCommand<TQuery>
         {
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
@@ -24,11 +25,12 @@ namespace Telegram.Commands.Core.Models
                 Data = data,
                 Result = ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,
-                WaitFromChatId = null
+                WaitFromChatId = null,
+                SessionDurationInSec = sessionDurationInSec
             };
         }
         
-        public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data, long moveToChatId)
+        public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data, long moveToChatId, uint sessionDurationInSec = 600)
             where TNextCommand : ITelegramCommand<TQuery>
         {
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
@@ -37,7 +39,8 @@ namespace Telegram.Commands.Core.Models
                 Data = data,
                 Result = ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,
-                WaitFromChatId = moveToChatId
+                WaitFromChatId = moveToChatId,
+                SessionDurationInSec = sessionDurationInSec
             };
         }
         

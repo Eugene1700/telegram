@@ -91,13 +91,13 @@ namespace Telegram.Commands.Core.Services
                             case CommandChain.StartPoint:
                                 await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor,
                                     sessionChatId,
-                                    userId, commandExecutionResult.Data);
+                                    userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
                                 return;
                             case CommandChain.TransitPoint:
                                 await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
                                     chatId,
                                     sessionChatId,
-                                    userId, commandExecutionResult.Data);
+                                    userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
                                 return;
                             case CommandChain.EndPoint:
                                 await _sessionManager.ReleaseSessionIfExists(sessionChatId, userId);
