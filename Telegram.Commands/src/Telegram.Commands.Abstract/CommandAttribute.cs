@@ -21,10 +21,10 @@ namespace Telegram.Commands.Abstract
     [Flags]
     public enum ChatArea
     {
-        Private,
-        Group,
-        Channel,
-        SuperGroup
+        Private = 1,
+        Group = 2,
+        Channel = 4,
+        SuperGroup = 8
     }
 
     public enum CommandChain
