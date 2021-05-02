@@ -69,46 +69,42 @@ namespace Telegram.Commands.Core.Services
             {
                 var chatId = query.GetChatId();
                 var userId = query.GetFromId();
-                ITelegramCommandDescriptor commandDescriptor;
                 ITelegramCommand<T> command;
-                (commandDescriptor, command) = await GetCommand(query);
+                (_, command) = await GetCommand(query);
                 if (command != null)
                 {
                     var commandExecutionResult = await command.Execute(query);
                     if (commandExecutionResult.Result == ExecuteResult.Freeze)
                         return;
 
+                    var sessionChatId = commandExecutionResult.WaitFromChatId ?? chatId;
                     if (commandExecutionResult.Result == ExecuteResult.Break)
                     {
-                        await _sessionManager.ReleaseSessionIfExists(chatId, userId);
+                        await _sessionManager.ReleaseSessionIfExists(sessionChatId, userId);
                         return;
                     }
 
+                    var activeSession = _sessionManager.GetCurrentSession(sessionChatId, userId);
                     if (commandExecutionResult.Result == ExecuteResult.Ahead)
                     {
-                        var sessionChatId = commandExecutionResult.WaitFromChatId ?? chatId;
-                        switch (commandDescriptor.Chain)
+                        if (activeSession == null)
                         {
-                            case CommandChain.StartPoint:
-                                await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor,
-                                    sessionChatId,
-                                    userId, commandExecutionResult.Data);
-                                return;
-                            case CommandChain.TransitPoint:
-                                await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
-                                    chatId,
-                                    sessionChatId,
-                                    userId);
-                                return;
-                            case CommandChain.EndPoint:
-                                await _sessionManager.ReleaseSessionIfExists(sessionChatId, userId);
-                                return;
-                            case CommandChain.None:
-                                return;
-                            default:
-                                throw new ArgumentOutOfRangeException();
+                            await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor,
+                                sessionChatId,
+                                userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
+                            return;
                         }
+                        
+                        await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
+                            chatId,
+                            sessionChatId,
+                            userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
+
+                        return;
                     }
+
+                    throw new ArgumentOutOfRangeException(nameof(commandExecutionResult.Result),
+                        commandExecutionResult.Result.ToString());
                 }
             }
             catch (TelegramDomainException ex)

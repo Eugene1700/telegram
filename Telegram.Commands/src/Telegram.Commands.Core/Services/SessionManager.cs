@@ -32,7 +32,7 @@ namespace Telegram.Commands.Core.Services
 
         public async Task<CommandSession> OpenSession(ITelegramCommandDescriptor nextCommandDescriptor, long chatId,
             long telegramUserId, object sessionData,
-            int sessionTimeInMinutes = 10)
+            uint sessionTimeInSec = 600)
         {
             var now = _clock.Now;
             if (GetCurrentSession(chatId, telegramUserId) != null)
@@ -43,7 +43,7 @@ namespace Telegram.Commands.Core.Services
                 OpenedAt = now,
                 TelegramChatId = chatId,
                 TelegramUserId = telegramUserId,
-                ExpiredAt = now.AddMinutes(sessionTimeInMinutes),
+                ExpiredAt = now.AddSeconds(sessionTimeInSec),
                 Data = sessionData
             };
             await _sessionsStore.CreateSession(commandSession);
@@ -52,14 +52,21 @@ namespace Telegram.Commands.Core.Services
 
         public async Task<ISessionInfo> ContinueSession(
             ITelegramCommandDescriptor nextCommandDescriptor, long chatIdFrom, long chatIdTo,
-            long telegramUserId)
+            long telegramUserId, object sessionData,
+            uint sessionTimeInSec = 600)
         {
             var session = GetCurrentSession(chatIdFrom, telegramUserId);
             if (!SessionIsNotExpired(session) || session == null)
                 throw new TelegramCommandsInternalException("Session has been released");
 
-            var ses = CreateCommandSession(session, session.ExpiredAt.AddMinutes(10),
-                nextCommandDescriptor.GetCommandQuery(), chatIdTo);
+            var sessionToChatSession
+                = GetCurrentSession(chatIdTo, telegramUserId);
+            if (sessionToChatSession != null &&
+                sessionToChatSession.CommandQuery == nextCommandDescriptor.GetCommandQuery())
+                throw new TelegramException("You must complete session in next chat");
+            var ses = CreateCommandSession(session, session.ExpiredAt.AddSeconds(sessionTimeInSec),
+                nextCommandDescriptor.GetCommandQuery(), chatIdTo, sessionData);
+            
             await _sessionsStore.UpdateSession(ses, chatIdFrom);
             return ses;
         }
@@ -77,12 +84,12 @@ namespace Telegram.Commands.Core.Services
         private async Task ReleaseSessionInternal(ISessionInfo currentSession)
         {
             var commandSession = CreateCommandSession(currentSession, _clock.Now, currentSession.CommandQuery,
-                currentSession.TelegramChatId);
+                currentSession.TelegramChatId, currentSession.Data);
             await _sessionsStore.UpdateSession(commandSession, currentSession.TelegramChatId);
         }
 
         private CommandSession CreateCommandSession(ISessionInfo currentSession, DateTime expiredAt,
-            string commandQuery, long chatId)
+            string commandQuery, long chatId, object sessionData)
         {
             return new CommandSession
             {
@@ -91,7 +98,7 @@ namespace Telegram.Commands.Core.Services
                 TelegramChatId = chatId,
                 TelegramUserId = currentSession.TelegramUserId,
                 ExpiredAt = expiredAt,
-                Data = currentSession.Data
+                Data = sessionData
             };
         }
 
