@@ -63,7 +63,7 @@ namespace Telegram.Commands.Core.Services
                 = GetCurrentSession(chatIdTo, telegramUserId);
             if (sessionToChatSession != null &&
                 sessionToChatSession.CommandQuery == nextCommandDescriptor.GetCommandQuery())
-                throw new TelegramException("You must complete session in next chat");
+                throw new TelegramCommandsInternalException("You must complete session in next chat");
             var ses = CreateCommandSession(session, session.ExpiredAt.AddSeconds(sessionTimeInSec),
                 nextCommandDescriptor.GetCommandQuery(), chatIdTo, sessionData);
             
@@ -88,7 +88,7 @@ namespace Telegram.Commands.Core.Services
             await _sessionsStore.UpdateSession(commandSession, currentSession.TelegramChatId);
         }
 
-        private CommandSession CreateCommandSession(ISessionInfo currentSession, DateTime expiredAt,
+        private static CommandSession CreateCommandSession(ISessionInfo currentSession, DateTime expiredAt,
             string commandQuery, long chatId, object sessionData)
         {
             return new CommandSession

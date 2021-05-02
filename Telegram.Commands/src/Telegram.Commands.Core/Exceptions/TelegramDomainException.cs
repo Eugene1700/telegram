@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Telegram.Commands.Core
+namespace Telegram.Commands.Core.Exceptions
 {
     public class TelegramDomainException : Exception
     {

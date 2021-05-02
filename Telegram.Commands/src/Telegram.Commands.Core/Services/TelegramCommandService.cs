@@ -117,6 +117,7 @@ namespace Telegram.Commands.Core.Services
 
         private async Task<(ITelegramCommandDescriptor, ITelegramCommand<T>)> GetCommand<T>(T query)
         {
+            var chatId = query.GetChatId();
             var fromSession = false;
             if (TryGetSessionCommandStr(query, out var commandStr))
             {
@@ -126,11 +127,15 @@ namespace Telegram.Commands.Core.Services
                 if (query.IsGroupMessage())
                     return (null, null);
                 else
-                    throw new TelegramExtractionCommandException("Could not extract command");
+                    throw new TelegramExtractionCommandException("Could not extract command", chatId);
 
             var commandType = FindCommandByQuery<T>(commandStr);
 
             var commandInfo = TelegramCommandExtensions.GetCommandInfo(commandType);
+            if (commandInfo == null)
+            {
+                throw new TelegramExtractionCommandException("Command without attribute", chatId);
+            }
 
             AssertChatType(query, commandInfo);
 
@@ -142,21 +147,21 @@ namespace Telegram.Commands.Core.Services
                 case Permissions.Callback:
                 {
                     if (!QueryIsCallback(query))
-                        throw new TelegramCommandsPermissionException($"This command only for callbackquery");
+                        throw new TelegramCommandsPermissionException($"This command only for callbackquery", chatId);
                     break;
                 }
                 case Permissions.Session:
                     if (!fromSession)
-                        throw new TelegramCommandsPermissionException("This command only for session");
+                        throw new TelegramCommandsPermissionException("This command only for session", chatId);
                     break;
                 default:
                 {
                     var user = await _authProvider.AuthUser(query.GetFromId());
                     if (user == null)
-                        throw new TelegramCommandsPermissionException("User not found");
+                        throw new TelegramCommandsPermissionException("User not found", chatId);
 
                     if (user.Permission < commandInfo.Permission)
-                        throw new TelegramCommandsPermissionException("You don't have permission for this command");
+                        throw new TelegramCommandsPermissionException("You don't have permission for this command", chatId);
                     break;
                 }
             }
@@ -170,23 +175,24 @@ namespace Telegram.Commands.Core.Services
             if (commandInfo == null)
                 throw new ArgumentNullException(nameof(commandInfo));
             var chatType = query.GetChatType();
+            var chatId = query.GetChatId();
             switch (chatType)
             {
                 case ChatType.Private:
                     if ((commandInfo.Area & ChatArea.Private) != ChatArea.Private)
-                        throw new TelegramCommandsChatAreException("This command is not for private chat");
+                        throw new TelegramCommandsChatAreaException("This command is not for private chat", chatId);
                     return;
                 case ChatType.Group:
                     if ((commandInfo.Area & ChatArea.Group) != ChatArea.Group)
-                        throw new TelegramCommandsChatAreException("This command is not for group");
+                        throw new TelegramCommandsChatAreaException("This command is not for group", chatId);
                     return;
                 case ChatType.Channel:
                     if ((commandInfo.Area & ChatArea.Channel) != ChatArea.Channel)
-                        throw new TelegramCommandsChatAreException("This command is not for channel");
+                        throw new TelegramCommandsChatAreaException("This command is not for channel", chatId);
                     return;
                 case ChatType.Supergroup:
                     if ((commandInfo.Area & ChatArea.SuperGroup) != ChatArea.SuperGroup)
-                        throw new TelegramCommandsChatAreException("This command is not for supergroup");
+                        throw new TelegramCommandsChatAreaException("This command is not for supergroup", chatId);
                     return;
                 default:
                     throw new ArgumentOutOfRangeException();

@@ -41,12 +41,9 @@ namespace Telegram.Commands.Core
             return GetCommandInfo(typeof(TCommand));
         }
 
-        public static ITelegramCommandDescriptor GetCommandInfo(Type comamndType)
+        public static ITelegramCommandDescriptor GetCommandInfo(Type commandType)
         {
-            var commandAttr = comamndType?.GetCustomAttribute<CommandAttribute>();
-            if (commandAttr == null)
-                throw new TelegramExtractionCommandException("Unknown Command");
-            return commandAttr;
+            return commandType?.GetCustomAttribute<CommandAttribute>();
         }
         
         public static string GetCommandQuery(this ITelegramCommandDescriptor commandInfo)

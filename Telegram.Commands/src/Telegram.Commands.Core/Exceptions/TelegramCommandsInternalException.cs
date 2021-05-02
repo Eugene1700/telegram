@@ -1,4 +1,5 @@
 ﻿using System;
+using Telegram.Bot.Types;
 
 namespace Telegram.Commands.Core.Exceptions
 {
