@@ -63,15 +63,5 @@ namespace Telegram.Commands.Core.Models
                 NextCommandDescriptor = null
             };
         }
-        
-        public static TelegramCommandExecutionResult GoOut()
-        {
-            return new TelegramCommandExecutionResult
-            {
-                Data = null,
-                Result = ExecuteResult.Ahead,
-                NextCommandDescriptor = null
-            };
-        }
     }
 }

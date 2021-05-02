@@ -6,14 +6,12 @@ namespace Telegram.Commands.Abstract
     {
         public string Name { get; set; }
         public Permissions Permission { get; set; }
-        public CommandChain Chain { get; set; }
 
         public ChatArea Area { get; set; }
 
         public CommandAttribute()
         {
             Permission = Permissions.User;
-            Chain = CommandChain.None;
             Area = ChatArea.Private;
         }
     }
@@ -27,19 +25,10 @@ namespace Telegram.Commands.Abstract
         SuperGroup = 8
     }
 
-    public enum CommandChain
-    {
-        None,
-        StartPoint,
-        TransitPoint,
-        EndPoint
-    }
-
     public interface ITelegramCommandDescriptor
     {
         string Name { get; }
         Permissions Permission { get;}
-        CommandChain Chain { get; }
         public ChatArea Area { get; set; }
     }
 }
