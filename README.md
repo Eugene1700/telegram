@@ -22,8 +22,7 @@ public interface ITelegramCommand<in TQuery>
 
 ### Example
 ```
-//Chain = [StartPoint, TransitPoint, EndPoint]
-[Command(Name = "my", Permission = Permissions.User, Chain = CommandChain.StartPoint)]
+[Command(Name = "my", Permission = Permissions.User)]
     public class MyCommand : ITelegramCommand<Message>
     {
         private readonly ITelegramBotClient _telegramClient;
@@ -35,13 +34,6 @@ public interface ITelegramCommand<in TQuery>
         public async Task<ITelegramCommandExecutionResult> Execute(Message query)
         {
             var chatId = query.GetChatId();
-            if (query.Text.Contains("goOut"))
-            {
-                await _telegramClient.SendTextMessageAsync(chatId,
-                    $"Your message");
-                //End of chain
-                return TelegramCommandExecutionResult.GoOut();
-            }
             
             if (query.Text.Contains("ahead"))
             {
