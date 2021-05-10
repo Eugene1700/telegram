@@ -67,7 +67,10 @@ public class MyCommand : ITelegramCommand<Message>
 ## Permissions
 
 ## Chat type contraction
+
 ## Reactions
+
+## Exceptions
 
 # Other helpers
 
