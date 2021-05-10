@@ -23,43 +23,45 @@ public interface ITelegramCommand<in TQuery>
 ### Example
 ```
 [Command(Name = "my", Permission = Permissions.User)]
-    public class MyCommand : ITelegramCommand<Message>
-    {
-        private readonly ITelegramBotClient _telegramClient;
+public class MyCommand : ITelegramCommand<Message>
+{
+    private readonly ITelegramBotClient _telegramClient;
 
-        public MyCommand(ITelegramBotClient telegramClient)
+    public MyCommand(ITelegramBotClient telegramClient)
+    {
+        _telegramClient = telegramClient;
+    }
+    public async Task<ITelegramCommandExecutionResult> Execute(Message query)
+    {
+        var chatId = query.GetChatId();
+
+        if (query.Text.Contains("ahead"))
         {
-            _telegramClient = telegramClient;
+            await _telegramClient.SendTextMessageAsync(chatId,
+                $"Your message");
+            //Next command of chain, you can store data between commands
+            return TelegramCommandExecutionResult.Ahead<NextCommand, Message, long>(1);
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(Message query)
+
+        if (query.Text.Contains("break"))
         {
-            var chatId = query.GetChatId();
-            
-            if (query.Text.Contains("ahead"))
-            {
-                await _telegramClient.SendTextMessageAsync(chatId,
-                    $"Your message");
-                //Next command of chain, you can store data between commands
-                return TelegramCommandExecutionResult.Ahead<NextCommand, Message, long>(1);
-            }
-            
-            if (query.Text.Contains("break"))
-            {
-                await _telegramClient.SendTextMessageAsync(chatId,
-                    $"Your message");
-                //interrupt execution of chain
-                return TelegramCommandExecutionResult.Break();
-            }
-            
-            if (query.Text.Contains("freeze"))
-            {
-                await _telegramClient.SendTextMessageAsync(chatId,
-                    $"Your message");
-                //freeze state of chains and you go this command again
-                return TelegramCommandExecutionResult.Freeze();
-            }
-            return TelegramCommandExecutionResult.GoOut();
+            await _telegramClient.SendTextMessageAsync(chatId,
+                $"Your message");
+            //interrupt execution of chain
+            return TelegramCommandExecutionResult.Break();
         }
+
+        if (query.Text.Contains("freeze"))
+        {
+            await _telegramClient.SendTextMessageAsync(chatId,
+                $"Your message");
+            //freeze state of chains and you go this command again
+            return TelegramCommandExecutionResult.Freeze();
+        }
+        throw new TelegramDomainException("You have to input an action");
+    }
+}
+    
 
 ```
 
