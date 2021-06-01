@@ -5,6 +5,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.Payments;
 using Telegram.Commands.Abstract;
+using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core
 {
@@ -100,6 +101,13 @@ namespace Telegram.Commands.Core
                 com = query.Substring(1, len).Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries)[0];
             }
             return com;
+        }
+
+        public static bool MatchReaction(this ITelegramCommandDescriptor descriptor, 
+            ITelegramCommandDescriptor currentCommandInfo)
+        {
+            return descriptor.Reaction != null && descriptor.Reaction.Any(x =>
+                TelegramCommandExtensions.GetCommandInfo(x).Name == currentCommandInfo.Name);
         }
     }
 }

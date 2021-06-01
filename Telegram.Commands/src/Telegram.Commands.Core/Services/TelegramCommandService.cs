@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -128,15 +126,8 @@ namespace Telegram.Commands.Core.Services
                     return (null, null);
                 else
                     throw new TelegramExtractionCommandException("Could not extract command", chatId);
-
-            var commandType = FindCommandByQuery<T>(commandStr);
-
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo(commandType);
-            if (commandInfo == null)
-            {
-                throw new TelegramExtractionCommandException("Command without attribute", chatId);
-            }
-
+            
+            var (commandInfo, commandType) = GetCommandInfo(query, commandStr, chatId, fromSession);
             AssertChatType(query, commandInfo);
 
             switch (commandInfo.Permission)
@@ -168,6 +159,33 @@ namespace Telegram.Commands.Core.Services
 
             var com = await _commandFactory.GetCommand(query, commandType);
             return (commandInfo, com);
+        }
+
+        private (ITelegramCommandDescriptor,Type) GetCommandInfo<T>(T query, string commandStr, long chatId, bool fromSession)
+        {
+            var commandType = FindCommandByQuery(commandStr);
+            var commandInfo = TelegramCommandExtensions.GetCommandInfo(commandType);
+            if (commandInfo == null)
+            {
+                throw new TelegramExtractionCommandException("Command without attribute", chatId);
+            }
+
+            if (!fromSession || !TryGetQueryCommandStr(query, out var currentCommandStr))
+                return (commandInfo, commandType);
+            
+            var currentCommandType = FindCommandByQuery(currentCommandStr);
+            var currentCommandInfo = TelegramCommandExtensions.GetCommandInfo(currentCommandType);
+            if (currentCommandInfo == null)
+            {
+                throw new TelegramExtractionCommandException("Command without attribute", chatId);
+            }
+
+            if (commandInfo.MatchReaction(currentCommandInfo))
+            {
+                return (currentCommandInfo, currentCommandType);
+            }
+
+            return (commandInfo,commandType);
         }
 
         private static void AssertChatType<T>(T query, ITelegramCommandDescriptor commandInfo)
@@ -229,17 +247,17 @@ namespace Telegram.Commands.Core.Services
             return commandStr.EndsWith($"@{botName}");
         }
 
-        private static Type FindCommandByQuery<T>(string queryString)
+        private static Type FindCommandByQuery(string queryString)
         {
             //todo need cache
-            var comType = typeof(ITelegramCommand<T>);
+            // var comType = typeof(ITelegramCommand<T>);
             var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
                 .SingleOrDefault(p =>
                 {
                     var attrLoc = p.GetCustomAttribute<CommandAttribute>();
-                    return p.IsClass && !p.IsAbstract &&
-                           comType.IsAssignableFrom(p) && attrLoc != null && attrLoc.MatchCommand(queryString);
+                    return p.IsClass && !p.IsAbstract && attrLoc != null && attrLoc.MatchCommand(queryString);
                 });
+            
             return commandType;
         }
     }
