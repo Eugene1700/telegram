@@ -82,7 +82,7 @@ namespace Telegram.Commands.Core.Services
                         return;
                     }
 
-                    var activeSession = _sessionManager.GetCurrentSession(sessionChatId, userId);
+                    var activeSession = _sessionManager.GetCurrentSession(chatId, userId);
                     if (commandExecutionResult.Result == ExecuteResult.Ahead)
                     {
                         if (activeSession == null)
