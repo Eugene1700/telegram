@@ -34,7 +34,7 @@ namespace Telegram.Commands.Core
             };
         }
 
-        public static int GetFromId<T>(this T query)
+        public static long GetFromId<T>(this T query)
         {
             return query.Switch(m => m.From.Id, cb => cb.From.Id, prq => prq.From.Id);
         }

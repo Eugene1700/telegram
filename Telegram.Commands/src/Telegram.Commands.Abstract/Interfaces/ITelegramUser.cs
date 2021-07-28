@@ -1,6 +1,4 @@
-﻿using Telegram.Commands.Core;
-
-namespace Telegram.Commands.Abstract.Interfaces
+﻿namespace Telegram.Commands.Abstract.Interfaces
 {
     public interface ITelegramUser
     {

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Linq;
@@ -17,10 +18,11 @@ namespace Telegram.Commands.Core.Services
             _buttons = new List<InlineKeyboardButton[]>();
         }
 
-        public InlineMarkupQueryBuilder AddInlineKeyboardButtons<TCommand>(CallbackData[] callbackQueries) where TCommand : ITelegramCommand<CallbackQuery>
+        public InlineMarkupQueryBuilder AddInlineKeyboardButtons<TCommand>(CallbackData[] callbackQueries)
+            where TCommand : ITelegramCommand<CallbackQuery>
         {
             var commandDescriptor = TelegramCommandExtensions.GetCommandInfo<TCommand, CallbackQuery>();
-            if (callbackQueries.Any(x=>x.CallbackText.Length > 64 - commandDescriptor.Name.Length - 2))
+            if (callbackQueries.Any(x => x.CallbackText.Length > 64 - commandDescriptor.Name.Length - 2))
                 throw new TelegramCommandsInternalException("Сallback message is too long");
 
             _buttons.AddRange(callbackQueries.Select(
@@ -32,16 +34,17 @@ namespace Telegram.Commands.Core.Services
             return this;
         }
 
-        public InlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand>(CallbackData callbackData) where TCommand : ITelegramCommand<CallbackQuery>
+        public InlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand>(CallbackData callbackData)
+            where TCommand : ITelegramCommand<CallbackQuery>
         {
             return AddInlineKeyboardButtons<TCommand>(new[] {callbackData});
         }
-        
+
         public InlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackData[] callbackQueries)
         {
-            if (callbackQueries.Any(x=>x.CallbackText.Length > 64))
+            if (callbackQueries.Any(x => x.CallbackText.Length > 64 && x.CallbackMode == CallbackMode.CallbackData))
                 throw new TelegramCommandsInternalException("Сallback message is too long");
-
+            
             _buttons.AddRange(callbackQueries.Select(
                 x => new[]
                 {
@@ -66,38 +69,37 @@ namespace Telegram.Commands.Core.Services
         {
             return new InlineKeyboardMarkup(_buttons);
         }
-        
+
         private InlineKeyboardButton CreateNewInlineKeyboardButton(CallbackDataWithCommand callbackDataWithCommand)
         {
             return CreateNewInlineKeyboardButton(callbackDataWithCommand, callbackDataWithCommand.CommandDescriptor);
         }
-        
-        private static InlineKeyboardButton CreateNewInlineKeyboardButton(CallbackData x, 
+
+        private static InlineKeyboardButton CreateNewInlineKeyboardButton(CallbackData x,
             ITelegramCommandDescriptor commandDescriptor = null)
         {
-            var inlineMode = x.CallbackMode.IsInline();
-            var callbackData = "";
-            if (!inlineMode)
-                callbackData = commandDescriptor == null ? x.CallbackText : $"/{commandDescriptor.Name} {x.CallbackText}";
-            var button = new InlineKeyboardButton
-            {
-                Text = x.Text,
-                CallbackData = callbackData,
-            };
-            if (!inlineMode) return button;
-            if (x.CallbackMode == CallbackMode.InlineCurrent)
-            {
-                button.SwitchInlineQueryCurrentChat = x.CallbackText;
-            }
-            else
-            {
-                button.SwitchInlineQuery = x.CallbackText;
-            }
 
-            return button;
+            switch (x.CallbackMode)
+            {
+                case CallbackMode.CallbackData:
+                    var callbackData = commandDescriptor == null
+                        ? x.CallbackText
+                        : $"/{commandDescriptor.Name} {x.CallbackText}";
+                    return InlineKeyboardButton.WithCallbackData(x.Text, callbackData);
+                case CallbackMode.InlineCurrent:
+                    return InlineKeyboardButton.WithSwitchInlineQueryCurrentChat(x.Text, x.CallbackText);
+                case CallbackMode.Inline:
+                    return InlineKeyboardButton.WithSwitchInlineQuery(x.Text, x.CallbackText);
+                case CallbackMode.Url:
+                    return InlineKeyboardButton.WithUrl(x.Text, x.CallbackText);
+                case CallbackMode.Payment:
+                    return InlineKeyboardButton.WithPayment(x.Text);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
-    
+
     public class CallbackData
     {
         public string Text { get; set; }
@@ -107,9 +109,11 @@ namespace Telegram.Commands.Core.Services
 
     public enum CallbackMode
     {
-        General = 0,
+        CallbackData = 0,
         InlineCurrent = 1,
-        Inline = 2
+        Inline = 2,
+        Url = 3,
+        Payment = 4
     }
 
     public class CallbackDataWithCommand : CallbackData
