@@ -48,6 +48,9 @@ namespace Telegram.Commands.Core.Services
                     case UpdateType.PreCheckoutQuery:
                         await QueryHandler(update.PreCheckoutQuery);
                         break;
+                    case UpdateType.MyChatMember:
+                        await QueryHandler(update.MyChatMember);
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -61,14 +64,44 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
+        private Task<ITelegramCommand<T>> GetEvent<T>(T query)
+        {
+            if (!IsEvent(query))
+                return null;
+
+            Type type = null;
+            if (query is ChatMemberUpdated)
+            {
+                type = FindEventByType(EventType.BotMemberAddedToChat);
+            }
+
+            if (query is Message mes)
+            {
+                switch (mes.Type)
+                {
+                    case MessageType.MigratedToSupergroup:
+                    case MessageType.MigratedFromGroup:
+                        type = FindEventByType(EventType.MigrateToSuperGroup);
+                        break;
+                    case MessageType.ChatMembersAdded:
+                        type = FindEventByType(EventType.ChatMemberAdded);
+                        break;
+                    default:
+                        return null;
+                }
+            }
+            
+            var info = TelegramCommandExtensions.GetCommandInfo(type);
+            return GetCommandInstance(query, info, type, false);
+        }
+
         private async Task QueryHandler<T>(T query)
         {
             try
             {
                 var chatId = query.GetChatId();
                 var userId = query.GetFromId();
-                ITelegramCommand<T> command;
-                (_, command) = await GetCommand(query);
+                var command = await GetCommand(query);
                 if (command != null)
                 {
                     var commandExecutionResult = await command.Execute(query);
@@ -113,7 +146,7 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private async Task<(ITelegramCommandDescriptor, ITelegramCommand<T>)> GetCommand<T>(T query)
+        private async Task<ITelegramCommand<T>> GetCommand<T>(T query)
         {
             var chatId = query.GetChatId();
             var fromSession = false;
@@ -121,20 +154,53 @@ namespace Telegram.Commands.Core.Services
             {
                 fromSession = true;
             }
+            else if (IsEvent(query))
+            {
+                return await GetEvent(query);
+            }
             else if (!TryGetQueryCommandStr(query, out commandStr))
                 if (query.IsGroupMessage())
-                    return (null, null);
+                    return null;
                 else
                     throw new TelegramExtractionCommandException("Could not extract command", chatId);
             
             var (commandInfo, commandType) = GetCommandInfo(query, commandStr, chatId, fromSession);
+            return await GetCommandInstance(query, commandInfo, commandType, fromSession);
+        }
+
+        private static bool IsEvent<T>(T query)
+        {
+            switch (query)
+            {
+                case ChatMemberUpdated _:
+                    return true;
+                case Message mes:
+                    switch (mes.Type)
+                    {
+                        case MessageType.MigratedToSupergroup:
+                        case MessageType.MigratedFromGroup:
+                        case MessageType.ChatMembersAdded:
+                            return true;
+                        default:
+                            return false;
+                    }
+                    default:
+                        return false;
+            }
+        }
+
+        private async Task<ITelegramCommand<T>> GetCommandInstance<T>(T query, 
+            ITelegramCommandDescriptor commandInfo, Type commandType,
+            bool fromSession)
+        {
+            var chatId = query.GetChatId();
             AssertChatType(query, commandInfo);
 
             switch (commandInfo.Permission)
             {
                 case Permissions.Guest:
                     var command = await _commandFactory.GetCommand(query, commandType);
-                    return (commandInfo, command);
+                    return command;
                 case Permissions.Callback:
                 {
                     if (!QueryIsCallback(query))
@@ -158,7 +224,7 @@ namespace Telegram.Commands.Core.Services
             }
 
             var com = await _commandFactory.GetCommand(query, commandType);
-            return (commandInfo, com);
+            return com;
         }
 
         private (ITelegramCommandDescriptor,Type) GetCommandInfo<T>(T query, string commandStr, long chatId, bool fromSession)
@@ -256,6 +322,19 @@ namespace Telegram.Commands.Core.Services
                 {
                     var attrLoc = p.GetCustomAttribute<CommandAttribute>();
                     return p.IsClass && !p.IsAbstract && attrLoc != null && attrLoc.MatchCommand(queryString);
+                });
+            
+            return commandType;
+        }
+        
+        private static Type FindEventByType(EventType eventType)
+        {
+            //todo need cache
+            var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
+                .SingleOrDefault(p =>
+                {
+                    var attrLoc = p.GetCustomAttribute<EventAttribute>();
+                    return p.IsClass && !p.IsAbstract && attrLoc != null && attrLoc.Type == eventType;
                 });
             
             return commandType;

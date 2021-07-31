@@ -31,7 +31,7 @@ namespace Telegram.Commands.Abstract
     {
         string Name { get; }
         Permissions Permission { get;}
-        public ChatArea Area { get; set; }
-        public Type[] Reaction { get; set; }
+        public ChatArea Area { get; }
+        public Type[] Reaction { get; }
     }
 }
