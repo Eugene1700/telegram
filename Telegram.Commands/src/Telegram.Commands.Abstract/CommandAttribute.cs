@@ -10,6 +10,7 @@ namespace Telegram.Commands.Abstract
         public ChatArea Area { get; set; }
         
         public Type[] Reaction { get; set; }
+        public Type[] By { get; set; }
 
         public CommandAttribute()
         {
@@ -33,5 +34,6 @@ namespace Telegram.Commands.Abstract
         Permissions Permission { get;}
         public ChatArea Area { get; }
         public Type[] Reaction { get; }
+        public Type[] By { get; set; }
     }
 }

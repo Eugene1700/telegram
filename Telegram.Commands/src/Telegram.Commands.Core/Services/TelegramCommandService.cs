@@ -19,18 +19,21 @@ namespace Telegram.Commands.Core.Services
         private readonly IAuthProvider _authProvider;
         private readonly SessionManager _sessionManager;
         private readonly ITelegramBotProfile _telegramBotProfile;
+        private readonly ITelegramProfileFactory _profileFactory;
 
         public TelegramCommandService(ITelegramBotClient telegramClient,
             ITelegramCommandFactory commandFactory,
             IAuthProvider authProvider,
             SessionManager sessionManager,
-            ITelegramBotProfile telegramBotProfile)
+            ITelegramBotProfile telegramBotProfile,
+            ITelegramProfileFactory profileFactory)
         {
             _telegramClient = telegramClient;
             _commandFactory = commandFactory;
             _authProvider = authProvider;
             _sessionManager = sessionManager;
             _telegramBotProfile = telegramBotProfile;
+            _profileFactory = profileFactory;
         }
 
         public async Task<TelegramResult> Handle(Update update)
@@ -64,10 +67,10 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private Task<ITelegramCommand<T>> GetEvent<T>(T query)
+        private async Task<(ITelegramCommandDescriptor, ITelegramCommand<T>)> GetEvent<T>(T query)
         {
             if (!IsEvent(query))
-                return null;
+                return (null,null);
 
             Type type = null;
             if (query is ChatMemberUpdated)
@@ -87,12 +90,12 @@ namespace Telegram.Commands.Core.Services
                         type = FindEventByType(EventType.ChatMemberAdded);
                         break;
                     default:
-                        return null;
+                        return (null,null);
                 }
             }
             
             var info = TelegramCommandExtensions.GetCommandInfo(type);
-            return GetCommandInstance(query, info, type, false);
+            return (info, await GetCommandInstance(query, info, type, false));
         }
 
         private async Task QueryHandler<T>(T query)
@@ -101,7 +104,15 @@ namespace Telegram.Commands.Core.Services
             {
                 var chatId = query.GetChatId();
                 var userId = query.GetFromId();
-                var command = await GetCommand(query);
+                var (commandInfo,command) = await GetCommand(query);
+                if (commandInfo?.By != null && commandInfo.By.Any())
+                {
+                    var profiles = commandInfo.By.Select(x => _profileFactory.GetProfile(x)).ToArray();
+                    if (profiles.All(x => x != _telegramBotProfile))
+                    {
+                        throw new TelegramExtractionCommandException("Could not extract command", chatId);;
+                    }
+                }
                 if (command != null)
                 {
                     var commandExecutionResult = await command.Execute(query);
@@ -146,7 +157,7 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private async Task<ITelegramCommand<T>> GetCommand<T>(T query)
+        private async Task<(ITelegramCommandDescriptor,ITelegramCommand<T>)> GetCommand<T>(T query)
         {
             var chatId = query.GetChatId();
             var fromSession = false;
@@ -160,12 +171,12 @@ namespace Telegram.Commands.Core.Services
             }
             else if (!TryGetQueryCommandStr(query, out commandStr))
                 if (query.IsGroupMessage())
-                    return null;
+                    return (null,null);
                 else
                     throw new TelegramExtractionCommandException("Could not extract command", chatId);
             
             var (commandInfo, commandType) = GetCommandInfo(query, commandStr, chatId, fromSession);
-            return await GetCommandInstance(query, commandInfo, commandType, fromSession);
+            return (commandInfo,await GetCommandInstance(query, commandInfo, commandType, fromSession));
         }
 
         private static bool IsEvent<T>(T query)
@@ -199,7 +210,7 @@ namespace Telegram.Commands.Core.Services
             switch (commandInfo.Permission)
             {
                 case Permissions.Guest:
-                    var command = await _commandFactory.GetCommand(query, commandType);
+                    var command = _commandFactory.GetCommand(query, commandType);
                     return command;
                 case Permissions.Callback:
                 {
@@ -223,7 +234,7 @@ namespace Telegram.Commands.Core.Services
                 }
             }
 
-            var com = await _commandFactory.GetCommand(query, commandType);
+            var com = _commandFactory.GetCommand(query, commandType);
             return com;
         }
 

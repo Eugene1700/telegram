@@ -1,4 +1,5 @@
-﻿using Telegram.Bot;
+﻿using System.Threading.Tasks;
+using Telegram.Bot;
 using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core.Models
@@ -10,8 +11,13 @@ namespace Telegram.Commands.Core.Models
         public TelegramClient(ITelegramBotProfile telegramBotProfile) : base(telegramBotProfile.Key)
         {
             _telegramBotProfile = telegramBotProfile;
+        }
+
+        public static async Task InitWebhook(ITelegramBotProfile telegramBotProfile)
+        {
+            var client = new TelegramBotClient(telegramBotProfile.Key);
             var hook = $"{telegramBotProfile.BaseUrl}/{telegramBotProfile.UpdateRoute}";
-            SetWebhookAsync(hook);
+            await client.SetWebhookAsync(hook);
         }
     }
 }

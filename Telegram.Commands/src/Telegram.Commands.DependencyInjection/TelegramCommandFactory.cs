@@ -14,9 +14,9 @@ namespace Telegram.Commands.DependencyInjection
             _serviceProvider = serviceProvider;
         }
 
-        public async Task<ITelegramCommand<T>> GetCommand<T>(T message, Type commandType)
+        public ITelegramCommand<T> GetCommand<T>(T message, Type commandType)
         {
-            return await Task.FromResult((ITelegramCommand<T>)_serviceProvider.GetService(commandType));
+            return (ITelegramCommand<T>)_serviceProvider.GetService(commandType);
         }
     }
 }
