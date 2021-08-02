@@ -19,21 +19,18 @@ namespace Telegram.Commands.Core.Services
         private readonly IAuthProvider _authProvider;
         private readonly SessionManager _sessionManager;
         private readonly ITelegramBotProfile _telegramBotProfile;
-        private readonly ITelegramProfileFactory _profileFactory;
 
         public TelegramCommandService(ITelegramBotClient telegramClient,
             ITelegramCommandFactory commandFactory,
             IAuthProvider authProvider,
             SessionManager sessionManager,
-            ITelegramBotProfile telegramBotProfile,
-            ITelegramProfileFactory profileFactory)
+            ITelegramBotProfile telegramBotProfile)
         {
             _telegramClient = telegramClient;
             _commandFactory = commandFactory;
             _authProvider = authProvider;
             _sessionManager = sessionManager;
             _telegramBotProfile = telegramBotProfile;
-            _profileFactory = profileFactory;
         }
 
         public async Task<TelegramResult> Handle(Update update)
@@ -105,14 +102,18 @@ namespace Telegram.Commands.Core.Services
                 var chatId = query.GetChatId();
                 var userId = query.GetFromId();
                 var (commandInfo,command) = await GetCommand(query);
-                if (commandInfo?.By != null && commandInfo.By.Any())
-                {
-                    var profiles = commandInfo.By.Select(x => _profileFactory.GetProfile(x)).ToArray();
-                    if (profiles.All(x => x != _telegramBotProfile))
-                    {
-                        throw new TelegramExtractionCommandException("Could not extract command", chatId);;
-                    }
-                }
+                // if (command is ISwarmVisa swarmPassport)
+                // {
+                //     if (_telegramBotProfile is ISwarmVisa profileSwarmVisa)
+                //     {
+                //         if (!swarmPassport.MySwarm.SameSwarm(profileSwarmVisa.MySwarm))
+                //             throw new TelegramExtractionCommandException("Could not extract command", chatId);
+                //     }
+                //     else
+                //     {
+                //         throw new TelegramExtractionCommandException("Could not extract command", chatId);
+                //     }
+                // }
                 if (command != null)
                 {
                     var commandExecutionResult = await command.Execute(query);
@@ -240,8 +241,8 @@ namespace Telegram.Commands.Core.Services
 
         private (ITelegramCommandDescriptor,Type) GetCommandInfo<T>(T query, string commandStr, long chatId, bool fromSession)
         {
-            var commandType = FindCommandByQuery(commandStr);
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo(commandType);
+            var commandTypes = FindCommandByQuery(commandStr);
+            var (commandInfo, commandType) = ApplySwarm(chatId, commandTypes);
             if (commandInfo == null)
             {
                 throw new TelegramExtractionCommandException("Command without attribute", chatId);
@@ -250,8 +251,8 @@ namespace Telegram.Commands.Core.Services
             if (!fromSession || !TryGetQueryCommandStr(query, out var currentCommandStr))
                 return (commandInfo, commandType);
             
-            var currentCommandType = FindCommandByQuery(currentCommandStr);
-            var currentCommandInfo = TelegramCommandExtensions.GetCommandInfo(currentCommandType);
+            var currentCommandTypes = FindCommandByQuery(currentCommandStr);
+            var (currentCommandInfo, currentCommandType) = ApplySwarm(chatId, currentCommandTypes);
             if (currentCommandInfo == null)
             {
                 throw new TelegramExtractionCommandException("Command without attribute", chatId);
@@ -324,18 +325,36 @@ namespace Telegram.Commands.Core.Services
             return commandStr.EndsWith($"@{botName}");
         }
 
-        private static Type FindCommandByQuery(string queryString)
+        private static Type[] FindCommandByQuery(string queryString)
         {
             //todo need cache
             // var comType = typeof(ITelegramCommand<T>);
-            var commandType = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
-                .SingleOrDefault(p =>
+            var commandTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
+                .Where(p =>
                 {
                     var attrLoc = p.GetCustomAttribute<CommandAttribute>();
                     return p.IsClass && !p.IsAbstract && attrLoc != null && attrLoc.MatchCommand(queryString);
-                });
-            
-            return commandType;
+                }).ToArray();
+
+            return commandTypes;
+        }
+
+        private (ITelegramCommandDescriptor, Type) ApplySwarm(long chatId, Type[] suspectedTypes)
+        {
+            if (_telegramBotProfile is ISwarmVisa swarmVisa)
+            {
+                var descs = suspectedTypes.Select(x=> (TelegramCommandExtensions.GetCommandInfo(x), x))
+                    .Where(x => x.Item1.Swarms == null || x.Item1.Swarms.Any(y => y == swarmVisa.MySwarm)).ToArray();
+                if (descs.Length == 1)
+                    return descs[0];
+                
+                throw new TelegramExtractionCommandException("Too many commands for query", chatId);
+            }
+
+            if (suspectedTypes.Length == 1)
+                return (TelegramCommandExtensions.GetCommandInfo(suspectedTypes[0]), suspectedTypes[0]);
+
+            throw new TelegramExtractionCommandException("Too many commands for query", chatId);
         }
         
         private static Type FindEventByType(EventType eventType)

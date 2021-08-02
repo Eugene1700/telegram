@@ -33,11 +33,6 @@ namespace Telegram.Commands.DependencyInjection
         {
             services.AddScoped<ITelegramCommandFactory, TelegramCommandFactory>();
         }
-        
-        private static void AddProfileFactory(this IServiceCollection services)
-        {
-            services.AddScoped<ITelegramProfileFactory, TelegramProfileFactory>();
-        }
 
         private static void AddTelegramClient(this IServiceCollection services)
         {
@@ -48,7 +43,6 @@ namespace Telegram.Commands.DependencyInjection
         {
             services.AddTelegramCommands();
             services.AddCommandFactory();
-            services.AddProfileFactory();
             services.AddTelegramClient();
             services.AddSessionManager();
             services.AddSessionManager();
