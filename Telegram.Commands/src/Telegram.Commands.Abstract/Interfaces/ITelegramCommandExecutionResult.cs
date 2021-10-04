@@ -6,7 +6,7 @@
         public ITelegramCommandDescriptor NextCommandDescriptor { get;}
         public ExecuteResult Result { get;}
         public long? WaitFromChatId { get; }
-        public uint SessionDurationInSec { get; }
+        public uint? SessionDurationInSec { get; }
     }
 
     public enum ExecuteResult

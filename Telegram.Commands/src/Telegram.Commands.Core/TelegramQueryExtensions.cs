@@ -36,19 +36,23 @@ namespace Telegram.Commands.Core
 
         public static long GetFromId<T>(this T query)
         {
-            return query.Switch(m => m.From.Id, cb => cb.From.Id, prq => prq.From.Id);
+            return query.Switch(m => m.From.Id, cb => cb.From.Id,
+                prq => prq.From.Id,
+                cm => cm.From.Id);
         }
         
         public static long GetChatId<T>(this T query)
         {
-            return query.Switch(m => m.Chat.Id, cb => cb.Message.Chat.Id, 
-                prq => prq.From.Id);
+            return query.Switch(m => m.Chat.Id, cb => cb.Message.Chat.Id,
+                prq => prq.From.Id,
+                cm => cm.Chat.Id);
         }
         
         public static ChatType GetChatType<T>(this T query)
         {
             return query.Switch(m => m.Chat.Type, cb => cb.Message.Chat.Type,
-                prq => ChatType.Private);
+                prq => ChatType.Private,
+                cm => cm.Chat.Type);
         }
         
         public static bool IsGroupMessage<T>(this T query)
@@ -66,19 +70,24 @@ namespace Telegram.Commands.Core
                     return update.CallbackQuery.GetChatId();
                 case UpdateType.PreCheckoutQuery:
                     return update.PreCheckoutQuery.GetChatId();
+                case UpdateType.MyChatMember:
+                    return update.MyChatMember.GetChatId();
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
         private static TResult Switch<T, TResult>(this T query, Func<Message, TResult> messageFunc,
-            Func<CallbackQuery, TResult> callbackQueryFunc, Func<PreCheckoutQuery, TResult> preCheckoutQueryFunc)
+            Func<CallbackQuery, TResult> callbackQueryFunc, 
+            Func<PreCheckoutQuery, TResult> preCheckoutQueryFunc,
+                Func<ChatMemberUpdated, TResult> chatMemberUpdatedFunc)
         {
             return query switch
             {
                 Message message => messageFunc(message),
                 CallbackQuery callbackQuery => callbackQueryFunc(callbackQuery),
                 PreCheckoutQuery preCheckoutQuery => preCheckoutQueryFunc(preCheckoutQuery),
+                ChatMemberUpdated chatMemberUpdatedQuery => chatMemberUpdatedFunc(chatMemberUpdatedQuery),
                 _ => throw new ArgumentOutOfRangeException(),
             };
         }

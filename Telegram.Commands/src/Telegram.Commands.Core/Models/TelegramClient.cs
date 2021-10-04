@@ -6,18 +6,17 @@ namespace Telegram.Commands.Core.Models
 {
     public class TelegramClient: TelegramBotClient
     {
-        private ITelegramBotProfile _telegramBotProfile;
+        private readonly ITelegramBotProfile _telegramBotProfile;
 
         public TelegramClient(ITelegramBotProfile telegramBotProfile) : base(telegramBotProfile.Key)
         {
             _telegramBotProfile = telegramBotProfile;
         }
 
-        public static async Task InitWebhook(ITelegramBotProfile telegramBotProfile)
+        public async Task InitWebhook()
         {
-            var client = new TelegramBotClient(telegramBotProfile.Key);
-            var hook = $"{telegramBotProfile.BaseUrl}/{telegramBotProfile.UpdateRoute}";
-            await client.SetWebhookAsync(hook);
+            var hook = $"{_telegramBotProfile.BaseUrl}/{_telegramBotProfile.UpdateRoute}";
+            await SetWebhookAsync(hook);
         }
     }
 }

@@ -6,7 +6,7 @@ namespace Telegram.Commands.Abstract.Interfaces
     {
         public string CommandQuery { get; }
         public DateTime OpenedAt { get;}
-        public DateTime ExpiredAt { get; }
+        public DateTime? ExpiredAt { get; }
         public long TelegramChatId { get; set; }
         public long TelegramUserId { get; set; }
         
