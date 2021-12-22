@@ -102,18 +102,6 @@ namespace Telegram.Commands.Core.Services
                 var chatId = query.GetChatId();
                 var userId = query.GetFromId();
                 var (commandInfo,command) = await GetCommand(query);
-                // if (command is ISwarmVisa swarmPassport)
-                // {
-                //     if (_telegramBotProfile is ISwarmVisa profileSwarmVisa)
-                //     {
-                //         if (!swarmPassport.MySwarm.SameSwarm(profileSwarmVisa.MySwarm))
-                //             throw new TelegramExtractionCommandException("Could not extract command", chatId);
-                //     }
-                //     else
-                //     {
-                //         throw new TelegramExtractionCommandException("Could not extract command", chatId);
-                //     }
-                // }
                 if (command != null)
                 {
                     var commandExecutionResult = await command.Execute(query);
@@ -328,7 +316,6 @@ namespace Telegram.Commands.Core.Services
         private static Type[] FindCommandByQuery(string queryString)
         {
             //todo need cache
-            // var comType = typeof(ITelegramCommand<T>);
             var commandTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
                 .Where(p =>
                 {
