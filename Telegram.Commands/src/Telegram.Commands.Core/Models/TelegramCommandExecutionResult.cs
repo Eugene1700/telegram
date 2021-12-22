@@ -17,7 +17,7 @@ namespace Telegram.Commands.Core.Models
             
         }
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data, uint? sessionDurationInSec = 600)
-            where TNextCommand : ITelegramCommand<TQuery>
+            where TNextCommand : ISessionTelegramCommand<TQuery, TData>
         {
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
             return new TelegramCommandExecutionResult
@@ -31,7 +31,7 @@ namespace Telegram.Commands.Core.Models
         }
         
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery>(uint? sessionDurationInSec = 600)
-            where TNextCommand : ITelegramCommand<TQuery>
+            where TNextCommand : ISessionTelegramCommand<TQuery, EmptySessionObject>
         {
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
             return new TelegramCommandExecutionResult
@@ -45,7 +45,7 @@ namespace Telegram.Commands.Core.Models
         }
         
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data, long moveToChatId, uint? sessionDurationInSec = 600)
-            where TNextCommand : ITelegramCommand<TQuery>
+            where TNextCommand : ISessionTelegramCommand<TQuery, TData>
         {
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
             return new TelegramCommandExecutionResult
@@ -77,5 +77,13 @@ namespace Telegram.Commands.Core.Models
                 NextCommandDescriptor = null
             };
         }
+    }
+
+    public class EmptySessionObject
+    {
+    }
+
+    public interface ISessionTelegramCommand<in TQuery, TSessionObject> : ITelegramCommand<TQuery>
+    {
     }
 }
