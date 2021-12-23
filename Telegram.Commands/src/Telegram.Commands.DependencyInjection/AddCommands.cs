@@ -20,7 +20,7 @@ namespace Telegram.Commands.DependencyInjection
                     var attrLoc = p.GetCustomAttribute<CommandAttribute>();
                     var bp = p.GetInterfaces();
                     return p.IsClass && !p.IsAbstract &&
-                           bp.Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(ITelegramCommand<>))
+                           bp.Any(x => x.IsGenericType && (x.GetGenericTypeDefinition() == typeof(ITelegramCommand<>) || x.GetGenericTypeDefinition() == typeof(ISessionTelegramCommand<,>)))
                            && attrLoc != null;
                 }).ToArray();
             foreach (var type in commandType)

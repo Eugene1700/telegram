@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
+using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.DependencyInjection
 {
@@ -14,9 +15,9 @@ namespace Telegram.Commands.DependencyInjection
             _serviceProvider = serviceProvider;
         }
 
-        public ITelegramCommand<T> GetCommand<T>(T message, Type commandType)
+        public object GetCommand(Type commandType)
         {
-            return (ITelegramCommand<T>)_serviceProvider.GetService(commandType);
+            return _serviceProvider.GetService(commandType);
         }
     }
 }

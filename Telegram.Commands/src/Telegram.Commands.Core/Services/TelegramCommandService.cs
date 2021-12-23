@@ -9,6 +9,7 @@ using Telegram.Bot.Types.Payments;
 using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Exceptions;
+using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Services
 {
@@ -64,7 +65,7 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private async Task<(ITelegramCommandDescriptor, ITelegramCommand<T>)> GetEvent<T>(T query)
+        private async Task<(ITelegramCommandDescriptor, object)> GetEvent<T>(T query)
         {
             if (!IsEvent(query))
                 return (null,null);
@@ -101,10 +102,32 @@ namespace Telegram.Commands.Core.Services
             {
                 var chatId = query.GetChatId();
                 var userId = query.GetFromId();
-                var (commandInfo,command) = await GetCommand(query);
+                var (_,command) = await GetCommand(query);
                 if (command != null)
                 {
-                    var commandExecutionResult = await command.Execute(query);
+                    var commandType = command.GetType();
+                    var isSessionCommand = commandType
+                        .GetInterfaces()
+                        .Any(i => i.IsGenericType &&
+                                  i.GetGenericTypeDefinition() == typeof(ISessionTelegramCommand<,>));
+                    var isTelegramCommand = commandType
+                        .GetInterfaces()
+                        .Any(i => i.IsGenericType &&
+                                  i.GetGenericTypeDefinition() == typeof(ITelegramCommand<>));
+                    ITelegramCommandExecutionResult commandExecutionResult;
+                    if (isSessionCommand)
+                    {
+                        commandExecutionResult = await InvokeSessionTelegramMethod(query, chatId, userId, commandType, command);
+                    }
+                    else if (isTelegramCommand)
+                    {
+                        commandExecutionResult = await InvokeTelegramMethod(query, commandType, command);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Didn't invoke the telegram command method");
+                    }
+                    
                     if (commandExecutionResult.Result == ExecuteResult.Freeze)
                         return;
 
@@ -146,7 +169,27 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private async Task<(ITelegramCommandDescriptor,ITelegramCommand<T>)> GetCommand<T>(T query)
+        private static async Task<ITelegramCommandExecutionResult> InvokeTelegramMethod(object query, Type commandType, object command)
+        {
+            var method = commandType.GetMethod("Execute");
+            if (method == null)
+                throw new InvalidOperationException("Is not a telegram command");
+            return 
+                // ReSharper disable once PossibleNullReferenceException
+                await (Task<ITelegramCommandExecutionResult>) method.Invoke(command, new[] {query});
+        }
+
+        private async Task<ITelegramCommandExecutionResult> InvokeSessionTelegramMethod(object query, long chatId, long userId, Type commandType, object command)
+        {
+            var sessionObject = _sessionManager.GetCurrentSession(chatId, userId).Data;
+            var method = commandType.GetMethod("Execute");
+            if (method == null)
+                throw new InvalidOperationException("Is not a telegram command");
+            // ReSharper disable once PossibleNullReferenceException
+            return await (Task<ITelegramCommandExecutionResult>) method.Invoke(command, new[] {query, sessionObject});
+        }
+
+        private async Task<(ITelegramCommandDescriptor,object)> GetCommand<T>(T query)
         {
             var chatId = query.GetChatId();
             var fromSession = false;
@@ -189,7 +232,7 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private async Task<ITelegramCommand<T>> GetCommandInstance<T>(T query, 
+        private async Task<object> GetCommandInstance<T>(T query, 
             ITelegramCommandDescriptor commandInfo, Type commandType,
             bool fromSession)
         {
@@ -199,7 +242,7 @@ namespace Telegram.Commands.Core.Services
             switch (commandInfo.Permission)
             {
                 case Permissions.Guest:
-                    var command = _commandFactory.GetCommand(query, commandType);
+                    var command = _commandFactory.GetCommand(commandType);
                     return command;
                 case Permissions.Callback:
                 {
@@ -223,8 +266,7 @@ namespace Telegram.Commands.Core.Services
                 }
             }
 
-            var com = _commandFactory.GetCommand(query, commandType);
-            return com;
+            return _commandFactory.GetCommand(commandType);
         }
 
         private (ITelegramCommandDescriptor,Type) GetCommandInfo<T>(T query, string commandStr, long chatId, bool fromSession)

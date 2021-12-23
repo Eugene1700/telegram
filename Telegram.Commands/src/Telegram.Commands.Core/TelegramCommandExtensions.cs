@@ -5,6 +5,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Exceptions;
+using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core
 {
@@ -13,12 +14,13 @@ namespace Telegram.Commands.Core
         public static string ExtractData<T>(this ITelegramCommand<T> command, T query)
         {
             var type = command.GetType();
-            var attr = type.GetCustomAttribute<CommandAttribute>();
-            if (attr == null)
-                throw new InvalidOperationException("unknown command");
-            var data = query.GetData();
-            var com = "/" + TelegramQueryExtensions.ExtractCommand(data);
-            return data.Replace(com, "").Trim();
+            return ExtractDataInternal(query, type);
+        }
+
+        public static string ExtractData<TQuery, TSessionObject>(this ISessionTelegramCommand<TQuery, TSessionObject> command, TQuery query)
+        {
+            var type = command.GetType();
+            return ExtractDataInternal(query, type);
         }
 
         public static long GetChatId(this CallbackQuery callbackQuery)
@@ -35,8 +37,15 @@ namespace Telegram.Commands.Core
         {
             return GetCommandInfo(command.GetType());
         }
+
+        public static ITelegramCommandDescriptor GetCommandInfo<TCommand, TQuery>() 
+            where TCommand: ITelegramCommand<TQuery>
+        {
+            return GetCommandInfo(typeof(TCommand));
+        }
         
-        public static ITelegramCommandDescriptor GetCommandInfo<TCommand, TQuery>() where TCommand: ITelegramCommand<TQuery>
+        public static ITelegramCommandDescriptor GetCommandInfo<TCommand, TQuery, TSessionObject>() 
+            where TCommand: ISessionTelegramCommand<TQuery, TSessionObject>
         {
             return GetCommandInfo(typeof(TCommand));
         }
@@ -54,6 +63,16 @@ namespace Telegram.Commands.Core
         public static string GetCommandQuery<TCommand>() where TCommand : ITelegramCommand<Message>
         {
             return GetCommandInfo<TCommand, Message>().GetCommandQuery();
+        }
+        
+        private static string ExtractDataInternal<T>(T query, Type type)
+        {
+            var attr = type.GetCustomAttribute<CommandAttribute>();
+            if (attr == null)
+                throw new InvalidOperationException("unknown command");
+            var data = query.GetData();
+            var com = "/" + TelegramQueryExtensions.ExtractCommand(data);
+            return data.Replace(com, "").Trim();
         }
     }
 }

@@ -7,4 +7,9 @@ namespace Telegram.Commands.Abstract.Interfaces
     {
         Task<ITelegramCommandExecutionResult> Execute(TQuery query);
     }
+    
+    public interface ISessionTelegramCommand<in TQuery, in TSessionObject>
+    {
+        Task<ITelegramCommandExecutionResult> Execute(TQuery query, TSessionObject sessionObject);
+    }
 }
