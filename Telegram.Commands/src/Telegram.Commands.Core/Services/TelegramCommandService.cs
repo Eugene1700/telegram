@@ -106,10 +106,7 @@ namespace Telegram.Commands.Core.Services
                 if (command != null)
                 {
                     var commandType = command.GetType();
-                    var isSessionCommand = commandType
-                        .GetInterfaces()
-                        .Any(i => i.IsGenericType &&
-                                  i.GetGenericTypeDefinition() == typeof(ISessionTelegramCommand<,>));
+                    var isSessionCommand = GetSessionCommandInterfaceType(commandType) != null;
                     var isTelegramCommand = commandType
                         .GetInterfaces()
                         .Any(i => i.IsGenericType &&
@@ -169,6 +166,14 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
+        private static Type GetSessionCommandInterfaceType(Type commandType)
+        {
+            return commandType
+                .GetInterfaces()
+                .SingleOrDefault(i => i.IsGenericType &&
+                          i.GetGenericTypeDefinition() == typeof(ISessionTelegramCommand<,>));
+        }
+
         private static async Task<ITelegramCommandExecutionResult> InvokeTelegramMethod(object query, Type commandType, object command)
         {
             var method = commandType.GetMethod("Execute");
@@ -179,9 +184,14 @@ namespace Telegram.Commands.Core.Services
                 await (Task<ITelegramCommandExecutionResult>) method.Invoke(command, new[] {query});
         }
 
-        private async Task<ITelegramCommandExecutionResult> InvokeSessionTelegramMethod(object query, long chatId, long userId, Type commandType, object command)
+        private async Task<ITelegramCommandExecutionResult> InvokeSessionTelegramMethod(object query, 
+            long chatId, long userId, 
+            Type commandType, object command)
         {
-            var sessionObject = _sessionManager.GetCurrentSession(chatId, userId).Data;
+            var args = GetSessionCommandInterfaceType(commandType).GetGenericArguments();
+            if (args.Length != 2)
+                throw new InvalidOperationException();
+            var sessionObject = _sessionManager.GetCurrentSession(chatId, userId, args[1]).Data;
             var method = commandType.GetMethod("Execute");
             if (method == null)
                 throw new InvalidOperationException("Is not a telegram command");

@@ -9,7 +9,10 @@ namespace Telegram.Commands.Abstract.Interfaces
         public DateTime? ExpiredAt { get; }
         public long TelegramChatId { get; set; }
         public long TelegramUserId { get; set; }
-        
+    }
+
+    public interface ISessionInfoWithData : ISessionInfo
+    {
         public object Data { get; }
     }
 }

@@ -23,6 +23,12 @@ namespace Telegram.Commands.Core.Services
             var now = _clock.Now;
             return _sessionsStore.GetSessionInfo(now, chatId, telegramUserId);
         }
+        
+        public ISessionInfoWithData GetCurrentSession(long chatId, long telegramUserId, Type sessionObjectType)
+        {
+            var now = _clock.Now;
+            return _sessionsStore.GetSessionInfoWithData(now, chatId, telegramUserId, sessionObjectType);
+        }
 
         private bool SessionIsNotExpired(ISessionInfo s)
         {
@@ -51,7 +57,7 @@ namespace Telegram.Commands.Core.Services
             return commandSession;
         }
 
-        public async Task<ISessionInfo> ContinueSession(
+        public async Task<ISessionInfoWithData> ContinueSession(
             ITelegramCommandDescriptor nextCommandDescriptor, long chatIdFrom, long chatIdTo,
             long telegramUserId, object sessionData,
             uint? sessionTimeInSec = 600)
@@ -99,7 +105,7 @@ namespace Telegram.Commands.Core.Services
         private async Task ReleaseSessionInternal(ISessionInfo currentSession)
         {
             var commandSession = CreateCommandSession(currentSession, _clock.Now, currentSession.CommandQuery,
-                currentSession.TelegramChatId, currentSession.Data);
+                currentSession.TelegramChatId, null);
             await _sessionsStore.UpdateSession(commandSession, currentSession.TelegramChatId);
         }
 
@@ -126,9 +132,9 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        public async Task<ISessionInfo> OpenSession<TCommand, TQuery, TData>(long chatId, long telegramUserId, TData sessionData, uint? sessionTimeInSec) where TCommand : ITelegramCommand<TQuery>
+        public async Task<ISessionInfoWithData> OpenSession<TCommand, TQuery, TData>(long chatId, long telegramUserId, TData sessionData, uint? sessionTimeInSec) where TCommand : ISessionTelegramCommand<TQuery, TData>
         {
-            return await OpenSession(TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery>(), chatId, telegramUserId,
+            return await OpenSession(TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>(), chatId, telegramUserId,
                 sessionData, sessionTimeInSec);
         }
     }
