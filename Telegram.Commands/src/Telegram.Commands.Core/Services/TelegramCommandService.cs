@@ -266,7 +266,7 @@ namespace Telegram.Commands.Core.Services
                     break;
                 default:
                 {
-                    var user = await _authProvider.AuthUser(query.GetFromId());
+                    var user = await _authProvider.AuthUser(query.GetFromId(), commandInfo);
                     if (user == null)
                         throw new TelegramCommandsPermissionException("User not found", chatId);
 
@@ -298,12 +298,33 @@ namespace Telegram.Commands.Core.Services
                 throw new TelegramExtractionCommandException("Command without attribute", chatId);
             }
 
-            if (commandInfo.MatchReaction(currentCommandInfo))
+            var commandTypeReaction = commandType.GetInterfaces()
+                .SingleOrDefault(i =>
+                {
+                    var genericDef = i.GetGenericTypeDefinition();
+                    var args = i.GenericTypeArguments;
+                    return i.IsGenericType &&
+                           (genericDef == typeof(IReaction<,,>) || genericDef == typeof(IReaction<,>)) &&
+                           args[0] == currentCommandType;
+                });
+
+            if (commandTypeReaction == null)
             {
-                return (currentCommandInfo, currentCommandType);
+                commandTypeReaction = commandType.GetInterfaces()
+                    .SingleOrDefault(i =>
+                    {
+                        var genericDef = i.GetGenericTypeDefinition();
+                        var args = genericDef.GetGenericArguments();
+                        return i.IsGenericType &&
+                               genericDef == typeof(IReaction<,>) &&
+                               args[0] == currentCommandType;
+                    });
             }
 
-            return (commandInfo,commandType);
+
+            return commandTypeReaction != null ? 
+                (currentCommandInfo, currentCommandType) : 
+                (commandInfo,commandType);
         }
 
         private static void AssertChatType<T>(T query, ITelegramCommandDescriptor commandInfo)

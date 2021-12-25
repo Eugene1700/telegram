@@ -14,13 +14,13 @@ namespace Telegram.Commands.Core
         public static string ExtractData<T>(this ITelegramCommand<T> command, T query)
         {
             var type = command.GetType();
-            return ExtractDataInternal(query, type);
+            return ExtractData(query, type);
         }
 
         public static string ExtractData<TQuery, TSessionObject>(this ISessionTelegramCommand<TQuery, TSessionObject> command, TQuery query)
         {
             var type = command.GetType();
-            return ExtractDataInternal(query, type);
+            return ExtractData(query, type);
         }
 
         public static long GetChatId(this CallbackQuery callbackQuery)
@@ -65,7 +65,7 @@ namespace Telegram.Commands.Core
             return GetCommandInfo<TCommand, Message>().GetCommandQuery();
         }
         
-        private static string ExtractDataInternal<T>(T query, Type type)
+        public static string ExtractData<T>(T query, Type type)
         {
             var attr = type.GetCustomAttribute<CommandAttribute>();
             if (attr == null)

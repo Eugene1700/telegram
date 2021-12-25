@@ -111,12 +111,5 @@ namespace Telegram.Commands.Core
             }
             return com;
         }
-
-        public static bool MatchReaction(this ITelegramCommandDescriptor descriptor, 
-            ITelegramCommandDescriptor currentCommandInfo)
-        {
-            return descriptor.Reaction != null && descriptor.Reaction.Any(x =>
-                TelegramCommandExtensions.GetCommandInfo(x).Name == currentCommandInfo.Name);
-        }
     }
 }

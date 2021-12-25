@@ -4,6 +4,6 @@ namespace Telegram.Commands.Abstract.Interfaces
 {
     public interface IAuthProvider
     {
-        Task<ITelegramUser> AuthUser(long userId);
+        Task<ITelegramUser> AuthUser(long userId, ITelegramCommandDescriptor commandDescriptor);
     }
 }

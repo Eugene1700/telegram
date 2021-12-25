@@ -31,9 +31,9 @@ namespace Telegram.Commands.Core.Models
         }
         
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery>(uint? sessionDurationInSec = 600)
-            where TNextCommand : ITelegramCommand<TQuery>
+            where TNextCommand : ISessionTelegramCommand<TQuery, EmptyObject>
         {
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery>();
+            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery, EmptyObject>();
             return new TelegramCommandExecutionResult
             {
                 Data = null,
