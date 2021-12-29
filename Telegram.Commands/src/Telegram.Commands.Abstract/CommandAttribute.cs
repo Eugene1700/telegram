@@ -5,15 +5,14 @@ namespace Telegram.Commands.Abstract
     public class CommandAttribute : Attribute, ITelegramCommandDescriptor
     {
         public string Name { get; set; }
-        public Permissions Permission { get; set; }
-
+        public bool Authorized { get; set; }
         public ChatArea Area { get; set; }
         
-        public Type[] Swarms { get; set; }
+        public string[] Swarms { get; set; }
 
         public CommandAttribute()
         {
-            Permission = Permissions.User;
+            Authorized = true;
             Area = ChatArea.Private;
         }
     }
@@ -30,8 +29,7 @@ namespace Telegram.Commands.Abstract
     public interface ITelegramCommandDescriptor
     {
         string Name { get; }
-        Permissions Permission { get;}
         public ChatArea Area { get; }
-        public Type[] Swarms { get; set; }
+        public string[] Swarms { get; set; }
     }
 }

@@ -1,21 +1,13 @@
-﻿namespace Telegram.Commands.Abstract.Interfaces
-{
-    public interface IReaction<TCommand, TCommandQuery, in TSessionObject>
-        where TCommand : ISessionTelegramCommand<TCommandQuery, TSessionObject>
-    {
-        
-    }
-    
-    public interface IReaction<TCommand, TCommandQuery>
-        where TCommand : ITelegramCommand<TCommandQuery>
-    {
-        
-    }
+﻿using System.Threading.Tasks;
 
-    public interface ISessionSessionCommandWithReactions<in TQuery, in TSessionObject> :
-        ISessionTelegramCommand<TQuery, TSessionObject>
+namespace Telegram.Commands.Abstract.Interfaces
+{
+    public interface IBehaviorCommand<TSessionObject>
     {
-        bool ReactionCondition<TCurrentQuery>(ITelegramCommandDescriptor telegramCommandDescriptor,
-            TCurrentQuery currentQuery);
+        Task<ITelegramCommandExecutionResult> Execute<TQuery>(ITelegramCommand<TQuery> currentCommand, TQuery query);
+
+        Task<ITelegramCommandExecutionResult> Execute<TQuery>(
+            ISessionTelegramCommand<TQuery, TSessionObject> currentCommand, TQuery query, TSessionObject sessionObject);
+
     }
 }

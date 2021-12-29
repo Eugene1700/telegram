@@ -65,10 +65,10 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private async Task<(ITelegramCommandDescriptor, object)> GetEvent<T>(T query)
+        private async Task<GetCommandResult> GetEvent<T>(T query)
         {
             if (!IsEvent(query))
-                return (null,null);
+                return null;
 
             Type type = null;
             if (query is ChatMemberUpdated)
@@ -88,11 +88,13 @@ namespace Telegram.Commands.Core.Services
                         type = FindEventByType(EventType.ChatMemberAdded);
                         break;
                     default:
-                        return (null,null);
+                        return null;
                 }
             }
-            
+
             var info = TelegramCommandExtensions.GetCommandInfo(type);
+            AssertChatType(query, info);
+            ValidateQuery(query, type, false);
             return (info, await GetCommandInstance(query, info, type, false));
         }
 
@@ -102,7 +104,7 @@ namespace Telegram.Commands.Core.Services
             {
                 var chatId = query.GetChatId();
                 var userId = query.GetFromId();
-                var (_,command) = await GetCommand(query);
+                var (_, command) = await GetCommand(query);
                 if (command != null)
                 {
                     var commandType = command.GetType();
@@ -114,7 +116,8 @@ namespace Telegram.Commands.Core.Services
                     ITelegramCommandExecutionResult commandExecutionResult;
                     if (isSessionCommand)
                     {
-                        commandExecutionResult = await InvokeSessionTelegramMethod(query, chatId, userId, commandType, command);
+                        commandExecutionResult =
+                            await InvokeSessionTelegramMethod(query, chatId, userId, commandType, command);
                     }
                     else if (isTelegramCommand)
                     {
@@ -124,7 +127,7 @@ namespace Telegram.Commands.Core.Services
                     {
                         throw new InvalidOperationException("Didn't invoke the telegram command method");
                     }
-                    
+
                     if (commandExecutionResult.Result == ExecuteResult.Freeze)
                         return;
 
@@ -145,7 +148,7 @@ namespace Telegram.Commands.Core.Services
                                 userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
                             return;
                         }
-                        
+
                         await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
                             chatId,
                             sessionChatId,
@@ -171,35 +174,21 @@ namespace Telegram.Commands.Core.Services
             return commandType
                 .GetInterfaces()
                 .SingleOrDefault(i => i.IsGenericType &&
-                          i.GetGenericTypeDefinition() == typeof(ISessionTelegramCommand<,>));
+                                      i.GetGenericTypeDefinition() == typeof(ISessionTelegramCommand<,>));
         }
 
-        private static async Task<ITelegramCommandExecutionResult> InvokeTelegramMethod(object query, Type commandType, object command)
+        private static async Task<ITelegramCommandExecutionResult> InvokeTelegramMethod(object query, Type commandType,
+            object command)
         {
             var method = commandType.GetMethod("Execute");
             if (method == null)
                 throw new InvalidOperationException("Is not a telegram command");
-            return 
+            return
                 // ReSharper disable once PossibleNullReferenceException
                 await (Task<ITelegramCommandExecutionResult>) method.Invoke(command, new[] {query});
         }
 
-        private async Task<ITelegramCommandExecutionResult> InvokeSessionTelegramMethod(object query, 
-            long chatId, long userId, 
-            Type commandType, object command)
-        {
-            var args = GetSessionCommandInterfaceType(commandType).GetGenericArguments();
-            if (args.Length != 2)
-                throw new InvalidOperationException();
-            var sessionObject = _sessionManager.GetCurrentSession(chatId, userId, args[1]).Data;
-            var method = commandType.GetMethod("Execute");
-            if (method == null)
-                throw new InvalidOperationException("Is not a telegram command");
-            // ReSharper disable once PossibleNullReferenceException
-            return await (Task<ITelegramCommandExecutionResult>) method.Invoke(command, new[] {query, sessionObject});
-        }
-
-        private async Task<(ITelegramCommandDescriptor,object)> GetCommand<T>(T query)
+        private async Task<GetCommandResult> GetCommand<T>(T query)
         {
             var chatId = query.GetChatId();
             var fromSession = false;
@@ -213,12 +202,14 @@ namespace Telegram.Commands.Core.Services
             }
             else if (!TryGetQueryCommandStr(query, out commandStr))
                 if (query.IsGroupMessage())
-                    return (null,null);
+                    return null;
                 else
                     throw new TelegramExtractionCommandException("Could not extract command", chatId);
-            
+
             var (commandInfo, commandType) = GetCommandInfo(query, commandStr, chatId, fromSession);
-            return (commandInfo,await GetCommandInstance(query, commandInfo, commandType, fromSession));
+            AssertChatType(query, commandInfo);
+            ValidateQuery(query, commandType, false);
+            return (commandInfo, await GetCommandInstance(query, commandInfo, commandType, fromSession));
         }
 
         private static bool IsEvent<T>(T query)
@@ -237,94 +228,68 @@ namespace Telegram.Commands.Core.Services
                         default:
                             return false;
                     }
-                    default:
-                        return false;
+                default:
+                    return false;
             }
         }
 
-        private async Task<object> GetCommandInstance<T>(T query, 
-            ITelegramCommandDescriptor commandInfo, Type commandType,
-            bool fromSession)
+        private void ValidateQuery<TQuery>(TQuery query, Type commandType, bool fromSession)
         {
             var chatId = query.GetChatId();
-            AssertChatType(query, commandInfo);
 
-            switch (commandInfo.Permission)
+            var commandInterfaceType = GetBehaviorInterfaceType(commandType);
+            if (commandInterfaceType == null)
             {
-                case Permissions.Guest:
-                    var command = _commandFactory.GetCommand(commandType);
-                    return command;
-                case Permissions.Callback:
-                {
-                    if (!QueryIsCallback(query))
-                        throw new TelegramCommandsPermissionException($"This command only for callbackquery", chatId);
-                    break;
-                }
-                case Permissions.Session:
-                    if (!fromSession)
-                        throw new TelegramCommandsPermissionException("This command only for session", chatId);
-                    break;
-                default:
-                {
-                    var user = await _authProvider.AuthUser(query.GetFromId(), commandInfo);
-                    if (user == null)
-                        throw new TelegramCommandsPermissionException("User not found", chatId);
-
-                    if (user.Permission < commandInfo.Permission)
-                        throw new TelegramCommandsPermissionException("You don't have permission for this command", chatId);
-                    break;
-                }
+                commandInterfaceType = GetSessionCommandInterfaceType(commandType);
             }
 
-            return _commandFactory.GetCommand(commandType);
+            if (commandInterfaceType != null && !fromSession)
+            {
+                throw new TelegramCommandsPermissionException("This command only for session", chatId);
+            }
+
+            if (commandInterfaceType == null)
+            {
+                commandInterfaceType = GetTelegramCommandInterfaceType(commandType);
+            }
+
+            if (commandInterfaceType != null)
+            {
+                var waitQueryType = commandInterfaceType.GenericTypeArguments[0];
+                if (waitQueryType != query.GetType())
+                {
+                    throw new TelegramCommandsPermissionException(
+                        $"Incompatible type for query and command wait {waitQueryType.Name}, but was {query.GetType().Name}",
+                        chatId);
+                }
+
+                return;
+            }
+
+            throw new TelegramCommandsPermissionException("Unknown command", chatId);
         }
 
-        private (ITelegramCommandDescriptor,Type) GetCommandInfo<T>(T query, string commandStr, long chatId, bool fromSession)
+        private GetCommandResult GetCommandInfo<T>(T query, string commandName, long chatId,
+            bool fromSession)
         {
-            var commandTypes = FindCommandByQuery(commandStr);
-            var (commandInfo, commandType) = ApplySwarm(chatId, commandTypes);
-            if (commandInfo == null)
+            var commandTypes = FindCommandByName(commandName);
+            var comDesc = ApplySwarm(chatId, commandTypes);
+            if (comDesc == null)
             {
                 throw new TelegramExtractionCommandException("Command without attribute", chatId);
             }
 
             if (!fromSession || !TryGetQueryCommandStr(query, out var currentCommandStr))
-                return (commandInfo, commandType);
-            
-            var currentCommandTypes = FindCommandByQuery(currentCommandStr);
+                return GetCommandResult.CreateSessionResult();
+
+            var currentCommandTypes = FindCommandByName(currentCommandStr);
             var (currentCommandInfo, currentCommandType) = ApplySwarm(chatId, currentCommandTypes);
             if (currentCommandInfo == null)
             {
                 throw new TelegramExtractionCommandException("Command without attribute", chatId);
             }
 
-            var commandTypeReaction = commandType.GetInterfaces()
-                .SingleOrDefault(i =>
-                {
-                    var genericDef = i.GetGenericTypeDefinition();
-                    var args = i.GenericTypeArguments;
-                    return i.IsGenericType &&
-                           (genericDef == typeof(IReaction<,,>) || genericDef == typeof(IReaction<,>)) &&
-                           args[0] == currentCommandType;
-                });
-
-            if (commandTypeReaction == null)
-            {
-                commandTypeReaction = commandType.GetInterfaces()
-                    .SingleOrDefault(i =>
-                    {
-                        var genericDef = i.GetGenericTypeDefinition();
-                        var args = genericDef.GetGenericArguments();
-                        return i.IsGenericType &&
-                               genericDef == typeof(IReaction<,>) &&
-                               args[0] == currentCommandType;
-                    });
-            }
-
-
-            return commandTypeReaction != null ? 
-                (currentCommandInfo, currentCommandType) : 
-                (commandInfo,commandType);
+            return (commandInfo, commandType);
         }
 
         private static void AssertChatType<T>(T query, ITelegramCommandDescriptor commandInfo)
@@ -386,7 +351,7 @@ namespace Telegram.Commands.Core.Services
             return commandStr.EndsWith($"@{botName}");
         }
 
-        private static Type[] FindCommandByQuery(string queryString)
+        private static Type[] FindCommandByName(string queryString)
         {
             //todo need cache
             var commandTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes())
@@ -399,24 +364,34 @@ namespace Telegram.Commands.Core.Services
             return commandTypes;
         }
 
-        private (ITelegramCommandDescriptor, Type) ApplySwarm(long chatId, Type[] suspectedTypes)
+        private CommandTypeWithDescriptor ApplySwarm(long chatId, Type[] suspectedTypes)
         {
-            if (_telegramBotProfile is ISwarmVisa swarmVisa)
+            var swarms = _telegramBotProfile.Swarms;
+            if (_telegramBotProfile.Swarms != null && (_telegramBotProfile?.Swarms.Any() ?? false))
             {
-                var descs = suspectedTypes.Select(x=> (TelegramCommandExtensions.GetCommandInfo(x), x))
-                    .Where(x => x.Item1.Swarms == null || x.Item1.Swarms.Any(y => y == swarmVisa.MySwarm)).ToArray();
+                var descs = suspectedTypes.Select(x => new CommandTypeWithDescriptor
+                    {
+                        Descriptor = TelegramCommandExtensions.GetCommandInfo(x),
+                        Type = x
+                    })
+                    .Where(x =>
+                        x.Descriptor.Swarms == null || x.Descriptor.Swarms.Any(y => swarms.Contains(y))).ToArray();
                 if (descs.Length == 1)
                     return descs[0];
-                
+
                 throw new TelegramExtractionCommandException("Too many commands for query", chatId);
             }
 
             if (suspectedTypes.Length == 1)
-                return (TelegramCommandExtensions.GetCommandInfo(suspectedTypes[0]), suspectedTypes[0]);
+                return new CommandTypeWithDescriptor
+                {
+                    Descriptor = TelegramCommandExtensions.GetCommandInfo(suspectedTypes[0]),
+                    Type = suspectedTypes[0]
+                };
 
             throw new TelegramExtractionCommandException("Too many commands for query", chatId);
         }
-        
+
         private static Type FindEventByType(EventType eventType)
         {
             //todo need cache
@@ -426,8 +401,89 @@ namespace Telegram.Commands.Core.Services
                     var attrLoc = p.GetCustomAttribute<EventAttribute>();
                     return p.IsClass && !p.IsAbstract && attrLoc != null && attrLoc.Type == eventType;
                 });
-            
+
             return commandType;
+        }
+    }
+
+    public class FullCommandDescriptor
+    {
+        public FullCommandDescriptor(Type type)
+        {
+            Type = type;
+            Descriptor = TelegramCommandExtensions.GetCommandInfo(type);
+        }
+        public ITelegramCommandDescriptor Descriptor { get; }
+        public Type Type { get;}
+
+        public bool IsTelegramCommand => GetTypeInterface(typeof(ITelegramCommand<>)) != null;
+
+        private Type GetTypeInterface(Type interfaceType)
+        {
+            return Type
+                .GetInterfaces()
+                .SingleOrDefault(i => i.IsGenericType &&
+                                      i.GetGenericTypeDefinition() == interfaceType);
+        }
+
+        public bool IsSessionTelegramCommand =>
+            GetTypeInterface(typeof(ISessionTelegramCommand<,>)) != null;
+        
+        public bool IsBehaviorTelegramCommand => 
+            GetBehaviorInterfaceType() != null;
+
+        public Type GetBehaviorInterfaceType()
+        {
+            return GetTypeInterface(typeof(IBehaviorCommand<>));
+        }
+        
+        public Type GetSessionObjectType()
+        {
+            var args = GetBehaviorInterfaceType()
+                .GetGenericArguments();
+            if (args.Length != 2)
+                throw new InvalidOperationException();
+            return args[1];
+        }
+        
+        public 
+    }
+
+    internal class CommandDescriptorComposition
+    {
+        private CommandDescriptorComposition()
+        {
+        }
+
+        public FullCommandDescriptor SessionCommand { get; set; }
+        public FullCommandDescriptor QueryCommand { get; set; }
+
+        public static CommandDescriptorComposition CreateSessionResult(FullCommandDescriptor sessionCommandDescriptor)
+        {
+            return new CommandDescriptorComposition
+            {
+                SessionCommand = sessionCommandDescriptor,
+                QueryCommand = null
+            };
+        }
+        
+        public static CommandDescriptorComposition CreateBehaviorResult(FullCommandDescriptor sessionCommandDescriptor, 
+            FullCommandDescriptor queryCommandDescriptor)
+        {
+            return new CommandDescriptorComposition
+            {
+                SessionCommand = sessionCommandDescriptor,
+                QueryCommand = queryCommandDescriptor
+            };
+        }
+        
+        public static CommandDescriptorComposition CreateQueryResult(FullCommandDescriptor queryCommandDescriptor)
+        {
+            return new CommandDescriptorComposition
+            {
+                SessionCommand = null,
+                QueryCommand = queryCommandDescriptor
+            };
         }
     }
 }

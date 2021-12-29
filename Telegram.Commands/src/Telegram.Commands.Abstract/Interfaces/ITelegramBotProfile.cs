@@ -2,12 +2,12 @@
 {
     public interface ITelegramBotProfile
     {
-        string Key { get; set; }
-        string BaseUrl { get; set; }
-        string UpdateRoute { get; set; }
-        string BotName { get; set; }
-        //todo
-        GroupMessageHandlingStrategy GroupMessageHandlingStrategy { get; set; }
+        string Key { get; }
+        string BaseUrl { get; }
+        string UpdateRoute { get; }
+        string BotName { get; }
+        GroupMessageHandlingStrategy GroupMessageHandlingStrategy { get; }
+        string[] Swarms { get; }
     }
 
     public enum GroupMessageHandlingStrategy
