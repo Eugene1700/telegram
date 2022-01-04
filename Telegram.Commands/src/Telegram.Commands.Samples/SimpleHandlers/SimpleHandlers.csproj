@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Telegram.Commands.Abstract\Telegram.Commands.Abstract.csproj" />
+      <ProjectReference Include="..\..\Telegram.Commands.Core\Telegram.Commands.Core.csproj" />
+      <ProjectReference Include="..\..\Telegram.Commands.DependencyInjection\Telegram.Commands.DependencyInjection.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.0" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="5.0.4" />
+      <PackageReference Include="Telegram.Bot" Version="17.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="EntityStorage, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>Assemblies\EntityStorage\EntityStorage.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+
+</Project>

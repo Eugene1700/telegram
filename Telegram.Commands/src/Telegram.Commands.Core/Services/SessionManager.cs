@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Models;
 
@@ -93,7 +94,7 @@ namespace Telegram.Commands.Core.Services
         }
 
         public ISessionInfo GetSession<TCommand, TQuery>(long chatId, long telegramUserId)
-            where TCommand : ITelegramCommand<TQuery>
+            where TCommand : IQueryTelegramCommand<TQuery>
         {
             var session = GetCurrentSession(chatId, telegramUserId);
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery>();

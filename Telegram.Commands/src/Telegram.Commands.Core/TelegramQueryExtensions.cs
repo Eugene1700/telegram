@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Linq;
-using System.Reflection;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.Payments;
-using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core

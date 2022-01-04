@@ -6,6 +6,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Abstract"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.DependencyInjection", "Telegram.Commands.DependencyInjection\Telegram.Commands.DependencyInjection.csproj", "{30E69E2D-D1ED-4462-9189-F3746C33B92A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Telegram.Commands.Samples", "Telegram.Commands.Samples", "{105560B5-CFFC-4997-A4D9-66263A54C605}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleHandlers", "Telegram.Commands.Samples\SimpleHandlers\SimpleHandlers.csproj", "{540F360A-B1A6-46B6-A11A-EF54D5455B60}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +28,12 @@ Global
 		{30E69E2D-D1ED-4462-9189-F3746C33B92A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30E69E2D-D1ED-4462-9189-F3746C33B92A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30E69E2D-D1ED-4462-9189-F3746C33B92A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{540F360A-B1A6-46B6-A11A-EF54D5455B60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{540F360A-B1A6-46B6-A11A-EF54D5455B60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{540F360A-B1A6-46B6-A11A-EF54D5455B60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{540F360A-B1A6-46B6-A11A-EF54D5455B60}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{540F360A-B1A6-46B6-A11A-EF54D5455B60} = {105560B5-CFFC-4997-A4D9-66263A54C605}
 	EndGlobalSection
 EndGlobal

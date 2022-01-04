@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using System.Linq;
-using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Exceptions;
 
 namespace Telegram.Commands.Core.Services
@@ -19,7 +19,7 @@ namespace Telegram.Commands.Core.Services
         }
 
         public InlineMarkupQueryBuilder AddInlineKeyboardButtons<TCommand>(CallbackData[] callbackQueries)
-            where TCommand : ITelegramCommand<CallbackQuery>
+            where TCommand : IQueryTelegramCommand<CallbackQuery>
         {
             var commandDescriptor = TelegramCommandExtensions.GetCommandInfo<TCommand, CallbackQuery>();
             return AddInlineKeyBoardButtonsInternal(callbackQueries, commandDescriptor);
@@ -33,7 +33,7 @@ namespace Telegram.Commands.Core.Services
         }
 
         public InlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand>(CallbackData callbackData)
-            where TCommand : ITelegramCommand<CallbackQuery>
+            where TCommand : IQueryTelegramCommand<CallbackQuery>
         {
             return AddInlineKeyboardButtons<TCommand>(new[] {callbackData});
         }

@@ -1,4 +1,4 @@
-﻿namespace Telegram.Commands.Abstract
+﻿namespace Telegram.Commands.Abstract.Attributes
 {
     public class EventAttribute : CommandAttribute
     {

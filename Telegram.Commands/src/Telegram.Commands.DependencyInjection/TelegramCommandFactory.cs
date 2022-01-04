@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.DependencyInjection
 {

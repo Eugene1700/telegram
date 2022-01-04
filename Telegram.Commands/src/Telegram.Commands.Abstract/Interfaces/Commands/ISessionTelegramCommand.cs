@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Telegram.Commands.Abstract.Interfaces
+namespace Telegram.Commands.Abstract.Interfaces.Commands
 {
     public interface ISessionTelegramCommand<in TQuery, in TSessionObject>
     {

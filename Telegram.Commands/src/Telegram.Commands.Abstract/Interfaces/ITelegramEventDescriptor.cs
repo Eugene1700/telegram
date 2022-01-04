@@ -1,13 +1,10 @@
 ﻿using System;
+using Telegram.Commands.Abstract.Attributes;
 
 namespace Telegram.Commands.Abstract.Interfaces
 {
-    public class ITelegramEventDescriptor : ITelegramCommandDescriptor
+    public interface ITelegramEventDescriptor : ITelegramCommandDescriptor
     {
-        public string Name { get; }
-        public ChatArea Area { get; set; }
-        public string[] Swarms { get; set; }
-
         public EventType Type { get; set; }
         public int Order { get; set; }
     }

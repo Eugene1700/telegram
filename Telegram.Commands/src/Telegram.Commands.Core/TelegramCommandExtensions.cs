@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Reflection;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 using Telegram.Commands.Abstract;
+using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Exceptions;
-using Telegram.Commands.Core.Models;
+using Telegram.Commands.Abstract.Interfaces.Commands;
 
 namespace Telegram.Commands.Core
 {
     public static class TelegramCommandExtensions
     {
-        public static string ExtractData<T>(this ITelegramCommand<T> command, T query)
+        public static string ExtractData<T>(this IQueryTelegramCommand<T> command, T query)
         {
             var type = command.GetType();
             return ExtractData(query, type);
@@ -33,13 +32,19 @@ namespace Telegram.Commands.Core
             return message.GetChatId<Message>();
         }
 
-        public static ITelegramCommandDescriptor GetCommandInfo<TQuery>(this ITelegramCommand<TQuery> command)
+        public static ITelegramCommandDescriptor GetCommandInfo<TQuery>(this IQueryTelegramCommand<TQuery> command)
         {
             return GetCommandInfo(command.GetType());
         }
 
         public static ITelegramCommandDescriptor GetCommandInfo<TCommand, TQuery>() 
-            where TCommand: ITelegramCommand<TQuery>
+            where TCommand: IQueryTelegramCommand<TQuery>
+        {
+            return GetCommandInfo(typeof(TCommand));
+        }
+        
+        public static ITelegramCommandDescriptor GetBehaviorCommandInfo<TCommand, TSessionObject>() 
+            where TCommand: IBehaviorTelegramCommand<TSessionObject>
         {
             return GetCommandInfo(typeof(TCommand));
         }
@@ -60,7 +65,7 @@ namespace Telegram.Commands.Core
             return $"/{commandInfo.Name}";
         }
         
-        public static string GetCommandQuery<TCommand>() where TCommand : ITelegramCommand<Message>
+        public static string GetCommandQuery<TCommand>() where TCommand : IQueryTelegramCommand<Message>
         {
             return GetCommandInfo<TCommand, Message>().GetCommandQuery();
         }

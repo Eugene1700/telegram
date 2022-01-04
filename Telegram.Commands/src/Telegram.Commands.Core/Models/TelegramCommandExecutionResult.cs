@@ -1,5 +1,5 @@
-﻿using Telegram.Commands.Abstract;
-using Telegram.Commands.Abstract.Interfaces;
+﻿using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Abstract.Interfaces.Commands;
 
 namespace Telegram.Commands.Core.Models
 {
@@ -30,13 +30,41 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
+        public static TelegramCommandExecutionResult Ahead<TNextCommand, TData>(TData data, uint? sessionDurationInSec = 600)
+            where TNextCommand : IBehaviorTelegramCommand<TData>
+        {
+            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TNextCommand, TData>();
+            return new TelegramCommandExecutionResult
+            {
+                Data = data,
+                Result = ExecuteResult.Ahead,
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = null,
+                SessionDurationInSec = sessionDurationInSec
+            };
+        }
+        
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery>(uint? sessionDurationInSec = 600)
             where TNextCommand : ISessionTelegramCommand<TQuery, EmptyObject>
         {
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery, EmptyObject>();
             return new TelegramCommandExecutionResult
             {
-                Data = null,
+                Data = new EmptyObject(),
+                Result = ExecuteResult.Ahead,
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = null,
+                SessionDurationInSec = sessionDurationInSec
+            };
+        }
+        
+        public static TelegramCommandExecutionResult Ahead<TNextCommand>(uint? sessionDurationInSec = 600)
+            where TNextCommand : IBehaviorTelegramCommand<EmptyObject>
+        {
+            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TNextCommand, EmptyObject>();
+            return new TelegramCommandExecutionResult
+            {
+                Data = new EmptyObject(),
                 Result = ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
@@ -51,6 +79,48 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = data,
+                Result = ExecuteResult.Ahead,
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = moveToChatId,
+                SessionDurationInSec = sessionDurationInSec
+            };
+        }
+        
+        public static TelegramCommandExecutionResult Ahead<TNextCommand, TData>(TData data, long moveToChatId, uint? sessionDurationInSec = 600)
+            where TNextCommand : IBehaviorTelegramCommand<TData>
+        {
+            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TNextCommand, TData>();
+            return new TelegramCommandExecutionResult
+            {
+                Data = data,
+                Result = ExecuteResult.Ahead,
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = moveToChatId,
+                SessionDurationInSec = sessionDurationInSec
+            };
+        }
+        
+        public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery>( long moveToChatId, uint? sessionDurationInSec = 600)
+            where TNextCommand : ISessionTelegramCommand<TQuery, EmptyObject>
+        {
+            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery, EmptyObject>();
+            return new TelegramCommandExecutionResult
+            {
+                Data = new EmptyObject(),
+                Result = ExecuteResult.Ahead,
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = moveToChatId,
+                SessionDurationInSec = sessionDurationInSec
+            };
+        }
+        
+        public static TelegramCommandExecutionResult Ahead<TNextCommand>( long moveToChatId, uint? sessionDurationInSec = 600)
+            where TNextCommand : IBehaviorTelegramCommand<EmptyObject>
+        {
+            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TNextCommand, EmptyObject>();
+            return new TelegramCommandExecutionResult
+            {
+                Data = new EmptyObject(),
                 Result = ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = moveToChatId,

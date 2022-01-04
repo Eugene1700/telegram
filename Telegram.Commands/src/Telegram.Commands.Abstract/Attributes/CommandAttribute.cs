@@ -1,13 +1,13 @@
 ﻿using System;
+using Telegram.Commands.Abstract.Interfaces;
 
-namespace Telegram.Commands.Abstract
+namespace Telegram.Commands.Abstract.Attributes
 {
     public class CommandAttribute : Attribute, ITelegramCommandDescriptor
     {
         public string Name { get; set; }
         public bool Authorized { get; set; }
         public ChatArea Area { get; set; }
-        
         public string[] Swarms { get; set; }
 
         public CommandAttribute()
@@ -24,12 +24,5 @@ namespace Telegram.Commands.Abstract
         Group = 2,
         Channel = 4,
         SuperGroup = 8
-    }
-
-    public interface ITelegramCommandDescriptor
-    {
-        string Name { get; }
-        public ChatArea Area { get; }
-        public string[] Swarms { get; set; }
     }
 }

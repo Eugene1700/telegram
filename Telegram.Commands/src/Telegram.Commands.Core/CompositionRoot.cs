@@ -14,6 +14,7 @@ namespace Telegram.Commands.Core
 
         public static void AddResolver(this IServiceCollection services)
         {
+            services.AddScoped<CommandExecutionService>();
             services.AddScoped<ITelegramCommandResolver, TelegramCommandService>();
         }
     }
