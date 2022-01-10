@@ -2,6 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Authors>eugene1700</Authors>
+        <Description>DI for Telegram.Commands</Description>
+        <PackageProjectUrl>https://github.com/Eugene1700/telegram</PackageProjectUrl>
+        <PackageLicenseUrl>MIT</PackageLicenseUrl>
+        <PackageTags>telegrambotapi telegram di</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>

@@ -41,7 +41,8 @@ namespace Telegram.Commands.Core
         
         public static long GetChatId<T>(this T query)
         {
-            return query.Switch(m => m.Chat.Id, cb => cb.Message.Chat.Id,
+            return query.Switch(m => m.Chat.Id, 
+                cb => cb.Message.Chat.Id,
                 prq => prq.From.Id,
                 cm => cm.Chat.Id);
         }

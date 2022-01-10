@@ -3,6 +3,13 @@
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <RootNamespace>Telegram.Commands.Core</RootNamespace>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageId>Telegram.Commands</PackageId>
+        <Authors>eugene1700</Authors>
+        <Description>Engine for telegram bot api</Description>
+        <PackageProjectUrl>https://github.com/Eugene1700/telegram</PackageProjectUrl>
+        <PackageLicenseUrl>MIT</PackageLicenseUrl>
+        <PackageTags>telegrambotapi telegram</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
