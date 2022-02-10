@@ -134,7 +134,7 @@ You can use command only for private, group, channel chats. Set the flag in Comm
   
 ## Swarms
   
-  You can unite some commands in swarms and distribute them between different bots. Set the Swarms in CommandAttribute.
+  You can unite some commands in swarms and distribute them between different bots. Set the Swarms in CommandAttribute and ITelegramBotProfile.
   
 ## Authorization
   
