@@ -40,8 +40,10 @@ public interface IBehaviorCommand<TSessionObject>
 ```
 
 ## Example
+  [Sample IQueryTelegramCommand](https://github.com/Eugene1700/telegram/blob/master/Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/SendPhotoCommand.cs) 
+  [Sample ISessionTelegramCommand](https://github.com/Eugene1700/telegram/blob/master/Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/GetPhotoSizeSession.cs)
+
 ```
-[Sample](https://github.com/Eugene1700/telegram/blob/master/Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/SendPhotoCommand.cs) 
 [Command(Name = "my", ChatArea = ChatArea.Private)]
 public class MyCommand : IQueryTelegramCommand<Message>
 {
@@ -82,7 +84,6 @@ public class MyCommand : IQueryTelegramCommand<Message>
     }
 }
  
-  [Sample](https://github.com/Eugene1700/telegram/blob/master/Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/GetPhotoSizeSession.cs)
 [Command(Name = "nextcommand", ChatArea = ChatArea.Private)]
 public class NextCommand : ISessionTelegramCommand<Message, long>
 {
