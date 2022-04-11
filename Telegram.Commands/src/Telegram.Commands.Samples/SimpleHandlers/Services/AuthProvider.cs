@@ -5,7 +5,7 @@ namespace SimpleHandlers.Services
 {
     public class AuthProvider : IAuthProvider
     {
-        public Task<bool> AuthUser(long telegramUserId, ITelegramCommandDescriptor commandDescriptor)
+        public Task<bool> AuthUser<TQuery>(long telegramUserId, ICommandExecutionContext<TQuery> context)
         {
             return Task.FromResult(true);
         }

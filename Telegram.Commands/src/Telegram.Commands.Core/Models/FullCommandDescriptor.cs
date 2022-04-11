@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Exceptions;
@@ -19,7 +20,7 @@ namespace Telegram.Commands.Core.Models
         public Type Type { get; }
 
         public bool IsQueryCommand => Type.GetTypeInterface(typeof(IQueryTelegramCommand<>)) != null;
-
+        
         public bool IsSessionTelegramCommand =>
             Type.GetTypeInterface(typeof(ISessionTelegramCommand<,>)) != null;
 

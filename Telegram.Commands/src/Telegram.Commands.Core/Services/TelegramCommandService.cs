@@ -162,13 +162,13 @@ namespace Telegram.Commands.Core.Services
             var chatId = query.GetChatId();
             if (commandDesc.SessionCommand?.Authorized ?? false)
             {
-                if (!await _authProvider.AuthUser(query.GetFromId(), commandDesc.SessionCommand.Descriptor))
+                if (!await _authProvider.AuthUser(query.GetFromId(), new CommandExecutionContext<T>(query, commandDesc.SessionCommand)))
                     throw new TelegramCommandsPermissionException("Unauthorized user", chatId);
             }
 
             if (commandDesc.QueryCommand?.Authorized ?? false)
             {
-                if (!await _authProvider.AuthUser(query.GetFromId(), commandDesc.QueryCommand.Descriptor))
+                if (!await _authProvider.AuthUser(query.GetFromId(), new CommandExecutionContext<T>(query, commandDesc.QueryCommand)))
                     throw new TelegramCommandsPermissionException("Unauthorized user", chatId);
             }
         }
