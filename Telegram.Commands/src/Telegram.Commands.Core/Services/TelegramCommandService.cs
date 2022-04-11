@@ -179,7 +179,7 @@ namespace Telegram.Commands.Core.Services
             if (TryGetSessionCommandStr(query, out var commandStr))
             {
                 var comDesc = FindCommand(commandStr, chatId);
-                if (!comDesc.IsBehaviorTelegramCommand)
+                if (!comDesc.IsBehaviorCommand)
                     return CommandDescriptorComposition.CreateSessionResult(comDesc);
                 if (!TryGetQueryCommandStr(query, out var currentCommandStr))
                     return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
@@ -245,7 +245,7 @@ namespace Telegram.Commands.Core.Services
                 return;
             }
 
-            if (commandDescriptorComposition.IsSessionCommand)
+            if (commandDescriptorComposition.IsBaseCommand)
             {
                 AssertChatType(query, commandDescriptorComposition.SessionCommand.Descriptor);
                 return;

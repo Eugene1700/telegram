@@ -19,40 +19,60 @@ namespace Telegram.Commands.Core.Models
         public ITelegramCommandDescriptor Descriptor { get; }
         public Type Type { get; }
 
-        public bool IsQueryCommand => Type.GetTypeInterface(typeof(IQueryTelegramCommand<>)) != null;
-        
-        public bool IsSessionTelegramCommand =>
-            Type.GetTypeInterface(typeof(ISessionTelegramCommand<,>)) != null;
+        public bool IsBaseCommand =>
+            Type.GetTypeInterface(typeof(IBaseCommand<,,>)) != null;
 
-        public bool IsBehaviorTelegramCommand =>
+        public bool IsBehaviorCommand =>
             GetBehaviorInterfaceType() != null;
 
         public bool Authorized => Descriptor.Authorized;
 
         private Type GetBehaviorInterfaceType()
         {
-            return Type.GetTypeInterface(typeof(IBehaviorTelegramCommand<>));
+            return Type.GetTypeInterface(typeof(IBehaviorTelegramCommand<,>));
         }
 
-        private Type GetSessionInterfaceType()
+        private Type GetBaseInterfaceType()
         {
-            return Type.GetTypeInterface(typeof(ISessionTelegramCommand<,>));
+            return Type.GetTypeInterface(typeof(IBaseCommand<,,>));
         }
 
         public Type GetSessionObjectType()
         {
-            if (IsBehaviorTelegramCommand)
+            if (IsBehaviorCommand)
             {
                 return GetBehaviorSessionObjectType();
             }
 
-            if (IsSessionTelegramCommand)
+            if (IsBaseCommand)
             {
-                var comInterfaceType = GetSessionInterfaceType();
+                var comInterfaceType = GetBaseInterfaceType();
                 var args = comInterfaceType
                     .GetGenericArguments();
-                if (args.Length != 2)
+                //todo Третитий аргумент не должен быть EmptyObject
+                if (args.Length != 3)
                     throw new TelegramExtractionCommandInternalException("Is not a session command");
+                return args[2];
+            }
+
+            throw new TelegramExtractionCommandInternalException("Is not a session command");
+        }
+        
+        public Type GetQueryObjectType()
+        {
+            if (IsBehaviorCommand)
+            {
+                return GetBehaviorSessionObjectType();
+            }
+
+            if (IsBaseCommand)
+            {
+                var comInterfaceType = GetBaseInterfaceType();
+                var args = comInterfaceType
+                    .GetGenericArguments();
+                //todo Второй аргумент не должен быть EmptyObject
+                if (args.Length != 3)
+                    throw new TelegramExtractionCommandInternalException("Is not a queryData command");
                 return args[1];
             }
 

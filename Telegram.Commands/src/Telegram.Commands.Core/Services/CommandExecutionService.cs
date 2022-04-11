@@ -48,7 +48,7 @@ namespace Telegram.Commands.Core.Services
             {
                 var commandType = fullCommandDescriptor.SessionCommand.Type;
                 var sessionCommandInstance = _telegramCommandFactory.GetCommand(commandType);
-                if (fullCommandDescriptor.SessionCommand.IsBehaviorTelegramCommand)
+                if (fullCommandDescriptor.SessionCommand.IsBehaviorCommand)
                 {
                     MethodInfo executeMethod = null;
                     var queryCommandDesc = fullCommandDescriptor.QueryCommand;
@@ -58,7 +58,7 @@ namespace Telegram.Commands.Core.Services
                             _telegramCommandFactory.GetCommand(queryCommandDesc.Type);
                         var behaviorCommandMethods = GetExecuteMethods(commandType);
                         
-                        if (fullCommandDescriptor.QueryCommand?.IsSessionTelegramCommand ?? false)
+                        if (fullCommandDescriptor.QueryCommand?.IsBaseCommand ?? false)
                         {
                             executeMethod = behaviorCommandMethods
                                 .Single(x =>
@@ -122,6 +122,13 @@ namespace Telegram.Commands.Core.Services
             throw new TelegramExtractionCommandException("Cann't execute command", chatId);
         }
 
+        private object GetSessionObject(CommandDescriptorComposition fullCommandDescriptor, long chatId, long fromId)
+        {
+            var sessionObjectType = fullCommandDescriptor.SessionCommand.GetSessionObjectType();
+            var sessionObject = _sessionManager.GetCurrentSession(chatId, fromId, sessionObjectType).Data;
+            return sessionObject;
+        }
+        
         private object GetSessionObject(CommandDescriptorComposition fullCommandDescriptor, long chatId, long fromId)
         {
             var sessionObjectType = fullCommandDescriptor.SessionCommand.GetSessionObjectType();
