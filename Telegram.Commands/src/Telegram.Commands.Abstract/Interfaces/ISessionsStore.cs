@@ -8,6 +8,7 @@ namespace Telegram.Commands.Abstract.Interfaces
         ISessionInfo GetSessionInfo(DateTime now, long chatId, long telegramUserId);
         
         ISessionInfoWithData GetSessionInfoWithData(DateTime now, long chatId, long telegramUserId, Type sessionObject);
+        ISessionInfoWithData<TData> GetSessionInfoWithData<TData>(DateTime now, long chatId, long telegramUserId);
         Task CreateSession(ISessionInfoWithData getCommandQuery);
         Task UpdateSession(ISessionInfoWithData session, long chatIdFrom);
     }

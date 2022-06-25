@@ -52,6 +52,22 @@ namespace SimpleHandlers.Services
                     OpenedAt = s.OpenedAt
                 };
         }
+        
+        public ISessionInfoWithData<TData> GetSessionInfoWithData<TData>(DateTime now, long chatId, long telegramUserId)
+        {
+            var s = GetCurrentDomainSession(now, chatId, telegramUserId);
+            return s == null
+                ? null
+                : new CourseSessionDescriptor<TData>
+                {
+                    TelegramChatId = s.TelegramChatId,
+                    TelegramUserId = telegramUserId,
+                    Data = JsonConvert.DeserializeObject<TData>(s.SessionData),
+                    CommandQuery = s.CommandQuery,
+                    ExpiredAt = s.ExpiredAt,
+                    OpenedAt = s.OpenedAt
+                };
+        }
 
         public async Task CreateSession(ISessionInfoWithData getCommandQuery)
         {
@@ -90,7 +106,7 @@ namespace SimpleHandlers.Services
         }
     }
 
-    public class CourseSessionDescriptor : ISessionInfoWithData
+    public class CourseSessionDescriptorBase : ISessionInfoWithData
     {
         public string CommandQuery { get; set; }
         public DateTime OpenedAt { get; set; }
@@ -98,5 +114,15 @@ namespace SimpleHandlers.Services
         public long TelegramChatId { get; set; }
         public long TelegramUserId { get; set; }
         public object Data { get; set; }
+    }
+    
+    public class CourseSessionDescriptor : CourseSessionDescriptorBase, ISessionInfoWithData
+    {
+        public object Data { get; set; }
+    }
+    
+    public class CourseSessionDescriptor<TData> : CourseSessionDescriptorBase, ISessionInfoWithData<TData>
+    {
+        public TData Data { get; set; }
     }
 }

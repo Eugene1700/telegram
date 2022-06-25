@@ -15,4 +15,9 @@ namespace Telegram.Commands.Abstract.Interfaces
     {
         public object Data { get; }
     }
+    
+    public interface ISessionInfoWithData<out T> : ISessionInfo
+    {
+        public T Data { get; }
+    }
 }
