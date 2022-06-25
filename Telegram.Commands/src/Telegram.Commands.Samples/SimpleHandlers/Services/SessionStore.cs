@@ -25,7 +25,7 @@ namespace SimpleHandlers.Services
             var s = GetCurrentDomainSession(now, chatId, telegramUserId);
             return s == null
                 ? null
-                : new CourseSessionDescriptor
+                : new CourseSessionDescriptorBase
                 {
                     TelegramChatId = s.TelegramChatId,
                     TelegramUserId = telegramUserId,
@@ -42,7 +42,7 @@ namespace SimpleHandlers.Services
             var s = GetCurrentDomainSession(now, chatId, telegramUserId);
             return s == null
                 ? null
-                : new CourseSessionDescriptor
+                : new CourseSessionDescriptorBase
                 {
                     TelegramChatId = s.TelegramChatId,
                     TelegramUserId = telegramUserId,
@@ -115,14 +115,9 @@ namespace SimpleHandlers.Services
         public long TelegramUserId { get; set; }
         public object Data { get; set; }
     }
-    
-    public class CourseSessionDescriptor : CourseSessionDescriptorBase, ISessionInfoWithData
-    {
-        public object Data { get; set; }
-    }
-    
+
     public class CourseSessionDescriptor<TData> : CourseSessionDescriptorBase, ISessionInfoWithData<TData>
     {
-        public TData Data { get; set; }
+        public new TData Data { get; set; }
     }
 }

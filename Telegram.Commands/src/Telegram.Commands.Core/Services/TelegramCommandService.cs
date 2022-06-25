@@ -10,6 +10,7 @@ using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Models;
+using Telegram.Commands.Core.Models.Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Services
 {
@@ -162,13 +163,13 @@ namespace Telegram.Commands.Core.Services
             var chatId = query.GetChatId();
             if (commandDesc.SessionCommand?.Authorized ?? false)
             {
-                if (!await _authProvider.AuthUser(query.GetFromId(), commandDesc.SessionCommand.Descriptor))
+                if (!await _authProvider.AuthUser(query.GetFromId(), new CommandExecutionContext<T>(query, commandDesc.SessionCommand)))
                     throw new TelegramCommandsPermissionException("Unauthorized user", chatId);
             }
 
             if (commandDesc.QueryCommand?.Authorized ?? false)
             {
-                if (!await _authProvider.AuthUser(query.GetFromId(), commandDesc.QueryCommand.Descriptor))
+                if (!await _authProvider.AuthUser(query.GetFromId(), new CommandExecutionContext<T>(query, commandDesc.QueryCommand)))
                     throw new TelegramCommandsPermissionException("Unauthorized user", chatId);
             }
         }
