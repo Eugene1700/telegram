@@ -36,7 +36,7 @@ namespace SimpleHandlers.Services
                 };
         }
 
-        public ISessionInfoWithData GetSessionInfoWithData(DateTime now, long chatId, long telegramUserId,
+        public ISessionInfoWithData GetSessionInfoWithData(DateTime now, long chatId, long telegramUserId, string commandName,
             Type sessionObject)
         {
             var s = GetCurrentDomainSession(now, chatId, telegramUserId);
@@ -53,7 +53,7 @@ namespace SimpleHandlers.Services
                 };
         }
         
-        public ISessionInfoWithData<TData> GetSessionInfoWithData<TData>(DateTime now, long chatId, long telegramUserId)
+        public ISessionInfoWithData<TData> GetSessionInfoWithData<TData>(DateTime now, long chatId, long telegramUserId, string commandName)
         {
             var s = GetCurrentDomainSession(now, chatId, telegramUserId);
             return s == null

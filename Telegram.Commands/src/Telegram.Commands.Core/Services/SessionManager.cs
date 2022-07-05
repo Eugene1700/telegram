@@ -25,10 +25,10 @@ namespace Telegram.Commands.Core.Services
             return _sessionsStore.GetSessionInfo(now, chatId, telegramUserId);
         }
         
-        public ISessionInfoWithData GetCurrentSession(long chatId, long telegramUserId, Type sessionObjectType)
+        public ISessionInfoWithData GetCurrentSession(long chatId, long telegramUserId, string commandQuery, Type sessionObjectType)
         {
             var now = _clock.Now;
-            return _sessionsStore.GetSessionInfoWithData(now, chatId, telegramUserId, sessionObjectType);
+            return _sessionsStore.GetSessionInfoWithData(now, chatId, telegramUserId, commandQuery, sessionObjectType);
         }
 
         private bool SessionIsNotExpired(ISessionInfo s)
@@ -97,25 +97,23 @@ namespace Telegram.Commands.Core.Services
             where TCommand : ISessionTelegramCommand<TQuery, TData>
         {
             var now = _clock.Now;
-            var session = _sessionsStore.GetSessionInfoWithData<TData>(now, chatId, telegramUserId);
+            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>();
+            var commandQuery = commandInfo.GetCommandQuery();
+            var session = _sessionsStore.GetSessionInfoWithData<TData>(now, chatId, telegramUserId, commandQuery);
             if (session == null)
                 return null;
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>();
-            if (TelegramQueryExtensions.ExtractCommand(session.CommandQuery) != commandInfo.Name)
-                throw new TelegramCommandsInternalException("Session is not consist");
-            return session;
+            return commandQuery != session.CommandQuery ? null : session;
         }
 
         public ISessionInfoWithData<TData> GetSession<TCommand, TData>(long chatId, long telegramUserId) where TCommand : IBehaviorTelegramCommand<TData>
         {
             var now = _clock.Now;
-            var session = _sessionsStore.GetSessionInfoWithData<TData>(now, chatId, telegramUserId);
+            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TCommand, TData>();
+            var commandQuery = commandInfo.GetCommandQuery();
+            var session = _sessionsStore.GetSessionInfoWithData<TData>(now, chatId, telegramUserId, commandQuery);
             if (session == null)
                 return null;
-            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TCommand, TData>();
-            if (TelegramQueryExtensions.ExtractCommand(session.CommandQuery) != commandInfo.Name)
-                throw new TelegramCommandsInternalException("Session is not consist");
-            return session;
+            return commandQuery != session.CommandQuery ? null : session;
         }
 
         private async Task ReleaseSessionInternal(ISessionInfo currentSession)
