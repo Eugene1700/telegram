@@ -16,9 +16,13 @@ namespace SimpleHandlers.Services.Commands
             throw new TelegramDomainException("From menu, please");
         }
 
-        public Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, TQuery query, DropDownSessionObject sessionObject)
+        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, TQuery query, DropDownSessionObject sessionObject)
         {
-            return DefaultExecute(query, sessionObject);
+            return currentCommand switch
+            {
+                CancelCallback cancelCallback => await cancelCallback.Execute(query as CallbackQuery),
+                _ => await DefaultExecute(query, sessionObject)
+            };
         }
 
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(ISessionTelegramCommand<TQuery, DropDownSessionObject> currentCommand, TQuery query, DropDownSessionObject sessionObject)

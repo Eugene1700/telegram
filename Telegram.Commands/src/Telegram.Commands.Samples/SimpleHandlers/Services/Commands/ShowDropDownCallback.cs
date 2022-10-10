@@ -28,6 +28,11 @@ namespace SimpleHandlers.Services.Commands
             var builder = new InlineMarkupQueryBuilder();
             builder.AddDropDown<string, ShowDropDownCallback, SelectDropDownItemCallback, DropDownSessionObject>(
                 sessionObject.DropDown);
+            builder.AddInlineKeyboardButton<CancelCallback>(new CallbackData
+            {
+                Text = "Cancel",
+                CallbackText = ""
+            });
             await _telegramBotClient.EditMessageTextAsync(query.GetChatId(), query.Message.MessageId, $"Ok, your dropdown",
                             replyMarkup: (InlineKeyboardMarkup) builder.GetResult());
             return TelegramCommandExecutionResult.Ahead<DropDownBehavior, DropDownSessionObject>(sessionObject);

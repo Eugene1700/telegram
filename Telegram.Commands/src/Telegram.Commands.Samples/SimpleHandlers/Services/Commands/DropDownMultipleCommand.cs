@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -14,21 +12,21 @@ using Telegram.Commands.UI.DropDown;
 
 namespace SimpleHandlers.Services.Commands
 {
-    [Command(Name = "dropdown")]
-    public class DropDownMenuCommand : IQueryTelegramCommand<Message>
+    [Command(Name = "dropdownmultiple")]
+    public class DropDownMultipleCommand : IQueryTelegramCommand<Message>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
-        public DropDownMenuCommand(ITelegramBotClient telegramBotClient)
+        public DropDownMultipleCommand(ITelegramBotClient telegramBotClient)
         {
             _telegramBotClient = telegramBotClient;
         }
-
         public async Task<ITelegramCommandExecutionResult> Execute(Message query)
         {
             var dropDown = new DropDown<string>
             {
-                Show = false, Title = "DropDownMenu", CallbackData = "DropDownMenu", NothingIsAll = false
+                Show = false, Title = "DropDownMenu", CallbackData = "DropDownMenu", NothingIsAll = true,
+                Mode = DropDownMode.Multiple
             };
             DropDownMenuItem<string>[] items =
             {
