@@ -1,11 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Telegram.Commands.Abstract\Telegram.Commands.Abstract.csproj" />
       <ProjectReference Include="..\Telegram.Commands.Core\Telegram.Commands.Core.csproj" />
     </ItemGroup>
 
