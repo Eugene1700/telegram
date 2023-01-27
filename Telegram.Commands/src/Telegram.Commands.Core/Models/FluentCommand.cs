@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -12,26 +13,26 @@ namespace Telegram.Commands.Core.Models;
 
 public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentObject<TObject>>
 {
+    public const string DefaultMoveCondition = "default_condition";
     public async Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query,
         FluentObject<TObject> sessionObject)
     {
         var builderStateMachine = new StateMachineBuilder<TObject>();
-        var stateMachine = StateMachine(builderStateMachine);
+        var stateMachine = (StateMachine<TObject>) StateMachine(builderStateMachine);
         if (sessionObject.CurrentStateId == null)
         {
             await Entry();
             sessionObject.CurrentStateId = 0;
-            var entryState = stateMachine.GetCurrentState(sessionObject.CurrentStateId.Value);
+            var entryState = stateMachine.GetCurrentStateInternal(sessionObject.CurrentStateId.Value);
             var nextMessage = entryState.GetMessage();
             await SendMessage(query, nextMessage);
             return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, null);
         }
-        var currentState = stateMachine.GetCurrentState(sessionObject.CurrentStateId.Value);
+        var currentState = stateMachine.GetCurrentStateInternal(sessionObject.CurrentStateId.Value);
         var condition = query switch
         {
             Message message => await currentState.Commit(message.Text, sessionObject.Object),
             CallbackQuery callbackQuery => await currentState.CallbackCommit(callbackQuery.Data, sessionObject.Object),
-            _ => ""
         };
 
         var next = currentState.Next(condition);
@@ -72,17 +73,12 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
 
 public interface IStateBuilder<TObj> : IStateBuilderBase<TObj>
 {
-    IStateMessageBuilder<TObj> Message(string text);
-}
-
-public interface IStateMessageBuilder<TObj> : IStateBuilderBase<TObj>
-{
     ICallbacksBuilder<TObj> WithCallbacks();
 }
 
 public interface ICallbacksBuilder<TObj> : IStateBuilderBase<TObj>
 {
-    ICallbacksBuilder<TObj> MoveToState(string text, string data, Func<string, TObj, Task<string>> commitExpr, string condition, IState<TObj> state);
+    ICallbacksBuilder<TObj> ExitState(string text, string data, Func<string, TObj, Task<string>> commitExpr, string condition, IStateBase<TObj> state);
 
     ICallbacksBuilder<TObj> MoveNextCommand<TCommand>(string text, string data)
         where TCommand : IQueryTelegramCommand<CallbackQuery>;
@@ -91,29 +87,31 @@ public interface ICallbacksBuilder<TObj> : IStateBuilderBase<TObj>
         where TCommand : ISessionTelegramCommand<CallbackQuery, TSessionObject>;
 
     ICallbacksBuilder<TObj> CommitData(string text, string data, Func<string, TObj, Task<string>> commitExpr);
+    ICallbacksBuilder<TObj> ExitState(string commitStateExpr, string data, IStateBase<TObj> nextState);
 }
 
 public interface IStateBuilderBase<TObj>
 {
+    IStateBase<TObj> GetCurrentState();
     IStateMoverBuilder<TObj> ExitState(Func<string, TObj, Task<string>> commitStateExpr);
+    IStateMoverBuilder<TObj> ExitState(string condition);
 }
 
 public interface IStateMoverBuilder<TObj>
 {
-    IStateBuilder<TObj> Next(string condition, IState<TObj> nextState);
-    
-    IState<TObj> GetCurrentState();
+    IStateMachineBuilder<TObj> Next(string condition, IStateBase<TObj> nextState);
+    IStateMachineBuilder<TObj> Next(IStateBase<TObj> nextState);
 }
 
 public interface IStateMachineBuilder<TObj>
 {
-    IStateBuilder<TObj> NewState();
+    IStateBuilder<TObj> NewState(string message);
     IStateMachine<TObj> Finish();
 }
 
 public interface IStateMachine<TObj>
 {
-    IState<TObj> GetCurrentState(int currentStateId);
+    IStateBase<TObj> GetCurrentState(int currentStateId);
 }
 public class FluentObject<TObject>
 {
@@ -149,7 +147,12 @@ internal class StateMachine<TObj> : IStateMachine<TObj>
         return newState;
     }
 
-    public IState<TObj> GetCurrentState(int currentStateId)
+    public IStateBase<TObj> GetCurrentState(int currentStateId)
+    {
+        return GetCurrentStateInternal(currentStateId);
+    }
+    
+    public IState<TObj> GetCurrentStateInternal(int currentStateId)
     {
         return _states[currentStateId];
     }
@@ -257,25 +260,17 @@ internal class TelegramMessage : ITelegramMessage
     public IReplyMarkup ReplyMarkup { get; }
 }
 
-public interface IState<TObj>
+internal interface IState<TObj> : IStateBase<TObj>
 {
-    int Id { get; }
-    ITelegramMessage GetMessage();
     Task<string> Commit(string message, TObj obj);
     Task<string> CallbackCommit(string data, TObj obj);
     IState<TObj> Next(string condition);
 }
 
-public class CallbackActionResult<TObj>
+public interface IStateBase<T>
 {
-    public CallbackActionResultType ResultType { get; set; }
-    public IState<TObj> NextState { get; set; }
-}
-
-public enum CallbackActionResultType
-{
-    OnlyCommit,
-    NextState
+    int Id { get; }
+    ITelegramMessage GetMessage();
 }
 
 public interface ITelegramMessage
@@ -293,9 +288,10 @@ internal class StateMachineBuilder<TObj> : IStateMachineBuilder<TObj>
         _stateMachine = new StateMachine<TObj>();
     }
 
-    public IStateBuilder<TObj> NewState()
+    public IStateBuilder<TObj> NewState(string message)
     {
         var newState = _stateMachine.AddState();
+        newState.SetMessage(message);
         var entryStateBuilder = new StateBuilder<TObj>(newState, this);
         return entryStateBuilder;
     }
@@ -311,7 +307,7 @@ internal class StateMachineBuilder<TObj> : IStateMachineBuilder<TObj>
     }
 }
 
-internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMessageBuilder<TObj>, IStateMoverBuilder<TObj>, ICallbacksBuilder<TObj>
+internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMoverBuilder<TObj>, ICallbacksBuilder<TObj>
 {
     private readonly State<TObj> _state;
     private readonly StateMachineBuilder<TObj> _stateMachineBuilder;
@@ -328,36 +324,46 @@ internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMessageBuilder<TO
         return this;
     }
 
+    public IStateMoverBuilder<TObj> ExitState(string condition)
+    {
+        Task<string> Cond(string s, TObj obj) => Task.FromResult(condition);
+        return ExitState(Cond);
+    }
+
     public ICallbacksBuilder<TObj> WithCallbacks()
     {
         return this;
     }
 
-    public IStateMessageBuilder<TObj> Message(string text)
+    public IStateMachineBuilder<TObj> Next(string condition, IStateBase<TObj> nextState)
     {
-        _state.SetMessage(text);
-        return this;
+        if (string.IsNullOrWhiteSpace(condition))
+        {
+            throw new ArgumentException();
+        }
+
+        _state.AddCondition(condition, nextState as IState<TObj>);
+        return _stateMachineBuilder;
     }
 
-    public IStateBuilder<TObj> Next(string condition, IState<TObj> nextState)
+    public IStateMachineBuilder<TObj> Next(IStateBase<TObj> nextState)
     {
-        _state.AddCondition(condition, nextState);
-        return this;
+        return Next(FluentCommand<TObj>.DefaultMoveCondition, nextState);
     }
 
-    public IState<TObj> GetCurrentState()
+    public IStateBase<TObj> GetCurrentState()
     {
         return _state;
     }
     
-    public ICallbacksBuilder<TObj> MoveToState(string text, string data, Func<string, TObj, Task<string>> commitExpr, string condition, IState<TObj> state)
+    public ICallbacksBuilder<TObj> ExitState(string text, string data, Func<string, TObj, Task<string>> commitExpr, string condition, IStateBase<TObj> state)
     {
         _state.AddCallback(new CallbackData
         {
             Text = text,
             CallbackText = data
         }, commitExpr);
-        _state.AddCondition(condition, state);
+        _state.AddCondition(condition, state as IState<TObj>);
         return this;
     }
 
@@ -392,6 +398,19 @@ internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMessageBuilder<TO
             Text = text,
             CallbackText = data,
         }, commitExpr);
+        return this;
+    }
+
+    public ICallbacksBuilder<TObj> ExitState(string text, string data, IStateBase<TObj> nextState)
+    {
+        var condition = $"newCondition_from_{_state.Id}_to_{nextState.Id}";
+        Func<string,TObj,Task<string>> commitExpr = (d, o) => Task.FromResult(condition);
+        _state.AddCallback(new CallbackData
+        {
+            Text = text,
+            CallbackText = data
+        }, commitExpr);
+        _state.AddCondition(condition, nextState as IState<TObj>);
         return this;
     }
 }

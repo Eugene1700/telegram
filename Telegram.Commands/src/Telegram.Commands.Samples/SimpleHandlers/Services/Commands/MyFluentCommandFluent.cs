@@ -19,6 +19,7 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
     {
         _telegramBotClient = telegramBotClient;
     }
+
     protected override async Task SendMessage<TQuery>(TQuery currentQuery, ITelegramMessage nextMessage)
     {
         if (currentQuery is Message message)
@@ -26,7 +27,7 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
             await _telegramBotClient.SendTextMessageAsync(message.GetChatId(), nextMessage.Message,
                 replyMarkup: nextMessage.ReplyMarkup);
         }
-        
+
         if (currentQuery is CallbackQuery callbackQuery)
         {
             await _telegramBotClient.SendTextMessageAsync(callbackQuery.GetChatId(), nextMessage.Message,
@@ -41,29 +42,26 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
 
     protected override IStateMachine<MyObject> StateMachine(IStateMachineBuilder<MyObject> builder)
     {
-        var nameStateBuilder = builder.NewState().Message("Привет! Введи свое имя");
+        var nameStateBuilder = builder.NewState("Привет! Введи свое имя");
         var stateMoverBuilder = nameStateBuilder.ExitState(FirstNameCommitter);
-        
-        var secondNameStateBuilder = builder.NewState().Message("Введи свою фамилию");
-        var secondNameMover = secondNameStateBuilder.ExitState(GetSecondNameCommitter);
-        
-        stateMoverBuilder.Next("", secondNameMover.GetCurrentState());
-        
-        var validateSecondNameBuilder = builder.NewState().Message("Слишком короткое имя! Введите еще раз");
+
+        var secondNameStateBuilder = builder.NewState("Введи свою фамилию");
+        secondNameStateBuilder.ExitState(GetSecondNameCommitter);
+
+        stateMoverBuilder.Next(secondNameStateBuilder.GetCurrentState());
+
+        var validateSecondNameBuilder = builder.NewState("Слишком короткое имя! Введите еще раз");
         var validateSecondNameMover = validateSecondNameBuilder.ExitState(FirstNameCommitter);
-        validateSecondNameMover.Next("toolittleName", validateSecondNameMover.GetCurrentState());
-        validateSecondNameMover.Next("", secondNameMover.GetCurrentState());
-        
+        validateSecondNameMover.Next("toolittleName", validateSecondNameBuilder.GetCurrentState());
+        validateSecondNameMover.Next(validateSecondNameBuilder.GetCurrentState());
+
         var callbacks2 = validateSecondNameBuilder.WithCallbacks();
-        callbacks2.MoveToState("Пропустить", "data", (d, obj) => Task.FromResult("condition"), "condition",
-            secondNameMover.GetCurrentState());
-        
-        
-        stateMoverBuilder.Next("toolittleName", validateSecondNameMover.GetCurrentState());
-        
+        callbacks2.ExitState("Пропустить", "data", secondNameStateBuilder.GetCurrentState());
+
+        stateMoverBuilder.Next("toolittleName", validateSecondNameBuilder.GetCurrentState());
+
         var callbacks = nameStateBuilder.WithCallbacks();
-        callbacks.MoveToState("Пропустить", "data", (d, obj) => Task.FromResult("condition"), "condition",
-            secondNameMover.GetCurrentState());
+        callbacks.ExitState("Пропустить", "data", secondNameStateBuilder.GetCurrentState());
         return builder.Finish();
     }
 
@@ -73,14 +71,15 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
         {
             return "toolittleName";
         }
+
         obj.FirstName = message;
-        return "";
+        return DefaultMoveCondition;
     }
 
     public async Task<string> GetSecondNameCommitter(string message, MyObject obj)
     {
         obj.SecondName = message;
-        return "";
+        return DefaultMoveCondition;
     }
 
     protected override async Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery currentQuery, MyObject obj)
@@ -90,7 +89,7 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
         {
             chatId = message.GetChatId();
         }
-        
+
         if (currentQuery is CallbackQuery callbackQuery)
         {
             chatId = callbackQuery.GetChatId();
