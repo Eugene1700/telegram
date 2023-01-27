@@ -68,6 +68,12 @@ namespace Telegram.Commands.Core.Services
             _buttons.Add(callbackData.Select(CreateNewInlineKeyboardButton).ToArray());
             return this;
         }
+        
+        public InlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackDataWithCommand callbackData)
+        {
+            _buttons.Add(new[] { CreateNewInlineKeyboardButton(callbackData) });
+            return this;
+        }
 
         public IReplyMarkup GetResult()
         {
