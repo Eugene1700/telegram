@@ -5,6 +5,7 @@ using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core
 {
@@ -36,6 +37,11 @@ namespace Telegram.Commands.Core
         {
             return GetCommandInfo(command.GetType());
         }
+        
+        public static ITelegramCommandDescriptor GetCommandInfo<TObj>(this FluentCommand<TObj> command)
+        {
+            return GetCommandInfo(command.GetType());
+        }
 
         public static ITelegramCommandDescriptor GetCommandInfo<TCommand, TQuery>() 
             where TCommand: IQueryTelegramCommand<TQuery>
@@ -45,6 +51,12 @@ namespace Telegram.Commands.Core
         
         public static ITelegramCommandDescriptor GetBehaviorCommandInfo<TCommand, TSessionObject>() 
             where TCommand: IBehaviorTelegramCommand<TSessionObject>
+        {
+            return GetCommandInfo(typeof(TCommand));
+        }
+        
+        public static ITelegramCommandDescriptor GetFluentCommandInfo<TCommand, TObject>() 
+            where TCommand: FluentCommand<TObject>
         {
             return GetCommandInfo(typeof(TCommand));
         }

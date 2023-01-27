@@ -128,6 +128,34 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
+        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject>( TObject obj, uint? sessionDurationInSec = 600)
+            where TNextCommand : FluentCommand<TObject>
+        {
+            var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject>();
+            return new TelegramCommandExecutionResult
+            {
+                Data = new FluentObject<TObject>(obj),
+                Result = ExecuteResult.Ahead,
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = null,
+                SessionDurationInSec = sessionDurationInSec
+            };
+        }
+        
+        internal static TelegramCommandExecutionResult AheadFluent<TObj>(FluentCommand<TObj> command,
+            FluentObject<TObj> sessionObject, uint? sessionDurationInSec)
+        {
+            var commandInfo = command.GetCommandInfo();
+            return new TelegramCommandExecutionResult
+            {
+                Data = sessionObject,
+                Result = ExecuteResult.Ahead,
+                NextCommandDescriptor = commandInfo,
+                WaitFromChatId = null,
+                SessionDurationInSec = sessionDurationInSec
+            };
+        }
+        
         public static TelegramCommandExecutionResult Freeze()
         {
             return new TelegramCommandExecutionResult
