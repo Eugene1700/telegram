@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Telegram.Bot;
@@ -10,6 +11,7 @@ using Telegram.Commands.Core.Fluent;
 using Telegram.Commands.Core.Fluent.Builders;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Models;
+using Telegram.Commands.Core.Services;
 
 namespace SimpleHandlers.Services.Commands;
 
@@ -74,6 +76,19 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
             .ExitStateByCallback("Skip", "data", secondNameState)
             .ExitStateByCallback<CancelCallback>("Cancel", "somedata")
             .ExitStateByCallback("Send TEXT", "TEXT", SendTextCommitter)
+            .ExitStateByCallback(()=> new IEnumerable<CallbackDataWithCommand>[] {new []{ new CallbackDataWithCommand
+            {
+                Text = "Another cancel",
+                CallbackText = "data",
+                CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+            },
+                new CallbackDataWithCommand
+                {
+                    Text = "Another another cancel",
+                    CallbackText = "data",
+                    CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+                }
+            }})
             .ExitState(FirstNameCommitter)
             .Next(secondNameState)
             .Loop("sendtextcondition")

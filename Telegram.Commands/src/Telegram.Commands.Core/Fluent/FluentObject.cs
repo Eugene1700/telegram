@@ -9,5 +9,5 @@ public class FluentObject<TObject>
     }
 
     public int? CurrentStateId { get; set; }
-    public TObject Object { get; }
+    public TObject Object { get; set; }
 }

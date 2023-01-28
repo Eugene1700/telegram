@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Services;
@@ -68,7 +70,7 @@ internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMoverBuilder<TObj
 
     public ICallbacksBuilder<TObj> ExitStateByCallback(string text, string data, Func<string, TObj, Task<string>> commitExpr)
     {
-        _state.AddCallback(new CallbackData
+        _state.AddCallback(new CallbackDataWithCommand
         {
             Text = text,
             CallbackText = data
@@ -92,12 +94,18 @@ internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMoverBuilder<TObj
     {
         var condition = $"new_condition_from_{_state.Id}_to_{nextState.Id}";
         Task<string> CommitExpr(string s, TObj obj) => Task.FromResult(condition);
-        _state.AddCallback(new CallbackData
+        _state.AddCallback(new CallbackDataWithCommand
         {
             Text = text,
             CallbackText = data
         }, CommitExpr);
         _state.AddCondition(condition, nextState as IState<TObj>);
+        return this;
+    }
+
+    public ICallbacksBuilder<TObj> ExitStateByCallback(Func<IEnumerable<IEnumerable<CallbackDataWithCommand>>> builder)
+    {
+        _state.AddCallback(builder);
         return this;
     }
 }

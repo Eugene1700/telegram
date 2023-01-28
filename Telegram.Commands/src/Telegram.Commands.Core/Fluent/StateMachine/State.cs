@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Services;
 
@@ -15,7 +16,7 @@ internal class State<TObj> : IState<TObj>
     {
         Id = id;
         _callbacksCommitters = new Dictionary<string, Func<string, TObj, Task<string>>>();
-        _callbacks = new List<CallbackData>();
+        _callbacksContainers = new List<CallbackDataContainer>();
         _conditions = new Dictionary<string, IState<TObj>>();
     }
 
@@ -24,18 +25,16 @@ internal class State<TObj> : IState<TObj>
     public ITelegramMessage GetMessage()
     {
         IReplyMarkup replyMarkup = null;
-        if (_callbacks.Any())
+        if (_callbacksContainers.Any())
         {
             var builder = new InlineMarkupQueryBuilder();
-            foreach (var callback in _callbacks)
+            foreach (var callbacksContainer in _callbacksContainers)
             {
-                if (callback is CallbackDataWithCommand callbackDataWithCommand)
+                var callbacksRows = callbacksContainer.Build();
+                foreach (var callbackRow in callbacksRows)
                 {
-                    builder.AddInlineKeyboardButton(callbackDataWithCommand);
-                    continue;
+                    builder.InlineKeyboardButtonsRow(callbackRow.ToArray());
                 }
-
-                builder.AddInlineKeyboardButton(callback);
             }
 
             replyMarkup = builder.GetResult();
@@ -62,7 +61,7 @@ internal class State<TObj> : IState<TObj>
     private Func<string, TObj, Task<string>> _committer;
     private readonly Dictionary<string, IState<TObj>> _conditions;
 
-    private readonly List<CallbackData> _callbacks;
+    private readonly List<CallbackDataContainer> _callbacksContainers;
 
     private readonly Dictionary<string, Func<string, TObj, Task<string>>> _callbacksCommitters;
     private string _message;
@@ -90,18 +89,68 @@ internal class State<TObj> : IState<TObj>
     public bool CanNext(IQueryTelegramCommand<CallbackQuery> currentCommand)
     {
         var curComDesc = currentCommand.GetCommandInfo();
-        var moveToAnotherCommand = _callbacks.Select(x => x as CallbackDataWithCommand).Where(x => x != null).ToArray();
-        return moveToAnotherCommand.Any(x => x.CommandDescriptor.MatchCommand(curComDesc));
+        return _callbacksContainers.Any(x => x.HasCommand(curComDesc));
     }
 
-    public void AddCallback(CallbackData callbackData, Func<string, TObj, Task<string>> commitExpr)
+    public void AddCallback(CallbackDataWithCommand callbackData, Func<string, TObj, Task<string>> commitExpr)
     {
-        _callbacks.Add(callbackData);
+        _callbacksContainers.Add(new CallbackDataContainer(callbackData));
         _callbacksCommitters[callbackData.CallbackText] = commitExpr;
     }
 
     public void AddCallback(CallbackDataWithCommand callbackData)
     {
-        _callbacks.Add(callbackData);
+        _callbacksContainers.Add(new CallbackDataContainer(callbackData));
+    }
+    
+    public void AddCallback(Func<IEnumerable<IEnumerable<CallbackDataWithCommand>>> builder)
+    {
+        _callbacksContainers.Add(new CallbackDataContainer(builder));
+    }
+}
+
+internal class CallbackDataContainer
+{
+    private readonly Func<IEnumerable<IEnumerable<CallbackDataWithCommand>>> _builder;
+    private readonly CallbackDataWithCommand[] _callbackData;
+
+    public CallbackDataContainer(CallbackDataWithCommand callbackData)
+    {
+        _callbackData = new[] { callbackData };
+    }
+
+    public CallbackDataContainer(CallbackDataWithCommand[] callbackData)
+    {
+        _callbackData = callbackData;
+    }
+
+    public CallbackDataContainer(Func<IEnumerable<IEnumerable<CallbackDataWithCommand>>> builder)
+    {
+        _builder = builder;
+    }
+
+    public IEnumerable<IEnumerable<CallbackDataWithCommand>> Build()
+    {
+        if (_callbackData != null && _callbackData.Any())
+            return new[] { _callbackData };
+
+        if (_builder != null)
+            return _builder();
+
+        throw new InvalidOperationException();
+    }
+
+    public bool HasCommand(ITelegramCommandDescriptor descriptor)
+    {
+        if (_callbackData.Any(x => x.CommandDescriptor != null && x.CommandDescriptor.MatchCommand(descriptor)))
+            return true;
+
+        if (_builder != null)
+        {
+            var callbacks = _builder();
+            return callbacks.Select(callback => callback.Any(x => x.CommandDescriptor != null && x.CommandDescriptor.MatchCommand(descriptor))).FirstOrDefault();
+        }
+
+        return false;
     }
 }
