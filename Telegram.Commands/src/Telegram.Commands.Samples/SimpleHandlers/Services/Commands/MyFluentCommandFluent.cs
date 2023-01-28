@@ -76,25 +76,35 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
             .ExitStateByCallback("Skip", "data", secondNameState)
             .ExitStateByCallback<CancelCallback>("Cancel", "somedata")
             .ExitStateByCallback("Send TEXT", "TEXT", SendTextCommitter)
-            .ExitStateByCallback(()=> new IEnumerable<CallbackDataWithCommand>[] {new []{ new CallbackDataWithCommand
-            {
-                Text = "Another cancel",
-                CallbackText = "data",
-                CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
-            },
-                new CallbackDataWithCommand
-                {
-                    Text = "Another another cancel",
-                    CallbackText = "data",
-                    CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
-                }
-            }})
+            .ExitStateByCallback(KeyBoardBuild)
             .ExitState(FirstNameCommitter)
             .Next(secondNameState)
             .Loop("sendtextcondition")
             .ConditionNext("toolittleName", validateState);
 
         return builder.Finish();
+    }
+
+    private static IEnumerable<IEnumerable<CallbackDataWithCommand>> KeyBoardBuild()
+    {
+        return new IEnumerable<CallbackDataWithCommand>[]
+        {
+            new[]
+            {
+                new CallbackDataWithCommand
+                {
+                    Text = "Another cancel",
+                    CallbackText = "data",
+                    CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+                },
+                new CallbackDataWithCommand
+                {
+                    Text = "Another another cancel",
+                    CallbackText = "data",
+                    CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+                }
+            }
+        };
     }
 
     private async Task<string> SendTextCommitter(string arg1, MyObject arg2)
@@ -142,6 +152,6 @@ public class MyObject
 {
     public string SecondName { get; set; }
     public string FirstName { get; set; }
-    
+
     public long ChatId { get; set; }
 }
