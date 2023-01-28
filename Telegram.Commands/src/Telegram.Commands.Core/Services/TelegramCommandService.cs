@@ -10,7 +10,6 @@ using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Models;
-using Telegram.Commands.Core.Models.Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Services
 {
@@ -240,7 +239,8 @@ namespace Telegram.Commands.Core.Services
         {
             if (commandDescriptorComposition.IsBehaviorCommand)
             {
-                AssertChatType(query, commandDescriptorComposition.SessionCommand.Descriptor);
+                if (commandDescriptorComposition.SessionCommand != null)
+                    AssertChatType(query, commandDescriptorComposition.SessionCommand.Descriptor);
                 if (commandDescriptorComposition.QueryCommand != null) 
                     AssertChatType(query, commandDescriptorComposition.QueryCommand.Descriptor);
                 return;

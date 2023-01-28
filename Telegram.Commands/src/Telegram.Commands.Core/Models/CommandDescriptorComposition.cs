@@ -8,8 +8,8 @@ namespace Telegram.Commands.Core.Models
         {
         }
 
-        public FullCommandDescriptor SessionCommand { get; private set; }
-        public FullCommandDescriptor QueryCommand { get; private set; }
+        public FullCommandDescriptor SessionCommand { get; private init; }
+        public FullCommandDescriptor QueryCommand { get; private init; }
 
         public static CommandDescriptorComposition CreateSessionResult(FullCommandDescriptor sessionCommandDescriptor)
         {
@@ -39,7 +39,7 @@ namespace Telegram.Commands.Core.Models
         public static CommandDescriptorComposition CreateBehaviorResult(FullCommandDescriptor sessionCommandDescriptor)
         {
             if (!sessionCommandDescriptor.IsBehaviorTelegramCommand)
-                throw new TelegramExtractionCommandInternalException("Incomapitable command types");
+                throw new TelegramExtractionCommandInternalException("Incompatable command types");
             return new CommandDescriptorComposition
             {
                 SessionCommand = sessionCommandDescriptor,
@@ -49,7 +49,7 @@ namespace Telegram.Commands.Core.Models
 
         public static CommandDescriptorComposition CreateQueryResult(FullCommandDescriptor queryCommandDescriptor)
         {
-            if (!queryCommandDescriptor.IsQueryCommand)
+            if (!queryCommandDescriptor.IsQueryCommand && !queryCommandDescriptor.IsBehaviorTelegramCommand)
                 throw new TelegramExtractionCommandInternalException(
                     $"This command {queryCommandDescriptor.Descriptor.Name} is not a query command");
             return new CommandDescriptorComposition
@@ -60,13 +60,14 @@ namespace Telegram.Commands.Core.Models
         }
 
         public bool IsBehaviorCommand =>
-            SessionCommand != null && SessionCommand.IsBehaviorTelegramCommand;
+            SessionCommand is { IsBehaviorTelegramCommand: true } ||
+            QueryCommand is { IsBehaviorTelegramCommand: true };
 
         public bool IsSessionCommand =>
-            SessionCommand != null && SessionCommand.IsSessionTelegramCommand && QueryCommand == null;
+            SessionCommand is { IsSessionTelegramCommand: true } && QueryCommand == null;
 
         public bool IsQueryCommand =>
-            QueryCommand != null && QueryCommand.IsQueryCommand && SessionCommand == null;
+            QueryCommand is { IsQueryCommand: true } && SessionCommand == null;
 
         public bool Authorized => (SessionCommand?.Authorized ?? false) || (QueryCommand?.Authorized ?? false);
     }

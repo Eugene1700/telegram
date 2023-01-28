@@ -1,5 +1,6 @@
 ﻿using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Core.Fluent;
 
 namespace Telegram.Commands.Core.Models
 {
@@ -134,7 +135,10 @@ namespace Telegram.Commands.Core.Models
             var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject>();
             return new TelegramCommandExecutionResult
             {
-                Data = new FluentObject<TObject>(obj),
+                Data = new FluentObject<TObject>(obj)
+                {
+                    CurrentStateId = 0
+                },
                 Result = ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,

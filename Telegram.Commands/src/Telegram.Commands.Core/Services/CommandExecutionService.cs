@@ -114,6 +114,17 @@ namespace Telegram.Commands.Core.Services
 
             if (fullCommandDescriptor.QueryCommand != null)
             {
+                if (fullCommandDescriptor.QueryCommand.IsBehaviorTelegramCommand)
+                {
+                    var behCommandType = fullCommandDescriptor.QueryCommand.Type;
+                    var executeMethod = GetDefaultExecuteMethod(behCommandType);
+                    var genericMethodWithoutQueryComInstance = executeMethod.MakeGenericMethod(typeof(TQuery));
+                    var sessionCommandInstance = _telegramCommandFactory.GetCommand(behCommandType);
+                    // ReSharper disable once PossibleNullReferenceException
+                    return await (Task<ITelegramCommandExecutionResult>)genericMethodWithoutQueryComInstance.Invoke(
+                        sessionCommandInstance,
+                        new[] { query, (object)null });
+                }
                 var commandType = fullCommandDescriptor.QueryCommand.Type;
                 var commandInstance = (IQueryTelegramCommand<TQuery>) _telegramCommandFactory.GetCommand(commandType);
                 return await commandInstance.Execute(query);

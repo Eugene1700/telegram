@@ -6,11 +6,14 @@ using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
+using Telegram.Commands.Core.Fluent;
+using Telegram.Commands.Core.Fluent.Builders;
+using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Models;
 
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "my_fluent")]
+[Command(Name = "myfluent")]
 public class MyFluentCommandFluent : FluentCommand<MyObject>
 {
     private readonly ITelegramBotClient _telegramBotClient;
@@ -35,34 +38,54 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
         }
     }
 
-    protected override Task<MyObject> Entry()
+    protected override Task<MyObject> Entry<TQuery>(TQuery query)
     {
-        return Task.FromResult(new MyObject());
+        var chatId = query switch
+        {
+            Message message => message.GetChatId(),
+            CallbackQuery callbackQuery => callbackQuery.GetChatId(),
+            _ => throw new InvalidOperationException()
+        };
+        return Task.FromResult(new MyObject
+        {
+            ChatId = chatId
+        });
     }
 
     protected override IStateMachine<MyObject> StateMachine(IStateMachineBuilder<MyObject> builder)
     {
-        var nameStateBuilder = builder.NewState("Привет! Введи свое имя");
-        var stateMoverBuilder = nameStateBuilder.ExitState(FirstNameCommitter);
+        var nameStateBuilder = builder.NewState("Hi! What's your name?");
 
-        var secondNameStateBuilder = builder.NewState("Введи свою фамилию");
+        var secondNameStateBuilder = builder.NewState("Ok, send me your surname");
+        var secondNameState = secondNameStateBuilder.GetState();
         secondNameStateBuilder.ExitState(GetSecondNameCommitter);
 
-        stateMoverBuilder.Next(secondNameStateBuilder.GetCurrentState());
+        var validateNameBuilder = builder.NewState("Your name is too short! Please, send me again");
+        var validateState = validateNameBuilder.GetState();
+        validateNameBuilder
+            .WithCallbacks()
+            .ExitStateByCallback("Skip", "data", secondNameState)
+            .ExitState(FirstNameCommitter)
+            .Loop("toolittleName")
+            .Next(secondNameState);
 
-        var validateSecondNameBuilder = builder.NewState("Слишком короткое имя! Введите еще раз");
-        var validateSecondNameMover = validateSecondNameBuilder.ExitState(FirstNameCommitter);
-        validateSecondNameMover.Next("toolittleName", validateSecondNameBuilder.GetCurrentState());
-        validateSecondNameMover.Next(validateSecondNameBuilder.GetCurrentState());
+        nameStateBuilder.WithCallbacks()
+            .ExitStateByCallback("Default Name (Jack)", "Jack", FirstNameCommitter)
+            .ExitStateByCallback("Skip", "data", secondNameState)
+            .ExitStateByCallback<CancelCallback>("Cancel", "somedata")
+            .ExitStateByCallback("Send TEXT", "TEXT", SendTextCommitter)
+            .ExitState(FirstNameCommitter)
+            .Next(secondNameState)
+            .Loop("sendtextcondition")
+            .ConditionNext("toolittleName", validateState);
 
-        var callbacks2 = validateSecondNameBuilder.WithCallbacks();
-        callbacks2.ExitState("Пропустить", "data", secondNameStateBuilder.GetCurrentState());
-
-        stateMoverBuilder.Next("toolittleName", validateSecondNameBuilder.GetCurrentState());
-
-        var callbacks = nameStateBuilder.WithCallbacks();
-        callbacks.ExitState("Пропустить", "data", secondNameStateBuilder.GetCurrentState());
         return builder.Finish();
+    }
+
+    private async Task<string> SendTextCommitter(string arg1, MyObject arg2)
+    {
+        await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, arg1);
+        return "sendtextcondition";
     }
 
     private async Task<string> FirstNameCommitter(string message, MyObject obj)
@@ -73,13 +96,13 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
         }
 
         obj.FirstName = message;
-        return DefaultMoveCondition;
+        return DefaultNextCondition;
     }
 
     public async Task<string> GetSecondNameCommitter(string message, MyObject obj)
     {
         obj.SecondName = message;
-        return DefaultMoveCondition;
+        return DefaultNextCondition;
     }
 
     protected override async Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery currentQuery, MyObject obj)
@@ -95,7 +118,7 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
             chatId = callbackQuery.GetChatId();
         }
 
-        await _telegramBotClient.SendTextMessageAsync(chatId, $"Вот твои данные: {obj.FirstName} {obj.SecondName}");
+        await _telegramBotClient.SendTextMessageAsync(chatId, $"Your data: {obj.FirstName} {obj.SecondName}");
         return TelegramCommandExecutionResult.Break();
     }
 }
@@ -104,4 +127,6 @@ public class MyObject
 {
     public string SecondName { get; set; }
     public string FirstName { get; set; }
+    
+    public long ChatId { get; set; }
 }

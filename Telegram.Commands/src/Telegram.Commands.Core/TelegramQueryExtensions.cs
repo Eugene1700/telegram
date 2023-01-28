@@ -98,6 +98,11 @@ namespace Telegram.Commands.Core
             var com = ExtractCommand(query);
             return com == descriptor.Name;
         }
+        
+        public static bool MatchCommand(this ITelegramCommandDescriptor descriptor, ITelegramCommandDescriptor anotherDescriptor)
+        {
+            return descriptor.Name == anotherDescriptor.Name;
+        }
 
         public static string ExtractCommand(string query)
         {
