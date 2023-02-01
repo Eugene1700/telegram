@@ -50,12 +50,6 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
         return _stateMachineBuilder;
     }
 
-    public IMessageBuilder<TObj> WithMessage(Func<TObj, string> func, Func<TObj, ITelegramMessage, Task> sendMessageProvider)
-    {
-        _state.SetMessage(func, sendMessageProvider);
-        return this;
-    }
-    
     public ICallbackRowBuilder<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, Task<string>> commitExpr) where TQuery : class
     {
         var container = _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
@@ -81,6 +75,12 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
     {
         _currentRow.AddContainer(callbackProvider,
             telegramCommandDescriptor: telegramCommandDescriptor);
+        return this;
+    }
+
+    public IMessageBuilder<TObj> WithMessage(Func<TObj, string> messageProvider, IMessageSender<TObj> sender)
+    {
+        _state.SetMessage(messageProvider, sender);
         return this;
     }
 }

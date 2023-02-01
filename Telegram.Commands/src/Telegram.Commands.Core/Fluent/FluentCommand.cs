@@ -23,15 +23,15 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
                 CurrentStateId = stateMachine.GetEntryState().Id
             };
             var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
-            await entryState.SendMessage(sessionObject.Object);
-            return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, null);
+            await entryState.SendMessage(query, sessionObject.Object);
+            return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
         }
 
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
         var nextStateId = query switch
         {
-            Message message => await currentState.Commit(message, sessionObject.Object),
-            CallbackQuery callbackQuery => await currentState.CallbackCommit(callbackQuery, sessionObject.Object),
+            Message message => await currentState.HandleQuery(message, sessionObject.Object),
+            CallbackQuery callbackQuery => await currentState.HandleCallback(callbackQuery, sessionObject.Object),
             _ => throw new InvalidOperationException("FluentCommand works only with Message and CallbackQuery")
         };
 
@@ -43,11 +43,11 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
 
         if (next.Id != currentState.Id)
         {
-            await next.SendMessage(sessionObject.Object);
+            await next.SendMessage(query, sessionObject.Object);
         }
 
         sessionObject.CurrentStateId = next.Id;
-        return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, null);
+        return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, next.DurationInSec);
     }
 
     private StateMachine<TObject> GetStateMachine()
@@ -66,7 +66,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
             return await DefaultExecute(query, sessionObject);
         
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
-        if (currentState.CanNext(currentCommand as IQueryTelegramCommand<CallbackQuery>))
+        if (currentState.IsCommandHandle(currentCommand as IQueryTelegramCommand<CallbackQuery>))
         {
             return await currentCommand.Execute(query);
         }

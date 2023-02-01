@@ -16,9 +16,9 @@ internal class StateMachineBuilder<TObj> : IStateMachineBuilder<TObj>, IStateMac
         return NewState(stateId, StateType.Body);
     }
 
-    private IStateBuilder<TObj> NewState(string stateId, StateType stateType)
+    private IStateBuilder<TObj> NewState(string stateId, StateType stateType, uint? durationInSec = null)
     {
-        var newState = _stateMachine.AddState(stateId, stateType);
+        var newState = _stateMachine.AddState(stateId, stateType, durationInSec);
         var entryStateBuilder = new StateBuilder<TObj>(newState, this);
         return entryStateBuilder;
     }
@@ -30,8 +30,8 @@ internal class StateMachineBuilder<TObj> : IStateMachineBuilder<TObj>, IStateMac
     }
     
 
-    public IStateBuilder<TObj> Entry(string stateId)
+    public IStateBuilder<TObj> Entry(string stateId, uint? durationInSec = null)
     {
-        return NewState(stateId, StateType.Entry);
+        return NewState(stateId, StateType.Entry, durationInSec);
     }
 }

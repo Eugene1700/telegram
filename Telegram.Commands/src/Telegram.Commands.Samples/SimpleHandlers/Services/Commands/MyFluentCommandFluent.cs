@@ -17,19 +17,13 @@ using Telegram.Commands.Core.Services;
 namespace SimpleHandlers.Services.Commands;
 
 [Command(Name = "myfluent")]
-public class MyFluentCommandFluent: FluentCommand<MyObject>
+public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyObject>
 {
     private readonly ITelegramBotClient _telegramBotClient;
 
     public MyFluentCommandFluent(ITelegramBotClient telegramBotClient)
     {
         _telegramBotClient = telegramBotClient;
-    }
-
-    private async Task SendMessage(MyObject obj, ITelegramMessage nextMessage)
-    {
-        await _telegramBotClient.SendTextMessageAsync(obj.ChatId, nextMessage.Message,
-            replyMarkup: nextMessage.ReplyMarkup);
     }
 
     protected override Task<MyObject> Entry<TQuery>(TQuery query)
@@ -56,7 +50,7 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>
 
     protected override IStateMachine<MyObject> StateMachine(IStateMachineBuilder<MyObject> builder)
     {
-        return builder.Entry(States.Name).WithMessage(_ => "Hi! What's your name?", SendMessage)
+        return builder.Entry(States.Name, 10).WithMessage(_ => "Hi! What's your name?", this)
             .WithCallbacks()
             .Row().ExitStateByCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
             .Row().ExitStateByCallback("skip", "Skip", "data", States.Surname)
@@ -65,9 +59,9 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>
             .Row().ExitStateByCallback(KeyBoardBuild, TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
             .ExitStateByCallback(CallbackDataWithCommand())
             .ExitState(FirstNameMessageHandler)
-            .NewState(States.Surname).WithMessage(obj => $"Ok, send me your surname, {obj.FirstName}", SendMessage)
+            .NewState(States.Surname).WithMessage(obj => $"Ok, send me your surname, {obj.FirstName}", this)
             .ExitState(SecondNameHandler)
-            .NewState(States.Validate).WithMessage(_=>"Your name is too short! Please, send me again", SendMessage)
+            .NewState(States.Validate).WithMessage(_=>"Your name is too short! Please, send me again", this)
             .WithCallbacks()
             .Row().ExitStateByCallback("skip","Skip", "data", States.Surname)
             .ExitState(FirstNameMessageHandler)
@@ -79,7 +73,8 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>
         return new CallbackDataWithCommand
         {
             Text = "Another another cancel",
-            CallbackText = "data"
+            CallbackText = "data",
+            CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
         };
     }
 
@@ -142,6 +137,12 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>
 
         await _telegramBotClient.SendTextMessageAsync(chatId, $"Your data: {obj.FirstName} {obj.SecondName}");
         return TelegramCommandExecutionResult.Break();
+    }
+
+    public Task Send<TQuery>(TQuery currentQuery, MyObject obj, ITelegramMessage message)
+    {
+        return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Message,
+            replyMarkup: message.ReplyMarkup);
     }
 }
 

@@ -5,14 +5,14 @@ namespace Telegram.Commands.Core.Fluent.Builders;
 
 public interface IStateMachineBuilder<TObj>: IStateMachineBaseBuilder<TObj>
 {
-    IStateBuilder<TObj> Entry(string stateId);
+    IStateBuilder<TObj> Entry(string stateId, uint? durationInSec = null);
 }
 
 public static class StateMachineBuilderExtensions
 {
-    public static IStateBuilder<TObj> Entry<TObj, TEnum>(this IStateMachineBuilder<TObj> builder, TEnum stateId) where TEnum: Enum
+    public static IStateBuilder<TObj> Entry<TObj, TEnum>(this IStateMachineBuilder<TObj> builder, TEnum stateId, uint? durationInSec = null) where TEnum: Enum
     {
-        return builder.Entry(stateId.ToString());
+        return builder.Entry(stateId.ToString(), durationInSec);
     }
     
     public static IStateBuilder<TObj> NewState<TObj, TEnum>(this IStateMachineBodyBuilder<TObj> builder, TEnum stateId) where TEnum: Enum

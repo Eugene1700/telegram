@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Core.Fluent.Builders;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine;
@@ -13,17 +14,19 @@ internal class State<TObj> : IState<TObj>
 {
     private readonly StateType _stateType;
 
-    public State(string id, StateType stateType)
+    public State(string id, StateType stateType, uint? durationInSec)
     {
         _stateType = stateType;
         Id = id;
+        DurationInSec = durationInSec;
         _callbacksContainerRows = new List<CallbackDataContainerRow<TObj>>();
         _callbackIndex = new Dictionary<string, CallbackDataContainer<TObj>>();
     }
 
     public string Id { get; }
+    public uint? DurationInSec { get; }
 
-    public Task SendMessage(TObj obj)
+    public Task SendMessage<TQuery>(TQuery currentQuery, TObj obj)
     {
         IReplyMarkup replyMarkup = null;
         if (_callbacksContainerRows.Any())
@@ -41,15 +44,15 @@ internal class State<TObj> : IState<TObj>
 
         var messageText = _message(obj);
         var mes = new TelegramMessage(messageText, replyMarkup);
-        return _sendMessageProvider(obj, mes);
+        return _sendMessageProvider.Send(currentQuery, obj, mes);
     }
 
-    public Task<string> Commit<TQuery>(TQuery query, TObj obj)
+    public Task<string> HandleQuery<TQuery>(TQuery query, TObj obj)
     {
         return _committer(query, obj);
     }
 
-    public Task<string> CallbackCommit<TQuery>(TQuery query, TObj obj)
+    public Task<string> HandleCallback<TQuery>(TQuery query, TObj obj)
     {
         var data = query.GetData().Split(" ").FirstOrDefault();
         if (_callbackIndex.TryGetValue(data, out var container))
@@ -64,21 +67,15 @@ internal class State<TObj> : IState<TObj>
     private readonly List<CallbackDataContainerRow<TObj>> _callbacksContainerRows;
 
     private Func<TObj, string> _message;
-    private Func<TObj,ITelegramMessage,Task> _sendMessageProvider;
-    private Dictionary<string, CallbackDataContainer<TObj>> _callbackIndex;
-
-    public void SetMessage(Func<TObj, string> messageProvider, Func<TObj, ITelegramMessage, Task> sendMessageProvider)
-    {
-        _message = messageProvider;
-        _sendMessageProvider = sendMessageProvider;
-    }
+    private IMessageSender<TObj> _sendMessageProvider;
+    private readonly Dictionary<string, CallbackDataContainer<TObj>> _callbackIndex;
 
     public void SetCommitter(Func<object, TObj, Task<string>> commitStateExpr)
     {
         _committer = commitStateExpr;
     }
 
-    public bool CanNext(IQueryTelegramCommand<CallbackQuery> currentCommand)
+    public bool IsCommandHandle(IQueryTelegramCommand<CallbackQuery> currentCommand)
     {
         var curComDesc = currentCommand.GetCommandInfo();
         return _callbacksContainerRows.Any(x => x.HasCommand(curComDesc));
@@ -100,5 +97,11 @@ internal class State<TObj> : IState<TObj>
     public void AddIndex(string callbackId, CallbackDataContainer<TObj> container)
     {
         _callbackIndex.Add(callbackId, container);
+    }
+
+    public void SetMessage(Func<TObj, string> messageProvider, IMessageSender<TObj> sendMessageProvider)
+    {
+        _message = messageProvider;
+        _sendMessageProvider = sendMessageProvider;
     }
 }
