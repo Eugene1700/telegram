@@ -50,14 +50,13 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
 
     protected override IStateMachine<MyObject> StateMachine(IStateMachineBuilder<MyObject> builder)
     {
-        return builder.Entry(States.Name, 10).WithMessage(_ => "Hi! What's your name?", this)
+        return builder.Entry(States.Name).WithMessage(_ => "Hi! What's your name?", this)
             .WithCallbacks()
             .Row().ExitStateByCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
             .Row().ExitStateByCallback("skip", "Skip", "data", States.Surname)
             .Row().ExitStateByCallback("sendText", "Send TEXT", "TEXT", SendTextHandler)
             .Row().ExitStateByCallback<MyObject, CancelCallback>("Cancel", "someData")
-            .Row().ExitStateByCallback(KeyBoardBuild, TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
-            .ExitStateByCallback(CallbackDataWithCommand())
+            .Row().ExitStateByCallback(KeyBoardBuild, TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()).ExitStateByCallback(CallbackDataWithCommand())
             .ExitState(FirstNameMessageHandler)
             .NewState(States.Surname).WithMessage(obj => $"Ok, send me your surname, {obj.FirstName}", this)
             .ExitState(SecondNameHandler)
