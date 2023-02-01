@@ -24,7 +24,7 @@ internal class CallbackDataContainerRow<TObj>
     }
 
     public CallbackDataContainer<TObj> AddContainer<TQuery>(string callbackId,
-        Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, Task<string>> commitExpr) where TQuery : class
+        Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
     {
         Func<TObj, CallbackDataWithCommand> newProvider = (o) =>
         {
@@ -32,12 +32,12 @@ internal class CallbackDataContainerRow<TObj>
             return new CallbackDataWithCommand
             {
                 CallbackMode = callbackData.CallbackMode,
-                CallbackText = $"{callbackId} {callbackData.CallbackText}",
+                CallbackText = $"{CallbackDataContainer<TObj>._fcbidKey}={callbackId}&{CallbackDataContainer<TObj>._fcudKey}={callbackData.CallbackText}",
                 Text = callbackData.Text
             };
         };
 
-        Task<string> Committer(object q, TObj o) => commitExpr(q as TQuery, o);
+        Task<string> Committer(object q, TObj o, string d) => commitExpr(q as TQuery, o, d);
 
         var newContainer = new CallbackDataContainer<TObj>(newProvider, Committer);
         _containers.Add(newContainer);
@@ -74,10 +74,12 @@ internal class CallbackDataContainer<TObj>
 {
     private readonly Func<TObj, CallbackDataWithCommand> _builder;
     private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
-    private readonly Func<object, TObj, Task<string>> _committer;
+    private readonly Func<object, TObj, string, Task<string>> _committer;
+    public static string _fcudKey = "fcUd";
+    internal const string _fcbidKey = "fcbId";
 
     public CallbackDataContainer(Func<TObj, CallbackDataWithCommand> provider,
-        Func<object, TObj, Task<string>> committer = null, ITelegramCommandDescriptor telegramCommandDescriptor = null)
+        Func<object, TObj, string, Task<string>> committer = null, ITelegramCommandDescriptor telegramCommandDescriptor = null)
     {
         _builder = provider;
         _telegramCommandDescriptor = telegramCommandDescriptor;
@@ -92,13 +94,36 @@ internal class CallbackDataContainer<TObj>
         throw new InvalidOperationException();
     }
 
-    public Task<string> Commit<TQuery>(TQuery query, TObj obj)
+    public Task<string> Commit<TQuery>(TQuery query, TObj obj, string callbackUserData)
     {
-        return _committer?.Invoke(query, obj);
+        return _committer?.Invoke(query, obj, callbackUserData);
     }
 
     public bool HasCommand(ITelegramCommandDescriptor descriptor)
     {
         return _telegramCommandDescriptor != null && _telegramCommandDescriptor.MatchCommand(descriptor);
+    }
+
+    public static bool IsCallback<TQuery>(TQuery query)
+    {
+        var data = query.GetData();
+        return data.Split("&").Any(x => x.StartsWith(_fcbidKey));
+    }
+
+    public static (string, string) ExtractData<TQuery>(TQuery query)
+    {
+        var data = query.GetData();
+       var parametrs = data.Split("&").Select(x =>
+        {
+            var parts = x.Split("=");
+            if (parts.Length < 2)
+            {
+                throw new InvalidOperationException();
+            }
+            return new KeyValuePair<string, string>(parts[0], parts[1]);
+        }).ToArray();
+       var callbackId = parametrs.SingleOrDefault(x => x.Key == _fcbidKey).Value;
+       var userData = parametrs.SingleOrDefault(x => x.Key == _fcudKey).Value;
+       return (callbackId, userData);
     }
 }

@@ -28,12 +28,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
         }
 
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
-        var nextStateId = query switch
-        {
-            Message message => await currentState.HandleQuery(message, sessionObject.Object),
-            CallbackQuery callbackQuery => await currentState.HandleCallback(callbackQuery, sessionObject.Object),
-            _ => throw new InvalidOperationException("FluentCommand works only with Message and CallbackQuery")
-        };
+        var nextStateId = await currentState.HandleQuery(query, sessionObject.Object);
 
         var next = stateMachine.GetStateInternal(nextStateId);
         if (next.GetStateType() == StateType.Finish)

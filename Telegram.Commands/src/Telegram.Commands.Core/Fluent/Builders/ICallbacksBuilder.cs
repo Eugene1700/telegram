@@ -15,7 +15,7 @@ public interface ICallbacksBuilder<TObj> : IStateBuilderBase<TObj>
 public interface ICallbackRowBuilder<TObj> : ICallbacksBuilder<TObj>
 {
     ICallbackRowBuilder<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider,
-        Func<TQuery, TObj, Task<string>> commitExpr) where TQuery : class;
+        Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class;
     ICallbackRowBuilder<TObj> ExitStateByCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId);
     ICallbackRowBuilder<TObj> ExitStateByCallback(CallbackDataWithCommand callbackDataWithCommand);
     ICallbackRowBuilder<TObj> ExitStateByCallback(Func<TObj, CallbackData> callbackProvider,
@@ -27,7 +27,7 @@ public static class CallbackRowBuilderExtensions
 {
     public static ICallbackRowBuilder<TObj> ExitStateByCallback<TObj, TQuery>(this ICallbackRowBuilder<TObj> builder, string callbackId,
         string text,
-        string data, Func<TQuery, TObj, Task<string>> commitExpr) where TQuery : class
+        string data, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
     {
         return builder.ExitStateByCallback(callbackId, new CallbackData
         {
@@ -37,23 +37,23 @@ public static class CallbackRowBuilderExtensions
     }
 
     public static ICallbackRowBuilder<TObj> ExitStateByCallback<TObj, TQuery>(this ICallbackRowBuilder<TObj> builder, string callbackId, 
-        CallbackData callback, Func<TQuery, TObj, Task<string>> commitExpr) where TQuery : class
+        CallbackData callback, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
     {
         return builder.ExitStateByCallback(callbackId,_ => callback, commitExpr);
     }
 
     public static ICallbackRowBuilder<TObj> ExitStateByCallback<TObj, TQuery, TEnum>(this ICallbackRowBuilder<TObj> builder, string callbackId,
-        CallbackData callback, Func<TQuery, TObj, Task<TEnum>> commitExpr) where TQuery : class
+        CallbackData callback, Func<TQuery, TObj, string, Task<TEnum>> commitExpr) where TQuery : class
     {
-        return builder.ExitStateByCallback<TQuery>(callbackId, _ => callback, async (cq, o) =>
+        return builder.ExitStateByCallback<TQuery>(callbackId, _ => callback, async (cq, o, d) =>
         {
-            var res = await commitExpr(cq, o);
+            var res = await commitExpr(cq, o, d);
             return res.ToString();
         });
     }
 
     public static ICallbackRowBuilder<TObj> ExitStateByCallback<TObj, TQuery, TEnum >(this ICallbackRowBuilder<TObj> builder, string callbackId,
-        string text, string data, Func<TQuery, TObj, Task<TEnum>> commitExpr) where TQuery : class
+        string text, string data, Func<TQuery, TObj,string, Task<TEnum>> commitExpr) where TQuery : class
     {
         return builder.ExitStateByCallback(callbackId, new CallbackDataWithCommand
         {
@@ -65,7 +65,7 @@ public static class CallbackRowBuilderExtensions
 
 public static class CallbackRowBuilderStronglyTypedExtensions {
     public static ICallbackRowBuilder<TObj> ExitStateByCallback<TObj, TEnum>(this ICallbackRowBuilder<TObj> builder, string callbackId,
-        string text, string data, Func<CallbackQuery, TObj, Task<TEnum>> handler)
+        string text, string data, Func<CallbackQuery, TObj, string, Task<TEnum>> handler)
     {
         return builder.ExitStateByCallback(callbackId, new CallbackDataWithCommand
         {

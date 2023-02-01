@@ -50,7 +50,7 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
         return _stateMachineBuilder;
     }
 
-    public ICallbackRowBuilder<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, Task<string>> commitExpr) where TQuery : class
+    public ICallbackRowBuilder<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
     {
         var container = _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
         _state.AddIndex(callbackId, container);
@@ -59,7 +59,7 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
 
     public ICallbackRowBuilder<TObj> ExitStateByCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId)
     {
-        Func<object, TObj, Task<string>> commitExpr = (_, _) => Task.FromResult(stateId);
+        Func<object, TObj, string, Task<string>> commitExpr = (_, _, _) => Task.FromResult(stateId);
         var newContainer = _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
         _state.AddIndex(callbackId, newContainer);
         return this;

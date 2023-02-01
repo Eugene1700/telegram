@@ -88,15 +88,15 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
             };
     }
 
-    private async Task<States> SendTextHandler(CallbackQuery arg1, MyObject arg2)
+    private async Task<States> SendTextHandler(CallbackQuery arg1, MyObject arg2, string userData)
     {
-        await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, arg1.Data);
+        await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, userData);
         return States.Name;
     }
 
-    private static async Task<States> FirstNameCallbackHandler(CallbackQuery query, MyObject obj)
+    private static async Task<States> FirstNameCallbackHandler(CallbackQuery query, MyObject obj, string userData)
     {
-        return await FirstNameHandler(query.Data, obj);
+        return await FirstNameHandler(userData, obj);
     }
     
     private static async Task<States> FirstNameMessageHandler(Message query, MyObject obj)

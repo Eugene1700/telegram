@@ -49,21 +49,25 @@ internal class State<TObj> : IState<TObj>
 
     public Task<string> HandleQuery<TQuery>(TQuery query, TObj obj)
     {
-        return _committer(query, obj);
+        if (CallbackDataContainer<TObj>.IsCallback(query))
+        {
+            return HandleCallback(query, obj);
+        }
+        return _handler(query, obj);
     }
 
-    public Task<string> HandleCallback<TQuery>(TQuery query, TObj obj)
+    private Task<string> HandleCallback<TQuery>(TQuery query, TObj obj)
     {
-        var data = query.GetData().Split(" ").FirstOrDefault();
-        if (_callbackIndex.TryGetValue(data, out var container))
+        var (callbackKey, callbackUserData) = CallbackDataContainer<TObj>.ExtractData(query);
+        if (_callbackIndex.TryGetValue(callbackKey, out var container))
         {
-            return container.Commit(query, obj);
+            return container.Commit(query, obj, callbackUserData);
         }
 
         throw new InvalidOperationException();
     }
 
-    private Func<object, TObj, Task<string>> _committer;
+    private Func<object, TObj, Task<string>> _handler;
     private readonly List<CallbackDataContainerRow<TObj>> _callbacksContainerRows;
 
     private Func<TObj, string> _message;
@@ -72,7 +76,7 @@ internal class State<TObj> : IState<TObj>
 
     public void SetCommitter(Func<object, TObj, Task<string>> commitStateExpr)
     {
-        _committer = commitStateExpr;
+        _handler = commitStateExpr;
     }
 
     public bool IsCommandHandle(IQueryTelegramCommand<CallbackQuery> currentCommand)
