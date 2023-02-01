@@ -8,6 +8,6 @@ public class FluentObject<TObject>
         CurrentStateId = null;
     }
 
-    public int? CurrentStateId { get; set; }
+    public string CurrentStateId { get; set; }
     public TObject Object { get; set; }
 }

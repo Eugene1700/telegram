@@ -11,99 +11,94 @@ namespace Telegram.Commands.Core.Fluent.StateMachine;
 
 internal class State<TObj> : IState<TObj>
 {
-    public State(int id)
+    private readonly StateType _stateType;
+
+    public State(string id, StateType stateType)
     {
+        _stateType = stateType;
         Id = id;
-        _callbacksCommitters = new Dictionary<string, Func<string, TObj, Task<string>>>();
-        _callbacksContainers = new List<CallbackDataContainer>();
-        _conditions = new Dictionary<string, IState<TObj>>();
+        _callbacksContainerRows = new List<CallbackDataContainerRow<TObj>>();
+        _callbackIndex = new Dictionary<string, CallbackDataContainer<TObj>>();
     }
 
-    public int Id { get; }
+    public string Id { get; }
 
-    public ITelegramMessage GetMessage()
+    public Task SendMessage(TObj obj)
     {
         IReplyMarkup replyMarkup = null;
-        if (_callbacksContainers.Any())
+        if (_callbacksContainerRows.Any())
         {
             var builder = new InlineMarkupQueryBuilder();
-            foreach (var callbacksContainer in _callbacksContainers)
+            foreach (var callbacksContainer in _callbacksContainerRows)
             {
-                var callbacksRows = callbacksContainer.Build();
-                foreach (var callbackRow in callbacksRows)
-                {
-                    builder.InlineKeyboardButtonsRow(callbackRow.ToArray());
-                }
+                var callbacksRow = callbacksContainer.GetContainers();
+                var row = callbacksRow.Select(x => x.Build(obj)).ToArray();
+                builder.InlineKeyboardButtonsRow(row);
             }
 
             replyMarkup = builder.GetResult();
         }
 
-        return new TelegramMessage(_message, replyMarkup);
+        var messageText = _message(obj);
+        var mes = new TelegramMessage(messageText, replyMarkup);
+        return _sendMessageProvider(obj, mes);
     }
 
-    public async Task<string> Commit(string message, TObj obj)
+    public Task<string> Commit<TQuery>(TQuery query, TObj obj)
     {
-        return await _committer(message, obj);
+        return _committer(query, obj);
     }
 
-    public async Task<string> CallbackCommit(string data, TObj obj)
+    public Task<string> CallbackCommit<TQuery>(TQuery query, TObj obj)
     {
-        if (_callbacksCommitters.TryGetValue(data, out var committer))
+        var data = query.GetData().Split(" ").FirstOrDefault();
+        if (_callbackIndex.TryGetValue(data, out var container))
         {
-            return await committer(data, obj);
+            return container.Commit(query, obj);
         }
 
         throw new InvalidOperationException();
     }
 
-    private Func<string, TObj, Task<string>> _committer;
-    private readonly Dictionary<string, IState<TObj>> _conditions;
+    private Func<object, TObj, Task<string>> _committer;
+    private readonly List<CallbackDataContainerRow<TObj>> _callbacksContainerRows;
 
-    private readonly List<CallbackDataContainer> _callbacksContainers;
+    private Func<TObj, string> _message;
+    private Func<TObj,ITelegramMessage,Task> _sendMessageProvider;
+    private Dictionary<string, CallbackDataContainer<TObj>> _callbackIndex;
 
-    private readonly Dictionary<string, Func<string, TObj, Task<string>>> _callbacksCommitters;
-    private string _message;
-
-    public void SetMessage(string text)
+    public void SetMessage(Func<TObj, string> messageProvider, Func<TObj, ITelegramMessage, Task> sendMessageProvider)
     {
-        _message = text;
+        _message = messageProvider;
+        _sendMessageProvider = sendMessageProvider;
     }
 
-    public void SetCommitter(Func<string, TObj, Task<string>> commitStateExpr)
+    public void SetCommitter(Func<object, TObj, Task<string>> commitStateExpr)
     {
         _committer = commitStateExpr;
-    }
-
-    public void AddCondition(string condition, IState<TObj> newState)
-    {
-        _conditions.Add(condition, newState);
-    }
-
-    public IState<TObj> Next(string condition)
-    {
-        return _conditions.TryGetValue(condition, out var nextState) ? nextState : null;
     }
 
     public bool CanNext(IQueryTelegramCommand<CallbackQuery> currentCommand)
     {
         var curComDesc = currentCommand.GetCommandInfo();
-        return _callbacksContainers.Any(x => x.HasCommand(curComDesc));
+        return _callbacksContainerRows.Any(x => x.HasCommand(curComDesc));
     }
 
-    public void AddCallback(CallbackDataWithCommand callbackData, Func<string, TObj, Task<string>> commitExpr)
+    public StateType GetStateType()
     {
-        _callbacksContainers.Add(new CallbackDataContainer(callbackData));
-        _callbacksCommitters[callbackData.CallbackText] = commitExpr;
+        return _stateType;
     }
 
-    public void AddCallback(CallbackDataWithCommand callbackData)
+
+    public CallbackDataContainerRow<TObj> AddCallbackRow()
     {
-        _callbacksContainers.Add(new CallbackDataContainer(callbackData));
+        var newRow = new CallbackDataContainerRow<TObj>();
+        _callbacksContainerRows.Add(newRow);
+        return newRow;
     }
-    
-    public void AddCallback(Func<IEnumerable<IEnumerable<CallbackDataWithCommand>>> builder)
+
+    public void AddIndex(string callbackId, CallbackDataContainer<TObj> container)
     {
-        _callbacksContainers.Add(new CallbackDataContainer(builder));
+        _callbackIndex.Add(callbackId, container);
     }
 }

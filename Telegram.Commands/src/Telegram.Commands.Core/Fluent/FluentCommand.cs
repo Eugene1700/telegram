@@ -11,7 +11,6 @@ namespace Telegram.Commands.Core.Fluent;
 
 public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentObject<TObject>>
 {
-    public const string DefaultNextCondition = "default_condition";
 
     public async Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query,
         FluentObject<TObject> sessionObject)
@@ -21,32 +20,30 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
         {
             sessionObject = new FluentObject<TObject>(await Entry(query))
             {
-                CurrentStateId = 0
+                CurrentStateId = stateMachine.GetEntryState().Id
             };
-            var entryState = stateMachine.GetCurrentStateInternal(sessionObject.CurrentStateId.Value);
-            var nextMessage = entryState.GetMessage();
-            await SendMessage(query, nextMessage);
+            var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
+            await entryState.SendMessage(sessionObject.Object);
             return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, null);
         }
 
-        var currentState = stateMachine.GetCurrentStateInternal(sessionObject.CurrentStateId.Value);
-        var condition = query switch
+        var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
+        var nextStateId = query switch
         {
-            Message message => await currentState.Commit(message.Text, sessionObject.Object),
-            CallbackQuery callbackQuery => await currentState.CallbackCommit(callbackQuery.Data, sessionObject.Object),
+            Message message => await currentState.Commit(message, sessionObject.Object),
+            CallbackQuery callbackQuery => await currentState.CallbackCommit(callbackQuery, sessionObject.Object),
             _ => throw new InvalidOperationException("FluentCommand works only with Message and CallbackQuery")
         };
 
-        var next = currentState.Next(condition);
-        if (next == null)
+        var next = stateMachine.GetStateInternal(nextStateId);
+        if (next.GetStateType() == StateType.Finish)
         {
             return await Finalize(query, sessionObject.Object);
         }
 
         if (next.Id != currentState.Id)
         {
-            var nextMessage = next.GetMessage();
-            await SendMessage(query, nextMessage);
+            await next.SendMessage(sessionObject.Object);
         }
 
         sessionObject.CurrentStateId = next.Id;
@@ -60,8 +57,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
         return stateMachine;
     }
 
-    protected abstract Task SendMessage<TQuery>(TQuery currentQuery, ITelegramMessage nextMessage);
-
+    
     public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand,
         TQuery query, FluentObject<TObject> sessionObject)
     {
@@ -69,7 +65,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
         if (sessionObject.CurrentStateId == null) 
             return await DefaultExecute(query, sessionObject);
         
-        var currentState = stateMachine.GetCurrentStateInternal(sessionObject.CurrentStateId.Value);
+        var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
         if (currentState.CanNext(currentCommand as IQueryTelegramCommand<CallbackQuery>))
         {
             return await currentCommand.Execute(query);
@@ -88,4 +84,5 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
     protected abstract Task<TObject> Entry<TQuery>(TQuery query);
     protected abstract IStateMachine<TObject> StateMachine(IStateMachineBuilder<TObject> builder);
     protected abstract Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery currentQuery, TObject obj);
+
 }

@@ -6,8 +6,9 @@ namespace Telegram.Commands.Core.Fluent.StateMachine;
 
 internal interface IState<TObj> : IStateBase<TObj>
 {
-    Task<string> Commit(string message, TObj obj);
-    Task<string> CallbackCommit(string data, TObj obj);
-    IState<TObj> Next(string condition);
+    Task SendMessage(TObj obj);
+    Task<string> Commit<TQuery>(TQuery query, TObj obj);
+    Task<string> CallbackCommit<TQuery>(TQuery query, TObj obj);
     bool CanNext(IQueryTelegramCommand<CallbackQuery> currentCommand);
+    StateType GetStateType();
 }

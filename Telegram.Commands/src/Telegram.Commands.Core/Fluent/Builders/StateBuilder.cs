@@ -3,33 +3,29 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.Builders;
 
-internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMoverBuilder<TObj>, ICallbacksBuilder<TObj>
+internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, ICallbackRowBuilder<TObj>
 {
     private readonly State<TObj> _state;
     private readonly StateMachineBuilder<TObj> _stateMachineBuilder;
+    private CallbackDataContainerRow<TObj> _currentRow;
 
     public StateBuilder(State<TObj> state, StateMachineBuilder<TObj> stateMachineBuilder)
     {
         _state = state;
         _stateMachineBuilder = stateMachineBuilder;
     }
-
-    public IStateMoverBuilder<TObj> ExitState(Func<string, TObj, Task<string>> commitStateExpr)
+    
+    public IStateMachineBodyBuilder<TObj> ExitState<TQuery>(Func<TQuery, TObj, Task<string>> commitStateExpr) where TQuery : class
     {
-        _state.SetCommitter(commitStateExpr);
-        return this;
-    }
-
-    public IStateMoverBuilder<TObj> ExitState(string condition)
-    {
-        Task<string> Cond(string s, TObj obj) => Task.FromResult(condition);
-        return ExitState(Cond);
+        _state.SetCommitter((q, o) => commitStateExpr(q as TQuery,o));
+        return _stateMachineBuilder;
     }
 
     public ICallbacksBuilder<TObj> WithCallbacks()
@@ -37,30 +33,10 @@ internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMoverBuilder<TObj
         return this;
     }
 
-    public IStateMoverBuilder<TObj> ConditionNext(string condition, IStateBase<TObj> nextState)
+    public ICallbackRowBuilder<TObj> Row()
     {
-        if (string.IsNullOrWhiteSpace(condition))
-        {
-            throw new ArgumentException();
-        }
-
-        _state.AddCondition(condition, nextState as IState<TObj>);
+        _currentRow = _state.AddCallbackRow();
         return this;
-    }
-
-    public IStateMoverBuilder<TObj> Loop(string condition)
-    {
-        return ConditionNext(condition, _state);
-    }
-
-    public IStateMoverBuilder<TObj> Next(IStateBase<TObj> nextState)
-    {
-        return ConditionNext(FluentCommand<TObj>.DefaultNextCondition, nextState);
-    }
-
-    public IStateMachineBuilder<TObj> Finish()
-    {
-        return _stateMachineBuilder;
     }
 
     public IStateBase<TObj> GetState()
@@ -68,44 +44,43 @@ internal class StateBuilder<TObj> : IStateBuilder<TObj>, IStateMoverBuilder<TObj
         return _state;
     }
 
-    public ICallbacksBuilder<TObj> ExitStateByCallback(string text, string data, Func<string, TObj, Task<string>> commitExpr)
+    public IStateMachineBodyBuilder<TObj> ExitState(string stateId)
     {
-        _state.AddCallback(new CallbackDataWithCommand
-        {
-            Text = text,
-            CallbackText = data
-        }, commitExpr);
-        return this;
+        _state.SetCommitter((q, o) => Task.FromResult(stateId));
+        return _stateMachineBuilder;
     }
 
-    public ICallbacksBuilder<TObj> ExitStateByCallback<TCommand>(string text, string data)
-        where TCommand : IQueryTelegramCommand<CallbackQuery>
+    public IMessageBuilder<TObj> WithMessage(Func<TObj, string> func, Func<TObj, ITelegramMessage, Task> sendMessageProvider)
     {
-        _state.AddCallback(new CallbackDataWithCommand
-        {
-            Text = text,
-            CallbackText = data,
-            CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<TCommand, CallbackQuery>()
-        });
+        _state.SetMessage(func, sendMessageProvider);
         return this;
     }
     
-    public ICallbacksBuilder<TObj> ExitStateByCallback(string text, string data, IStateBase<TObj> nextState)
+    public ICallbackRowBuilder<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, Task<string>> commitExpr) where TQuery : class
     {
-        var condition = $"new_condition_from_{_state.Id}_to_{nextState.Id}";
-        Task<string> CommitExpr(string s, TObj obj) => Task.FromResult(condition);
-        _state.AddCallback(new CallbackDataWithCommand
-        {
-            Text = text,
-            CallbackText = data
-        }, CommitExpr);
-        _state.AddCondition(condition, nextState as IState<TObj>);
+        var container = _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
+        _state.AddIndex(callbackId, container);
         return this;
     }
 
-    public ICallbacksBuilder<TObj> ExitStateByCallback(Func<IEnumerable<IEnumerable<CallbackDataWithCommand>>> builder)
+    public ICallbackRowBuilder<TObj> ExitStateByCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId)
     {
-        _state.AddCallback(builder);
+        Func<object, TObj, Task<string>> commitExpr = (_, _) => Task.FromResult(stateId);
+        var newContainer = _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
+        _state.AddIndex(callbackId, newContainer);
+        return this;
+    }
+
+    public ICallbackRowBuilder<TObj> ExitStateByCallback(CallbackDataWithCommand callbackDataWithCommand)
+    {
+        CallbackData CallbackProvider(TObj _) => callbackDataWithCommand;
+        return ExitStateByCallback(CallbackProvider, callbackDataWithCommand.CommandDescriptor);
+    }
+
+    public ICallbackRowBuilder<TObj> ExitStateByCallback(Func<TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
+    {
+        _currentRow.AddContainer(callbackProvider,
+            telegramCommandDescriptor: telegramCommandDescriptor);
         return this;
     }
 }

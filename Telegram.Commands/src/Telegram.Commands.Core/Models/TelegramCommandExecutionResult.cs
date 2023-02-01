@@ -129,7 +129,7 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
-        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject>( TObject obj, uint? sessionDurationInSec = 600)
+        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject>(TObject obj, uint? sessionDurationInSec = 600)
             where TNextCommand : FluentCommand<TObject>
         {
             var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject>();
@@ -137,7 +137,7 @@ namespace Telegram.Commands.Core.Models
             {
                 Data = new FluentObject<TObject>(obj)
                 {
-                    CurrentStateId = 0
+                    CurrentStateId = null
                 },
                 Result = ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,

@@ -2,5 +2,5 @@
 
 public interface IStateMachine<TObj>
 {
-    IStateBase<TObj> GetState(int currentStateId);
+    IStateBase<TObj> GetState(string currentStateId);
 }

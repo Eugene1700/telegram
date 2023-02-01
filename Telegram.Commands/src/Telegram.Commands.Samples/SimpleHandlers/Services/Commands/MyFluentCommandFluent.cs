@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
@@ -16,7 +17,7 @@ using Telegram.Commands.Core.Services;
 namespace SimpleHandlers.Services.Commands;
 
 [Command(Name = "myfluent")]
-public class MyFluentCommandFluent : FluentCommand<MyObject>
+public class MyFluentCommandFluent: FluentCommand<MyObject>
 {
     private readonly ITelegramBotClient _telegramBotClient;
 
@@ -25,19 +26,10 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
         _telegramBotClient = telegramBotClient;
     }
 
-    protected override async Task SendMessage<TQuery>(TQuery currentQuery, ITelegramMessage nextMessage)
+    private async Task SendMessage(MyObject obj, ITelegramMessage nextMessage)
     {
-        if (currentQuery is Message message)
-        {
-            await _telegramBotClient.SendTextMessageAsync(message.GetChatId(), nextMessage.Message,
-                replyMarkup: nextMessage.ReplyMarkup);
-        }
-
-        if (currentQuery is CallbackQuery callbackQuery)
-        {
-            await _telegramBotClient.SendTextMessageAsync(callbackQuery.GetChatId(), nextMessage.Message,
-                replyMarkup: nextMessage.ReplyMarkup);
-        }
+        await _telegramBotClient.SendTextMessageAsync(obj.ChatId, nextMessage.Message,
+            replyMarkup: nextMessage.ReplyMarkup);
     }
 
     protected override Task<MyObject> Entry<TQuery>(TQuery query)
@@ -54,80 +46,85 @@ public class MyFluentCommandFluent : FluentCommand<MyObject>
         });
     }
 
-    protected override IStateMachine<MyObject> StateMachine(IStateMachineBuilder<MyObject> builder)
+    public enum States
     {
-        var nameStateBuilder = builder.NewState("Hi! What's your name?");
-
-        var secondNameStateBuilder = builder.NewState("Ok, send me your surname");
-        var secondNameState = secondNameStateBuilder.GetState();
-        secondNameStateBuilder.ExitState(GetSecondNameCommitter);
-
-        var validateNameBuilder = builder.NewState("Your name is too short! Please, send me again");
-        var validateState = validateNameBuilder.GetState();
-        validateNameBuilder
-            .WithCallbacks()
-            .ExitStateByCallback("Skip", "data", secondNameState)
-            .ExitState(FirstNameCommitter)
-            .Loop("toolittleName")
-            .Next(secondNameState);
-
-        nameStateBuilder.WithCallbacks()
-            .ExitStateByCallback("Default Name (Jack)", "Jack", FirstNameCommitter)
-            .ExitStateByCallback("Skip", "data", secondNameState)
-            .ExitStateByCallback<CancelCallback>("Cancel", "somedata")
-            .ExitStateByCallback("Send TEXT", "TEXT", SendTextCommitter)
-            .ExitStateByCallback(KeyBoardBuild)
-            .ExitState(FirstNameCommitter)
-            .Next(secondNameState)
-            .Loop("sendtextcondition")
-            .ConditionNext("toolittleName", validateState);
-
-        return builder.Finish();
+        Name,
+        Surname,
+        Validate,
+        Exit
     }
 
-    private static IEnumerable<IEnumerable<CallbackDataWithCommand>> KeyBoardBuild()
+    protected override IStateMachine<MyObject> StateMachine(IStateMachineBuilder<MyObject> builder)
     {
-        return new IEnumerable<CallbackDataWithCommand>[]
+        return builder.Entry(States.Name).WithMessage(_ => "Hi! What's your name?", SendMessage)
+            .WithCallbacks()
+            .Row().ExitStateByCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
+            .Row().ExitStateByCallback("skip", "Skip", "data", States.Surname)
+            .Row().ExitStateByCallback("sendText", "Send TEXT", "TEXT", SendTextHandler)
+            .Row().ExitStateByCallback<MyObject, CancelCallback>("Cancel", "someData")
+            .Row().ExitStateByCallback(KeyBoardBuild, TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
+            .ExitStateByCallback(CallbackDataWithCommand())
+            .ExitState(FirstNameMessageHandler)
+            .NewState(States.Surname).WithMessage(obj => $"Ok, send me your surname, {obj.FirstName}", SendMessage)
+            .ExitState(SecondNameHandler)
+            .NewState(States.Validate).WithMessage(_=>"Your name is too short! Please, send me again", SendMessage)
+            .WithCallbacks()
+            .Row().ExitStateByCallback("skip","Skip", "data", States.Surname)
+            .ExitState(FirstNameMessageHandler)
+            .Finish(States.Exit);
+    }
+
+    private static CallbackDataWithCommand CallbackDataWithCommand()
+    {
+        return new CallbackDataWithCommand
         {
-            new[]
-            {
-                new CallbackDataWithCommand
-                {
-                    Text = "Another cancel",
-                    CallbackText = "data",
-                    CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
-                },
-                new CallbackDataWithCommand
-                {
-                    Text = "Another another cancel",
-                    CallbackText = "data",
-                    CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
-                }
-            }
+            Text = "Another another cancel",
+            CallbackText = "data"
         };
     }
 
-    private async Task<string> SendTextCommitter(string arg1, MyObject arg2)
+    private static CallbackData KeyBoardBuild(MyObject obj)
     {
-        await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, arg1);
-        return "sendtextcondition";
+        return new CallbackDataWithCommand
+            {
+                Text = "Another cancel",
+                CallbackText = "data",
+                CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+            };
     }
 
-    private async Task<string> FirstNameCommitter(string message, MyObject obj)
+    private async Task<States> SendTextHandler(CallbackQuery arg1, MyObject arg2)
     {
-        if (message.Length < 2)
+        await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, arg1.Data);
+        return States.Name;
+    }
+
+    private static async Task<States> FirstNameCallbackHandler(CallbackQuery query, MyObject obj)
+    {
+        return await FirstNameHandler(query.Data, obj);
+    }
+    
+    private static async Task<States> FirstNameMessageHandler(Message query, MyObject obj)
+    {
+        return await FirstNameHandler(query.Text, obj);
+    }
+
+    private static async Task<States> FirstNameHandler(string text, MyObject obj)
+    {
+        if (text.Length < 2)
         {
-            return "toolittleName";
+            return States.Validate;
         }
 
-        obj.FirstName = message;
-        return DefaultNextCondition;
+        obj.FirstName = text;
+        return States.Surname;
     }
 
-    public async Task<string> GetSecondNameCommitter(string message, MyObject obj)
+
+    public async Task<States> SecondNameHandler(Message message, MyObject obj)
     {
-        obj.SecondName = message;
-        return DefaultNextCondition;
+        obj.SecondName = message.Text;
+        return States.Exit;
     }
 
     protected override async Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery currentQuery, MyObject obj)

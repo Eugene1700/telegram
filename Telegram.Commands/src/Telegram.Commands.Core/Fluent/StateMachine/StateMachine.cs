@@ -1,37 +1,60 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine;
 
 internal class StateMachine<TObj> : IStateMachine<TObj>
 {
-    private readonly Dictionary<int, IState<TObj>> _states;
+    private readonly Dictionary<string, IState<TObj>> _states;
+    private string _entryStateId;
+    private string _finishStateId;
 
     public StateMachine()
     {
-        _states = new Dictionary<int, IState<TObj>>();
+        _states = new Dictionary<string, IState<TObj>>();
     }
 
-    private int GetId()
+    public State<TObj> AddState(string stateId, StateType stateType)
     {
-        return _states.Any() ? _states.Max(x => x.Key) + 1 : 0;
-    }
-
-    public State<TObj> AddState()
-    {
-        var id = GetId();
-        var newState = new State<TObj>(id);
-        _states.Add(id, newState);
+        var newState = new State<TObj>(stateId, stateType);
+        _states.Add(stateId, newState);
+        switch (stateType)
+        {
+            case StateType.Entry:
+                _entryStateId = stateId;
+                break;
+            case StateType.Body:
+                break;
+            case StateType.Finish:
+                _finishStateId = stateId;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(stateType), stateType, null);
+        }
+            ;
         return newState;
     }
 
-    public IStateBase<TObj> GetState(int currentStateId)
+    public IStateBase<TObj> GetState(string currentStateId)
     {
-        return GetCurrentStateInternal(currentStateId);
+        return GetStateInternal(currentStateId);
     }
 
-    public IState<TObj> GetCurrentStateInternal(int currentStateId)
+    public IState<TObj> GetStateInternal(string currentStateId)
     {
         return _states[currentStateId];
     }
+
+    public IState<TObj> GetEntryState()
+    {
+        return _states[_entryStateId];
+    }
+}
+
+internal enum StateType
+{
+    Entry,
+    Body,
+    Finish
 }

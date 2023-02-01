@@ -20,6 +20,11 @@ namespace Telegram.Commands.Core
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
+        
+        public static CallbackQuery AsCallbackQuery<T>(this T query)
+        {
+            return query as CallbackQuery;
+        }
 
         public static string GetData<T>(this T query)
         {
