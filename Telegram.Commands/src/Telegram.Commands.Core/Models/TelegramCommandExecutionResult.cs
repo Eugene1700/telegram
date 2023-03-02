@@ -6,12 +6,12 @@ namespace Telegram.Commands.Core.Models
 {
     public class TelegramCommandExecutionResult : ITelegramCommandExecutionResult
     {
-        public object Data { get; private set; }
-        public ITelegramCommandDescriptor NextCommandDescriptor { get; private set; }
-        public ExecuteResult Result { get; private set; }
+        public object Data { get; private init; }
+        public ITelegramCommandDescriptor NextCommandDescriptor { get; private init; }
+        public ExecuteResult Result { get; private init; }
         
-        public long? WaitFromChatId { get; private set; }
-        public uint? SessionDurationInSec { get; private set; }
+        public long? WaitFromChatId { get; private init; }
+        public uint? SessionDurationInSec { get; private init; }
 
         private TelegramCommandExecutionResult()
         {
