@@ -297,6 +297,7 @@ namespace Telegram.Commands.Core.Services
 
         private bool TryGetQueryCommandStr<T>(T query, out string commandStr)
         {
+            //todo pameters case
             commandStr = query.GetData();
             var isCommand = !string.IsNullOrWhiteSpace(commandStr) && commandStr[0] == '/';
             if (!isCommand)

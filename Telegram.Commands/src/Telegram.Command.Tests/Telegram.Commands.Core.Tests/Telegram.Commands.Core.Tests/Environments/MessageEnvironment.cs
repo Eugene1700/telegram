@@ -9,7 +9,7 @@ public class MessageEnvironment
         return new Message
         {
             Text = "My Text",
-            Chat =new Chat()
+            Chat =new Chat
             {
                 Id = 123456789
             },

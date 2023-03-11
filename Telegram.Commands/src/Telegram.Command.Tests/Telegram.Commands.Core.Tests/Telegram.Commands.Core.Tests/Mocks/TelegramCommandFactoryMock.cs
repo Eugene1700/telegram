@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Tests.Commands;
 
 namespace Telegram.Commands.Core.Tests;
 
