@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Reflection;
 using Telegram.Bot.Types;
-using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Fluent;
-using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core
 {

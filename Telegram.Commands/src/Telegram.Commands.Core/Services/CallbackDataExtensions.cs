@@ -4,7 +4,7 @@
     {
         public static bool IsInline(this CallbackMode mode)
         {
-            return mode == CallbackMode.Inline || mode == CallbackMode.InlineCurrent;
+            return mode is CallbackMode.Inline or CallbackMode.InlineCurrent;
         }
     }
 }

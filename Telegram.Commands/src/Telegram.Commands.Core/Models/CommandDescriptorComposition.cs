@@ -23,26 +23,26 @@ namespace Telegram.Commands.Core.Models
             };
         }
 
-        public static CommandDescriptorComposition CreateBehaviorResult(FullCommandDescriptor sessionCommandDescriptor,
+        public static CommandDescriptorComposition CreateBehaviorResult(FullCommandDescriptor behaviorCommandDescriptor,
             FullCommandDescriptor queryCommandDescriptor)
         {
-            if (!sessionCommandDescriptor.IsBehaviorTelegramCommand ||
+            if (!behaviorCommandDescriptor.IsBehaviorTelegramCommand ||
                 (!queryCommandDescriptor.IsQueryCommand && !queryCommandDescriptor.IsSessionTelegramCommand))
                 throw new TelegramExtractionCommandInternalException("Incomapitable command types");
             return new CommandDescriptorComposition
             {
-                SessionCommand = sessionCommandDescriptor,
+                SessionCommand = behaviorCommandDescriptor,
                 QueryCommand = queryCommandDescriptor
             };
         }
         
-        public static CommandDescriptorComposition CreateBehaviorResult(FullCommandDescriptor sessionCommandDescriptor)
+        public static CommandDescriptorComposition CreateBehaviorResult(FullCommandDescriptor behaviorCommandDescriptor)
         {
-            if (!sessionCommandDescriptor.IsBehaviorTelegramCommand)
+            if (!behaviorCommandDescriptor.IsBehaviorTelegramCommand)
                 throw new TelegramExtractionCommandInternalException("Incompatable command types");
             return new CommandDescriptorComposition
             {
-                SessionCommand = sessionCommandDescriptor,
+                SessionCommand = behaviorCommandDescriptor,
                 QueryCommand = null
             };
         }

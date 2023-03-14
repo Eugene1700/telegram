@@ -12,6 +12,7 @@ public static class CompositionRoot
     {
         serviceCollection.AddScoped<QueryMessageMockCommand>();
         serviceCollection.AddScoped<SessionMessageMockCommand>();
+        serviceCollection.AddScoped<BehaviorMockCommand>();
         serviceCollection.AddScoped<ITelegramCommandFactory, TelegramCommandFactoryMock>();
         serviceCollection.AddScoped<SessionManager>();
         serviceCollection.AddScoped<SessionStoreMock>();
