@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Telegram.Commands.Tests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Core.Tests", "Telegram.Command.Tests\Telegram.Commands.Core.Tests\Telegram.Commands.Core.Tests\Telegram.Commands.Core.Tests.csproj", "{FFB0E028-9378-4CF1-B350-E5B4483C6822}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Realization", "Telegram.Commands.Realization\Telegram.Commands.Realization.csproj", "{67371E89-572C-41BE-BC8A-F9A1F3661579}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +48,10 @@ Global
 		{FFB0E028-9378-4CF1-B350-E5B4483C6822}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FFB0E028-9378-4CF1-B350-E5B4483C6822}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FFB0E028-9378-4CF1-B350-E5B4483C6822}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67371E89-572C-41BE-BC8A-F9A1F3661579}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67371E89-572C-41BE-BC8A-F9A1F3661579}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67371E89-572C-41BE-BC8A-F9A1F3661579}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67371E89-572C-41BE-BC8A-F9A1F3661579}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{540F360A-B1A6-46B6-A11A-EF54D5455B60} = {105560B5-CFFC-4997-A4D9-66263A54C605}

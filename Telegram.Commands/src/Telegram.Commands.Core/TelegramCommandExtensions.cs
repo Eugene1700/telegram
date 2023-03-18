@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using Telegram.Bot.Types;
+// using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
