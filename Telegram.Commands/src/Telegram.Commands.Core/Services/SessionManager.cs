@@ -30,12 +30,6 @@ namespace Telegram.Commands.Core.Services
             return _sessionsStore.GetSessionInfoWithData(now, chatId, telegramUserId, commandQuery, sessionObjectType);
         }
 
-        private bool SessionIsNotExpired(ISessionInfo s)
-        {
-            var now = _clock.Now;
-            return !s.ExpiredAt.HasValue || s.ExpiredAt > now;
-        }
-
         public async Task<CommandSession> OpenSession(ITelegramCommandDescriptor nextCommandDescriptor, long chatId,
             long telegramUserId, object sessionData,
             uint? sessionTimeInSec = 600)
@@ -50,11 +44,17 @@ namespace Telegram.Commands.Core.Services
                 TelegramChatId = chatId,
                 TelegramUserId = telegramUserId,
                 ExpiredAt = sessionTimeInSec.HasValue ? 
-                    now.AddSeconds(sessionTimeInSec.Value) : (DateTime?) null,
+                    now.AddSeconds(sessionTimeInSec.Value) : null,
                 Data = sessionData
             };
             await _sessionsStore.CreateSession(commandSession);
             return commandSession;
+        }
+        
+        public async Task<ISessionInfoWithData> OpenSession<TCommand, TQuery, TData>(long chatId, long telegramUserId, TData sessionData, uint? sessionTimeInSec) where TCommand : ISessionTelegramCommand<TQuery, TData>
+        {
+            return await OpenSession(TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>(), chatId, telegramUserId,
+                sessionData, sessionTimeInSec);
         }
 
         public async Task<ISessionInfoWithData> ContinueSession(
@@ -115,6 +115,21 @@ namespace Telegram.Commands.Core.Services
             return commandQuery != session.CommandQuery ? null : session;
         }
 
+        public async Task ReleaseSessionIfExists(long chatId, long telegramUserId)
+        {
+            var currentSession = GetCurrentSession(chatId, telegramUserId);
+            if (currentSession != null)
+            {
+                await ReleaseSessionInternal(currentSession);
+            }
+        }
+
+        private bool SessionIsNotExpired(ISessionInfo s)
+        {
+            var now = _clock.Now;
+            return !s.ExpiredAt.HasValue || s.ExpiredAt > now;
+        }
+        
         private async Task ReleaseSessionInternal(ISessionInfo currentSession)
         {
             var commandSession = CreateCommandSession(currentSession, _clock.Now, currentSession.CommandQuery,
@@ -134,21 +149,6 @@ namespace Telegram.Commands.Core.Services
                 ExpiredAt = expiredAt,
                 Data = sessionData
             };
-        }
-
-        public async Task ReleaseSessionIfExists(long chatId, long telegramUserId)
-        {
-            var currentSession = GetCurrentSession(chatId, telegramUserId);
-            if (currentSession != null)
-            {
-                await ReleaseSessionInternal(currentSession);
-            }
-        }
-
-        public async Task<ISessionInfoWithData> OpenSession<TCommand, TQuery, TData>(long chatId, long telegramUserId, TData sessionData, uint? sessionTimeInSec) where TCommand : ISessionTelegramCommand<TQuery, TData>
-        {
-            return await OpenSession(TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>(), chatId, telegramUserId,
-                sessionData, sessionTimeInSec);
         }
     }
 }

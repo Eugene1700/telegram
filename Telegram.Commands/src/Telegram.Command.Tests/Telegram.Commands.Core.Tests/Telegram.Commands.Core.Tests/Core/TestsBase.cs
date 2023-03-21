@@ -4,7 +4,7 @@ namespace Telegram.Commands.Core.Tests.Core;
 
 public abstract class TestsBase
 {
-    public void SetUp()
+    protected virtual void SetUp()
     {
         var serviceCollection = new ServiceCollection();
         RegisterServices(serviceCollection);

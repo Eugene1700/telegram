@@ -37,6 +37,11 @@ namespace Telegram.Commands.Core
             return GetCommandInfo(command.GetType());
         }
         
+        public static ITelegramCommandDescriptor GetCommandInfo<TQuery, TSessionObject>(this ISessionTelegramCommand<TQuery, TSessionObject> command)
+        {
+            return GetCommandInfo(command.GetType());
+        }
+        
         public static ITelegramCommandDescriptor GetCommandInfo<TObj>(this FluentCommand<TObj> command)
         {
             return GetCommandInfo(command.GetType());

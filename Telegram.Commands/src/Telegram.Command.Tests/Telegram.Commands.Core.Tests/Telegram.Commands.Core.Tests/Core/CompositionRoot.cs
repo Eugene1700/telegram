@@ -20,6 +20,7 @@ public static class CompositionRoot
         serviceCollection.AddScoped<ClockMock>();
         serviceCollection.AddScoped<IClock, ClockMock>(x => x.GetRequiredService<ClockMock>());
         serviceCollection.AddScoped<MessageEnvironment>();
+        serviceCollection.AddScoped<SessionEnvironment>();
         return serviceCollection;
     }
 }

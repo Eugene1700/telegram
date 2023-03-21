@@ -4,6 +4,10 @@ using Telegram.Commands.Abstract.Interfaces.Commands;
 
 namespace Telegram.Commands.Abstract.Interfaces
 {
+    //todo
+    /// <summary>
+    /// Services 
+    /// </summary>
     public interface ISessionManager
     {
         ISessionInfoWithData<TData> GetSession<TCommand, TQuery, TData>(long chatId, long telegramUserId)
