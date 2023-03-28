@@ -63,7 +63,7 @@ namespace Telegram.Commands.Core.Services
             uint? sessionTimeInSec = 600)
         {
             var session = GetCurrentSession(chatIdFrom, telegramUserId);
-            if (!SessionIsNotExpired(session) || session == null)
+            if (session == null || !SessionIsNotExpired(session))
                 throw new TelegramCommandsInternalException("Session has been released");
 
             if (chatIdFrom != chatIdTo)
@@ -95,20 +95,21 @@ namespace Telegram.Commands.Core.Services
         public ISessionInfoWithData<TData> GetSession<TCommand, TQuery, TData>(long chatId, long telegramUserId)
             where TCommand : ISessionTelegramCommand<TQuery, TData>
         {
-            var now = _clock.Now;
             var commandInfo = TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>();
-            var commandQuery = commandInfo.GetCommandQuery();
-            var session = _sessionsStore.GetSessionInfoWithData<TData>(now, chatId, telegramUserId, commandQuery);
-            if (session == null)
-                return null;
-            return commandQuery != session.CommandQuery ? null : session;
+            return GetSessionInternal<TData>(chatId, telegramUserId, commandInfo);
         }
 
         public ISessionInfoWithData<TData> GetSession<TCommand, TData>(long chatId, long telegramUserId) where TCommand : IBehaviorTelegramCommand<TData>
         {
-            var now = _clock.Now;
             var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TCommand, TData>();
+            return GetSessionInternal<TData>(chatId, telegramUserId, commandInfo);
+        }
+
+        private ISessionInfoWithData<TData> GetSessionInternal<TData>(long chatId, long telegramUserId,
+            ITelegramCommandDescriptor commandInfo)
+        {
             var commandQuery = commandInfo.GetCommandQuery();
+            var now = _clock.Now;
             var session = _sessionsStore.GetSessionInfoWithData<TData>(now, chatId, telegramUserId, commandQuery);
             if (session == null)
                 return null;

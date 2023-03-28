@@ -11,7 +11,7 @@ using Telegram.Commands.Core.Tests.Mocks;
 
 namespace Telegram.Commands.Core.Tests;
 
-public class Tests : TestsBase
+public class CommandExecutionTests : TestsBase
 {
 #pragma warning disable CS0649
     [ScopedInjection] private QueryMessageMockCommand _queryMessageMockCommand;

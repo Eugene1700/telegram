@@ -11,6 +11,7 @@ public class SessionStoreMock : ISessionsStore
     private Action<ISessionInfoWithData, long> _updateSessionCallback;
     private Func<DateTime, long, long, ISessionInfo> _getSessionInfoCallback;
     private Func<DateTime, long, long, string, Type, ISessionInfoWithData> _getSessionInfoWithDataCallback;
+    private Func<DateTime, long, long, string, Type, object> _getSessionInfoWithDataGenericCallback;
 
     public ISessionInfo GetSessionInfo(DateTime now, long chatId, long telegramUserId)
     {
@@ -52,12 +53,19 @@ public class SessionStoreMock : ISessionsStore
     public ISessionInfoWithData<TData> GetSessionInfoWithData<TData>(DateTime now, long chatId, long telegramUserId,
         string commandQuery)
     {
-        return (ISessionInfoWithData<TData>)_sessionInfoWithDataGeneric;
+        return _getSessionInfoWithDataGenericCallback != null
+            ? (ISessionInfoWithData<TData>)_getSessionInfoWithDataGenericCallback.Invoke(now, chatId, telegramUserId, commandQuery, typeof(TData))
+            : (ISessionInfoWithData<TData>)_sessionInfoWithDataGeneric;
     }
 
     public void SetSessionInfoWithData<TData>(ISessionInfoWithData<TData> sessionInfo)
     {
         _sessionInfoWithDataGeneric = sessionInfo;
+    }
+
+    public void SetSessionInfoWithDataCallback<TData>(Func<DateTime, long, long, string, Type, object> callback)
+    {
+        _getSessionInfoWithDataGenericCallback = callback;
     }
 
     public Task CreateSession(ISessionInfoWithData getCommandQuery)
