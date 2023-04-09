@@ -124,18 +124,18 @@ namespace Telegram.Commands.Core.Services
         {
             var chatId = query.GetChatId();
             var userId = query.GetFromId();
-            if (commandExecutionResult.Result == ExecuteResult.Freeze)
+            if (commandExecutionResult.Moving == Moving.Freeze)
                 return;
 
             var sessionChatId = commandExecutionResult.WaitFromChatId ?? chatId;
-            if (commandExecutionResult.Result == ExecuteResult.Break)
+            if (commandExecutionResult.Moving == Moving.Break)
             {
                 await _sessionManager.ReleaseSessionIfExists(sessionChatId, userId);
                 return;
             }
 
             var activeSession = _sessionManager.GetCurrentSession(chatId, userId);
-            if (commandExecutionResult.Result == ExecuteResult.Ahead)
+            if (commandExecutionResult.Moving == Moving.Ahead)
             {
                 if (activeSession == null)
                 {
@@ -153,8 +153,8 @@ namespace Telegram.Commands.Core.Services
                 return;
             }
 
-            throw new ArgumentOutOfRangeException(nameof(commandExecutionResult.Result),
-                commandExecutionResult.Result.ToString());
+            throw new ArgumentOutOfRangeException(nameof(commandExecutionResult.Moving),
+                commandExecutionResult.Moving.ToString());
         }
 
         private async Task AssertAuth<T>(T query, CommandDescriptorComposition commandDesc)

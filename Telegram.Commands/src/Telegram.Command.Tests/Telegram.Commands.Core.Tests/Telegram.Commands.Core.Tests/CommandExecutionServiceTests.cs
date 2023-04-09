@@ -38,7 +38,7 @@ public class CommandExecutionTests : TestsBase
         var newMessage = _messageEnvironment.CreateMessage();
         var res = await ExecuteCommandWithMessage(result, newMessage);
 
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
+        Assert.That(res.Moving, Is.EqualTo(Moving.Break));
         Assert.That(res.Data, Is.Null);
         Assert.That(res.NextCommandDescriptor, Is.Null);
         Assert.That(res.SessionDurationInSec, Is.Null);
@@ -53,7 +53,7 @@ public class CommandExecutionTests : TestsBase
         var newMessage = _messageEnvironment.CreateMessage();
         var res = await ExecuteCommandWithMessage(result, newMessage);
 
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Freeze));
+        Assert.That(res.Moving, Is.EqualTo(Moving.Freeze));
         Assert.That(res.Data, Is.Null);
         Assert.That(res.NextCommandDescriptor, Is.Null);
         Assert.That(res.SessionDurationInSec, Is.Null);
@@ -72,7 +72,7 @@ public class CommandExecutionTests : TestsBase
         var newMessage = _messageEnvironment.CreateMessage();
         var res = await ExecuteCommandWithMessage(result, newMessage);
 
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Ahead));
+        Assert.That(res.Moving, Is.EqualTo(Moving.Ahead));
 
         Assert.That(res.Data, Is.Not.Null);
         var resData = res.Data as SessionObjectMock;
@@ -100,7 +100,7 @@ public class CommandExecutionTests : TestsBase
         var newMessage = _messageEnvironment.CreateMessage();
         var res = await ExecuteCommandWithMessage(result, newMessage);
 
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Ahead));
+        Assert.That(res.Moving, Is.EqualTo(Moving.Ahead));
 
         Assert.That(res.Data, Is.Not.Null);
         var resData = res.Data as SessionObjectMock;
@@ -146,7 +146,7 @@ public class CommandExecutionTests : TestsBase
             CommandDescriptorComposition.CreateSessionResult(sessionCommandDescriptor),
             newMessage);
 
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
+        Assert.That(res.Moving, Is.EqualTo(Moving.Break));
         Assert.That(res.Data, Is.Null);
         Assert.That(res.NextCommandDescriptor, Is.Null);
         Assert.That(res.SessionDurationInSec, Is.Null);
@@ -186,7 +186,7 @@ public class CommandExecutionTests : TestsBase
             CommandDescriptorComposition.CreateBehaviorResult(behaviorFullCommandDescriptor),
             newMessage);
         
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
+        Assert.That(res.Moving, Is.EqualTo(Moving.Break));
         Assert.That(res.Data, Is.Null);
         Assert.That(res.NextCommandDescriptor, Is.Null);
         Assert.That(res.SessionDurationInSec, Is.Null);
@@ -227,7 +227,7 @@ public class CommandExecutionTests : TestsBase
             CommandDescriptorComposition.CreateBehaviorResult(behaviorFullCommandDescriptor, sessionFullCommandDescriptor),
             newMessage);
         
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
+        Assert.That(res.Moving, Is.EqualTo(Moving.Break));
         Assert.That(res.Data, Is.Null);
         Assert.That(res.NextCommandDescriptor, Is.Null);
         Assert.That(res.SessionDurationInSec, Is.Null);
@@ -268,7 +268,7 @@ public class CommandExecutionTests : TestsBase
             CommandDescriptorComposition.CreateBehaviorResult(behaviorFullCommandDescriptor, queryFullCommandDescriptor),
             newMessage);
         
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
+        Assert.That(res.Moving, Is.EqualTo(Moving.Break));
         Assert.That(res.Data, Is.Null);
         Assert.That(res.NextCommandDescriptor, Is.Null);
         Assert.That(res.SessionDurationInSec, Is.Null);

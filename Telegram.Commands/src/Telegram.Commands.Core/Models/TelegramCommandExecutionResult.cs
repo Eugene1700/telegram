@@ -14,7 +14,7 @@ namespace Telegram.Commands.Core.Models
         public ITelegramCommandDescriptor NextCommandDescriptor { get; private init; }
         
         /// <see cref="ITelegramCommandExecutionResult"/>
-        public ExecuteResult Result { get; private init; }
+        public Moving Moving { get; private init; }
         
         /// <see cref="ITelegramCommandExecutionResult"/>
         public long? WaitFromChatId { get; private init; }
@@ -43,7 +43,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = data,
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
                 SessionDurationInSec = sessionDurationInSec
@@ -65,7 +65,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = data,
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
                 SessionDurationInSec = sessionDurationInSec
@@ -86,7 +86,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = new EmptyObject(),
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
                 SessionDurationInSec = sessionDurationInSec
@@ -106,7 +106,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = new EmptyObject(),
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
                 SessionDurationInSec = sessionDurationInSec
@@ -130,7 +130,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = data,
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = moveToChatId,
                 SessionDurationInSec = sessionDurationInSec
@@ -153,7 +153,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = data,
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = moveToChatId,
                 SessionDurationInSec = sessionDurationInSec
@@ -175,7 +175,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = new EmptyObject(),
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = moveToChatId,
                 SessionDurationInSec = sessionDurationInSec
@@ -196,7 +196,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = new EmptyObject(),
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = moveToChatId,
                 SessionDurationInSec = sessionDurationInSec
@@ -221,7 +221,7 @@ namespace Telegram.Commands.Core.Models
                 {
                     CurrentStateId = null
                 },
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
                 SessionDurationInSec = sessionDurationInSec
@@ -243,7 +243,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = sessionObject,
-                Result = ExecuteResult.Ahead,
+                Moving = Moving.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
                 SessionDurationInSec = sessionDurationInSec
@@ -259,7 +259,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = null,
-                Result = ExecuteResult.Freeze,
+                Moving = Moving.Freeze,
                 NextCommandDescriptor = null
             };
         }
@@ -273,7 +273,7 @@ namespace Telegram.Commands.Core.Models
             return new TelegramCommandExecutionResult
             {
                 Data = null,
-                Result = ExecuteResult.Break,
+                Moving = Moving.Break,
                 NextCommandDescriptor = null
             };
         }
