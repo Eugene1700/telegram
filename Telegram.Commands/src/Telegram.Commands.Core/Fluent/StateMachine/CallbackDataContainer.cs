@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
@@ -9,52 +8,35 @@ using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine;
 
-internal class CallbackDataContainerRow<TObj>
+internal class CallbackDataContainer<TObj>
 {
-    private readonly List<CallbackDataContainer<TObj>> _containers;
+    private readonly string _callbackId;
+    private readonly Func<TObj, CallbackDataWithCommand> _builder;
+    private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
+    private readonly Func<object, TObj, string, Task<string>> _committer;
+    private static string _fcudKey = "fcUd";
+    private const string _fcbidKey = "fcbId";
 
-    public CallbackDataContainerRow()
+    public CallbackDataContainer(string callbackId, Func<TObj, CallbackData> provider,
+        Func<object, TObj, string, Task<string>> committer = null)
     {
-        _containers = new List<CallbackDataContainer<TObj>>();
-    }
+        CallbackDataWithCommand NewProvider(TObj o)
+        {
+            var callbackData = provider(o);
+            return new CallbackDataWithCommand { CallbackMode = callbackData.CallbackMode, CallbackText = $"{_fcbidKey}={callbackId}&{_fcudKey}={callbackData.CallbackText}", Text = callbackData.Text };
+        }
 
-    public bool HasCommand(ITelegramCommandDescriptor curComDesc)
-    {
-        return _containers.Any(x => x.HasCommand(curComDesc));
+        _callbackId = callbackId;
+        _builder = NewProvider;
+        _telegramCommandDescriptor = null;
+        _committer = committer;
     }
-
-    public CallbackDataContainer<TObj> AddContainer<TQuery>(string callbackId,
-        Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
+    
+    public CallbackDataContainer(Func<TObj, CallbackData> provider, ITelegramCommandDescriptor telegramCommandDescriptor)
     {
         Func<TObj, CallbackDataWithCommand> newProvider = (o) =>
         {
-            var callbackData = callbackProvider(o);
-            return new CallbackDataWithCommand
-            {
-                CallbackMode = callbackData.CallbackMode,
-                CallbackText = $"{CallbackDataContainer<TObj>._fcbidKey}={callbackId}&{CallbackDataContainer<TObj>._fcudKey}={callbackData.CallbackText}",
-                Text = callbackData.Text
-            };
-        };
-
-        Task<string> Committer(object q, TObj o, string d) => commitExpr(q as TQuery, o, d);
-
-        var newContainer = new CallbackDataContainer<TObj>(newProvider, Committer);
-        _containers.Add(newContainer);
-        return newContainer;
-    }
-
-    public ReadOnlyCollection<CallbackDataContainer<TObj>> GetContainers()
-    {
-        return _containers.AsReadOnly();
-    }
-
-    public CallbackDataContainer<TObj> AddContainer(Func<TObj, CallbackData> callbackProvider,
-        ITelegramCommandDescriptor telegramCommandDescriptor)
-    {
-        Func<TObj, CallbackDataWithCommand> newProvider = (o) =>
-        {
-            var callbackData = callbackProvider(o);
+            var callbackData = provider(o);
             return new CallbackDataWithCommand
             {
                 CallbackMode = callbackData.CallbackMode,
@@ -63,27 +45,11 @@ internal class CallbackDataContainerRow<TObj>
                 CommandDescriptor = telegramCommandDescriptor
             };
         };
-        var newContainer =
-            new CallbackDataContainer<TObj>(newProvider, telegramCommandDescriptor: telegramCommandDescriptor);
-        _containers.Add(newContainer);
-        return newContainer;
-    }
-}
 
-internal class CallbackDataContainer<TObj>
-{
-    private readonly Func<TObj, CallbackDataWithCommand> _builder;
-    private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
-    private readonly Func<object, TObj, string, Task<string>> _committer;
-    public static string _fcudKey = "fcUd";
-    internal const string _fcbidKey = "fcbId";
-
-    public CallbackDataContainer(Func<TObj, CallbackDataWithCommand> provider,
-        Func<object, TObj, string, Task<string>> committer = null, ITelegramCommandDescriptor telegramCommandDescriptor = null)
-    {
-        _builder = provider;
+        _callbackId = null;
+        _builder = newProvider;
         _telegramCommandDescriptor = telegramCommandDescriptor;
-        _committer = committer;
+        _committer = null;
     }
 
     public CallbackDataWithCommand Build(TObj obj)

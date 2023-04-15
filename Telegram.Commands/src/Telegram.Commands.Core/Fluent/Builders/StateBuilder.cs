@@ -39,6 +39,15 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
         return this;
     }
 
+    public ICallbacksBuilder<TObj> KeyBoard(Func<TObj, ICallbacksBuilder<TObj>, Task> provider)
+    {
+
+        _state.AddCallbackKeyboard(o =>
+        {
+            provider(o, this).GetAwaiter();
+        });
+    }
+
     public IStateBase<TObj> GetState()
     {
         return _state;
@@ -52,16 +61,14 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
 
     public ICallbackRowBuilder<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
     {
-        var container = _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
-        _state.AddIndex(callbackId, container);
+        _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
         return this;
     }
 
     public ICallbackRowBuilder<TObj> ExitStateByCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId)
     {
         Func<object, TObj, string, Task<string>> commitExpr = (_, _, _) => Task.FromResult(stateId);
-        var newContainer = _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
-        _state.AddIndex(callbackId, newContainer);
+        _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
         return this;
     }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Telegram.Commands.Core.Fluent.Builders;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine;
 
@@ -15,9 +16,9 @@ internal class StateMachine<TObj> : IStateMachine<TObj>
         _states = new Dictionary<string, IState<TObj>>();
     }
 
-    public State<TObj> AddState(string stateId, StateType stateType, uint? durationInSec)
+    public State<TObj> AddState(string stateId, StateType stateType, uint? durationInSec, ICallbacksBuilder<TObj> callbacksBuilder)
     {
-        var newState = new State<TObj>(stateId, stateType, durationInSec);
+        var newState = new State<TObj>(stateId, stateType, durationInSec, callbacksBuilder);
         _states.Add(stateId, newState);
         switch (stateType)
         {

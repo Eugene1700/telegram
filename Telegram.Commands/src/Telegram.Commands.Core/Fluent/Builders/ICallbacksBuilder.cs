@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Interfaces;
@@ -10,6 +11,7 @@ namespace Telegram.Commands.Core.Fluent.Builders;
 public interface ICallbacksBuilder<TObj> : IStateBuilderBase<TObj>
 {
     ICallbackRowBuilder<TObj> Row();
+    ICallbacksBuilder<TObj> KeyBoard(Func<TObj, ICallbacksBuilder<TObj>, Task> provider);
 }
 
 public interface ICallbackRowBuilder<TObj> : ICallbacksBuilder<TObj>

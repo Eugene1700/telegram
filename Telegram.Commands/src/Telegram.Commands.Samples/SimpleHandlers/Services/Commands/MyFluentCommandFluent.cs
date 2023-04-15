@@ -26,7 +26,7 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
         _telegramBotClient = telegramBotClient;
     }
 
-    protected override Task<MyObject> Entry<TQuery>(TQuery query)
+    protected override Task<MyObject> Entry<TQuery>(TQuery query, MyObject myObject)
     {
         var chatId = query switch
         {
@@ -34,10 +34,10 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
             CallbackQuery callbackQuery => callbackQuery.GetChatId(),
             _ => throw new InvalidOperationException()
         };
-        return Task.FromResult(new MyObject
-        {
-            ChatId = chatId
-        });
+        var o = myObject ?? new MyObject();
+        o.ChatId = chatId;
+        
+        return Task.FromResult(o);
     }
 
     public enum States
