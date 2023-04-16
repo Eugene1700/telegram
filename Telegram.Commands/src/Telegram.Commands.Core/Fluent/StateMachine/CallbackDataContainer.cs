@@ -10,7 +10,6 @@ namespace Telegram.Commands.Core.Fluent.StateMachine;
 
 internal class CallbackDataContainer<TObj>
 {
-    private readonly string _callbackId;
     private readonly Func<TObj, CallbackDataWithCommand> _builder;
     private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
     private readonly Func<object, TObj, string, Task<string>> _committer;
@@ -26,7 +25,7 @@ internal class CallbackDataContainer<TObj>
             return new CallbackDataWithCommand { CallbackMode = callbackData.CallbackMode, CallbackText = $"{_fcbidKey}={callbackId}&{_fcudKey}={callbackData.CallbackText}", Text = callbackData.Text };
         }
 
-        _callbackId = callbackId;
+        CallbackKey = callbackId;
         _builder = NewProvider;
         _telegramCommandDescriptor = null;
         _committer = committer;
@@ -46,11 +45,13 @@ internal class CallbackDataContainer<TObj>
             };
         };
 
-        _callbackId = null;
+        CallbackKey = null;
         _builder = newProvider;
         _telegramCommandDescriptor = telegramCommandDescriptor;
         _committer = null;
     }
+
+    public string CallbackKey { get; }
 
     public CallbackDataWithCommand Build(TObj obj)
     {

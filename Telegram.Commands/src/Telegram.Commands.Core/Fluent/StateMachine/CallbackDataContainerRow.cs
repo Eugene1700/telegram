@@ -45,4 +45,10 @@ internal class CallbackDataContainerRow<TObj>
         _containers.Add(newContainer);
         return newContainer;
     }
+
+    public bool TryGetByKey(string callbackKey, out CallbackDataContainer<TObj> o)
+    {
+        o = _containers.FirstOrDefault(x => x.CallbackKey == callbackKey);
+        return o != null;
+    }
 }

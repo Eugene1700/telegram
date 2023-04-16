@@ -68,7 +68,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
             return await DefaultExecute(query, sessionObject);
         
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
-        if (currentState.IsCommandHandle(currentCommand as IQueryTelegramCommand<CallbackQuery>))
+        if (await currentState.IsCommandHandle(sessionObject.Object, currentCommand as IQueryTelegramCommand<CallbackQuery>))
         {
             return await currentCommand.Execute(query);
         }

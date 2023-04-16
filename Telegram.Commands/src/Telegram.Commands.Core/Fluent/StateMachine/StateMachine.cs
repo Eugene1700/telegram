@@ -16,9 +16,9 @@ internal class StateMachine<TObj> : IStateMachine<TObj>
         _states = new Dictionary<string, IState<TObj>>();
     }
 
-    public State<TObj> AddState(string stateId, StateType stateType, uint? durationInSec, ICallbacksBuilder<TObj> callbacksBuilder)
+    public State<TObj> AddState(string stateId, StateType stateType, uint? durationInSec)
     {
-        var newState = new State<TObj>(stateId, stateType, durationInSec, callbacksBuilder);
+        var newState = new State<TObj>(stateId, stateType, durationInSec);
         _states.Add(stateId, newState);
         switch (stateType)
         {

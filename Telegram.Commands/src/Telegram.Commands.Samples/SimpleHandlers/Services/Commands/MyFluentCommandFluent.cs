@@ -59,12 +59,22 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
             .Row().ExitStateByCallback(KeyBoardBuild, TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()).ExitStateByCallback(CallbackDataWithCommand())
             .ExitState(FirstNameMessageHandler)
             .NewState(States.Surname).WithMessage(obj => $"Ok, send me your surname, {obj.FirstName}", this)
+            .WithCallbacks().KeyBoard(GetSurnameKeyboard)
             .ExitState(SecondNameHandler)
             .NewState(States.Validate).WithMessage(_=>"Your name is too short! Please, send me again", this)
             .WithCallbacks()
             .Row().ExitStateByCallback("skip","Skip", "data", States.Surname)
             .ExitState(FirstNameMessageHandler)
             .Finish(States.Exit);
+    }
+
+    private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject> arg2)
+    {
+        arg2.Row().ExitStateByCallback("skip", "Skip", arg1.FirstName, States.Exit)
+            .ExitStateByCallback("returnToEntry", "Back", arg1.FirstName, States.Name)
+            .ExitStateByCallback("defaultSecondName", "Default SecondName Smith", "Smith", SecondNameCallbackHandler)
+            .Row().ExitStateByCallback("def", "Finish", arg1.FirstName, States.Exit);
+        return Task.CompletedTask;
     }
 
     private static CallbackDataWithCommand CallbackDataWithCommand()
@@ -98,6 +108,11 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
         return await FirstNameHandler(userData, obj);
     }
     
+    private async Task<States> SecondNameCallbackHandler(CallbackQuery query, MyObject obj, string userData)
+    {
+        return await SecondNameHandler(userData, obj);
+    }
+    
     private static async Task<States> FirstNameMessageHandler(Message query, MyObject obj)
     {
         return await FirstNameHandler(query.Text, obj);
@@ -117,7 +132,12 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
 
     public async Task<States> SecondNameHandler(Message message, MyObject obj)
     {
-        obj.SecondName = message.Text;
+        return await SecondNameHandler(message.Text, obj);
+    }
+    
+    public async Task<States> SecondNameHandler(string text, MyObject obj)
+    {
+        obj.SecondName = text;
         return States.Exit;
     }
 

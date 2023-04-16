@@ -11,7 +11,12 @@ namespace Telegram.Commands.Core.Fluent.Builders;
 public interface ICallbacksBuilder<TObj> : IStateBuilderBase<TObj>
 {
     ICallbackRowBuilder<TObj> Row();
-    ICallbacksBuilder<TObj> KeyBoard(Func<TObj, ICallbacksBuilder<TObj>, Task> provider);
+    ICallbacksBuilder<TObj> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj>, Task> provider);
+}
+
+public interface ICallbacksBuilderBase<TObj>
+{
+    ICallbackRowBuilderBase<TObj> Row();
 }
 
 public interface ICallbackRowBuilder<TObj> : ICallbacksBuilder<TObj>
@@ -22,7 +27,16 @@ public interface ICallbackRowBuilder<TObj> : ICallbacksBuilder<TObj>
     ICallbackRowBuilder<TObj> ExitStateByCallback(CallbackDataWithCommand callbackDataWithCommand);
     ICallbackRowBuilder<TObj> ExitStateByCallback(Func<TObj, CallbackData> callbackProvider,
         ITelegramCommandDescriptor telegramCommandDescriptor);
+}
 
+public interface ICallbackRowBuilderBase<TObj>: ICallbacksBuilderBase<TObj>
+{
+    ICallbackRowBuilderBase<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider,
+        Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class;
+    ICallbackRowBuilderBase<TObj> ExitStateByCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId);
+    ICallbackRowBuilderBase<TObj> ExitStateByCallback(CallbackDataWithCommand callbackDataWithCommand);
+    ICallbackRowBuilderBase<TObj> ExitStateByCallback(Func<TObj, CallbackData> callbackProvider,
+        ITelegramCommandDescriptor telegramCommandDescriptor);
 }
 
 public static class CallbackRowBuilderExtensions
@@ -53,6 +67,16 @@ public static class CallbackRowBuilderExtensions
             return res.ToString();
         });
     }
+    
+    public static ICallbackRowBuilderBase<TObj> ExitStateByCallback<TObj, TQuery, TEnum>(this ICallbackRowBuilderBase<TObj> builder, string callbackId,
+        CallbackData callback, Func<TQuery, TObj, string, Task<TEnum>> commitExpr) where TQuery : class
+    {
+        return builder.ExitStateByCallback<TQuery>(callbackId, _ => callback, async (cq, o, d) =>
+        {
+            var res = await commitExpr(cq, o, d);
+            return res.ToString();
+        });
+    }
 
     public static ICallbackRowBuilder<TObj> ExitStateByCallback<TObj, TQuery, TEnum >(this ICallbackRowBuilder<TObj> builder, string callbackId,
         string text, string data, Func<TQuery, TObj,string, Task<TEnum>> commitExpr) where TQuery : class
@@ -67,6 +91,16 @@ public static class CallbackRowBuilderExtensions
 
 public static class CallbackRowBuilderStronglyTypedExtensions {
     public static ICallbackRowBuilder<TObj> ExitStateByCallback<TObj, TEnum>(this ICallbackRowBuilder<TObj> builder, string callbackId,
+        string text, string data, Func<CallbackQuery, TObj, string, Task<TEnum>> handler)
+    {
+        return builder.ExitStateByCallback(callbackId, new CallbackDataWithCommand
+        {
+            Text = text,
+            CallbackText = data
+        }, handler);
+    }
+    
+    public static ICallbackRowBuilderBase<TObj> ExitStateByCallback<TObj, TEnum>(this ICallbackRowBuilderBase<TObj> builder, string callbackId,
         string text, string data, Func<CallbackQuery, TObj, string, Task<TEnum>> handler)
     {
         return builder.ExitStateByCallback(callbackId, new CallbackDataWithCommand
@@ -90,8 +124,24 @@ public static class CallbackRowBuilderExitStateExtensions {
     {
         return builder.ExitStateByCallback(callbackId, _ => callback, stateId.ToString());
     }
+    
+    public static ICallbackRowBuilderBase<TObj> ExitStateByCallback<TObj, TEnum>(this ICallbackRowBuilderBase<TObj> builder, string callbackId, 
+        CallbackData callback, TEnum stateId) where TEnum : Enum
+    {
+        return builder.ExitStateByCallback(callbackId, _ => callback, stateId.ToString());
+    }
 
     public static ICallbackRowBuilder<TObj> ExitStateByCallback<TObj, TEnum>(this ICallbackRowBuilder<TObj> builder, string callbackId, 
+        string text, string data, TEnum stateId) where TEnum : Enum
+    {
+        return builder.ExitStateByCallback(callbackId, new CallbackData
+        {
+            Text = text,
+            CallbackText = data
+        }, stateId);
+    }
+    
+    public static ICallbackRowBuilderBase<TObj> ExitStateByCallback<TObj, TEnum>(this ICallbackRowBuilderBase<TObj> builder, string callbackId, 
         string text, string data, TEnum stateId) where TEnum : Enum
     {
         return builder.ExitStateByCallback(callbackId, new CallbackData

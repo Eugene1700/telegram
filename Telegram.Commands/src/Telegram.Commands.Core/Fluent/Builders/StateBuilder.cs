@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Services;
 
@@ -14,12 +11,14 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
 {
     private readonly State<TObj> _state;
     private readonly StateMachineBuilder<TObj> _stateMachineBuilder;
-    private CallbackDataContainerRow<TObj> _currentRow;
+    private readonly Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj>>>> _bodyExits;
+    private int _currentBodyIndex;
 
     public StateBuilder(State<TObj> state, StateMachineBuilder<TObj> stateMachineBuilder)
     {
         _state = state;
         _stateMachineBuilder = stateMachineBuilder;
+        _bodyExits = new Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj>>>>();
     }
     
     public IStateMachineBodyBuilder<TObj> ExitState<TQuery>(Func<TQuery, TObj, Task<string>> commitStateExpr) where TQuery : class
@@ -35,17 +34,27 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
 
     public ICallbackRowBuilder<TObj> Row()
     {
-        _currentRow = _state.AddCallbackRow();
+        var i = _bodyExits.Count;
+        _bodyExits.Add(i, new List<Action<ICallbackRowBuilderBase<TObj>>>());
+        _currentBodyIndex = i;
+        _state.CallbackBuilder.AddProvider((o, b) =>
+        {
+            var rowBuilder = b.Row();
+            var exits = _bodyExits[i];
+            foreach (var exit in exits)
+            {
+                exit(rowBuilder);
+            }
+            return Task.CompletedTask;
+        });
+        
         return this;
     }
 
-    public ICallbacksBuilder<TObj> KeyBoard(Func<TObj, ICallbacksBuilder<TObj>, Task> provider)
+    public ICallbacksBuilder<TObj> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj>, Task> provider)
     {
-
-        _state.AddCallbackKeyboard(o =>
-        {
-            provider(o, this).GetAwaiter();
-        });
+        _state.CallbackBuilder.AddProvider(provider);
+        return this;
     }
 
     public IStateBase<TObj> GetState()
@@ -61,14 +70,20 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
 
     public ICallbackRowBuilder<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
     {
-        _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
+        _bodyExits[_currentBodyIndex].Add((b) =>
+        {
+            b.ExitStateByCallback(callbackId, callbackProvider, commitExpr);
+        });
         return this;
     }
 
     public ICallbackRowBuilder<TObj> ExitStateByCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId)
     {
         Func<object, TObj, string, Task<string>> commitExpr = (_, _, _) => Task.FromResult(stateId);
-        _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
+        _bodyExits[_currentBodyIndex].Add((b) =>
+        {
+            b.ExitStateByCallback(callbackId, callbackProvider, commitExpr);
+        });
         return this;
     }
 
@@ -80,8 +95,10 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
 
     public ICallbackRowBuilder<TObj> ExitStateByCallback(Func<TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
     {
-        _currentRow.AddContainer(callbackProvider,
-            telegramCommandDescriptor: telegramCommandDescriptor);
+        _bodyExits[_currentBodyIndex].Add((b) =>
+        {
+            b.ExitStateByCallback(callbackProvider, telegramCommandDescriptor);
+        });
         return this;
     }
 
