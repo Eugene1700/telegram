@@ -9,7 +9,7 @@ using Telegram.Commands.Core.Tests.Mocks;
 
 namespace Telegram.Commands.Core.Tests;
 
-public class SessionMangerTests : TestsBase
+public class SessionManagerTests : TestsBase
 {
     [ScopedInjection] private SessionManager _sessionManager;
     [ScopedInjection] private SessionMessageMockCommand _sessionMessageMockCommand;
@@ -358,6 +358,36 @@ public class SessionMangerTests : TestsBase
                 }, 500));
         Assert.That(exception.Message, Is.EqualTo("Session has been released"));
     }
+
+    [Test]
+    public async Task ReleaseSession()
+    {
+        var now = new DateTime(2023, 03, 21, 0, 0, 0);
+        _clockMock.SetNow(now);
+        var (sessionInfoMock, _, openedAt, expiredAt) =
+            _sessionEnvironment.CreateSessionInfoWithData("/behaviormock_command");
+        _sessionStoreMock.SetSessionInfo(sessionInfoMock);
+        var currentSession = _sessionManager.GetCurrentSession(sessionInfoMock.TelegramChatId, sessionInfoMock.TelegramUserId);
+        Assert.That(currentSession, Is.Not.Null);
+        _clockMock.SetNow(now.AddHours(1));
+        _sessionStoreMock.SetUpdateSessionCallback((si, tci) =>
+        {
+            Assert.That(si.ExpiredAt, Is.EqualTo(now.AddHours(1)));
+            Assert.That(si.TelegramChatId, Is.EqualTo(sessionInfoMock.TelegramChatId));
+            Assert.That(si.TelegramUserId, Is.EqualTo(sessionInfoMock.TelegramUserId));
+            
+        });
+        await _sessionManager.ReleaseSessionIfExists(sessionInfoMock.TelegramChatId, sessionInfoMock.TelegramUserId);
+        _sessionStoreMock.SetSessionInfoCallback((d, ci, tui) =>
+        {
+            Assert.That(d, Is.EqualTo(now.AddHours(1)));
+            Assert.That(ci, Is.EqualTo(sessionInfoMock.TelegramChatId));
+            Assert.That(tui, Is.EqualTo(sessionInfoMock.TelegramUserId));
+            return null;
+        });
+        currentSession = _sessionManager.GetCurrentSession(sessionInfoMock.TelegramChatId, sessionInfoMock.TelegramUserId);
+        Assert.That(currentSession, Is.Null);
+    } 
 
     protected override void RegisterServices(ServiceCollection serviceCollection)
     {
