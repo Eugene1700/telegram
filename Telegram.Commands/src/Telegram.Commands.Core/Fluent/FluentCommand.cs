@@ -18,7 +18,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
         var stateMachine = GetStateMachine();
         if (sessionObject == null)
         {
-            sessionObject = new FluentObject<TObject>(await Entry(query))
+            sessionObject = new FluentObject<TObject>(await Entry(query, default))
             {
                 CurrentStateId = stateMachine.GetEntryState().Id
             };
@@ -27,6 +27,13 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
             return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
         }
 
+        if (string.IsNullOrWhiteSpace(sessionObject.CurrentStateId))
+        {
+            var d = await Entry(query, sessionObject.Object);
+            sessionObject.Object = d;
+            sessionObject.CurrentStateId = stateMachine.GetEntryState().Id;
+        }
+        
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
         var nextStateId = await currentState.HandleQuery(query, sessionObject.Object);
 
@@ -61,7 +68,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
             return await DefaultExecute(query, sessionObject);
         
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
-        if (currentState.IsCommandHandle(currentCommand as IQueryTelegramCommand<CallbackQuery>))
+        if (await currentState.IsCommandHandle(sessionObject.Object, currentCommand as IQueryTelegramCommand<CallbackQuery>))
         {
             return await currentCommand.Execute(query);
         }
@@ -76,7 +83,8 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
         return await DefaultExecute(query, sessionObject);
     }
 
-    protected abstract Task<TObject> Entry<TQuery>(TQuery query);
+    protected abstract Task<TObject> Entry<TQuery>(TQuery query, TObject currentObject);
+
     protected abstract IStateMachine<TObject> StateMachine(IStateMachineBuilder<TObject> builder);
     protected abstract Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery currentQuery, TObject obj);
 

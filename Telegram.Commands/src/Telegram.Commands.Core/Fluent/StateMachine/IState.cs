@@ -8,6 +8,6 @@ internal interface IState<TObj> : IStateBase<TObj>
 {
     Task SendMessage<TQuery>(TQuery currentQuery, TObj obj);
     Task<string> HandleQuery<TQuery>(TQuery query, TObj obj);
-    bool IsCommandHandle(IQueryTelegramCommand<CallbackQuery> currentCommand);
+    Task<bool> IsCommandHandle(TObj obj, IQueryTelegramCommand<CallbackQuery> currentCommand);
     StateType GetStateType();
 }

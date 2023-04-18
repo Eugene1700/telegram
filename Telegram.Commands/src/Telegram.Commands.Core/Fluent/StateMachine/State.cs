@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
@@ -19,22 +18,23 @@ internal class State<TObj> : IState<TObj>
         _stateType = stateType;
         Id = id;
         DurationInSec = durationInSec;
-        _callbacksContainerRows = new List<CallbackDataContainerRow<TObj>>();
-        _callbackIndex = new Dictionary<string, CallbackDataContainer<TObj>>();
+        CallbackBuilder = new CallbackBuilder<TObj>();
     }
 
     public string Id { get; }
     public uint? DurationInSec { get; }
+    internal CallbackBuilder<TObj> CallbackBuilder { get; }
 
-    public Task SendMessage<TQuery>(TQuery currentQuery, TObj obj)
+    public async Task SendMessage<TQuery>(TQuery currentQuery, TObj obj)
     {
         IReplyMarkup replyMarkup = null;
-        if (_callbacksContainerRows.Any())
+        var callbacks = await CallbackBuilder?.Build(obj);
+        if (callbacks != null && callbacks.Any())
         {
             var builder = new InlineMarkupQueryBuilder();
-            foreach (var callbacksContainer in _callbacksContainerRows)
+            foreach (var callbacksContainerRowsProvider in callbacks)
             {
-                var callbacksRow = callbacksContainer.GetContainers();
+                var callbacksRow = callbacksContainerRowsProvider.GetContainers();
                 var row = callbacksRow.Select(x => x.Build(obj)).ToArray();
                 builder.InlineKeyboardButtonsRow(row);
             }
@@ -44,7 +44,7 @@ internal class State<TObj> : IState<TObj>
 
         var messageText = _message(obj);
         var mes = new TelegramMessage(messageText, replyMarkup);
-        return _sendMessageProvider.Send(currentQuery, obj, mes);
+        await _sendMessageProvider.Send(currentQuery, obj, mes);
     }
 
     public Task<string> HandleQuery<TQuery>(TQuery query, TObj obj)
@@ -53,54 +53,43 @@ internal class State<TObj> : IState<TObj>
         {
             return HandleCallback(query, obj);
         }
+
         return _handler(query, obj);
     }
 
-    private Task<string> HandleCallback<TQuery>(TQuery query, TObj obj)
+    private async Task<string> HandleCallback<TQuery>(TQuery query, TObj obj)
     {
+        var callbacks = await CallbackBuilder.Build(obj);
         var (callbackKey, callbackUserData) = CallbackDataContainer<TObj>.ExtractData(query);
-        if (_callbackIndex.TryGetValue(callbackKey, out var container))
+        CallbackDataContainer<TObj> container = null;
+        if (callbacks.Any(x => x.TryGetByKey(callbackKey, out container)))
         {
-            return container.Commit(query, obj, callbackUserData);
+            return await container.Commit(query, obj, callbackUserData);
         }
 
         throw new InvalidOperationException();
     }
 
     private Func<object, TObj, Task<string>> _handler;
-    private readonly List<CallbackDataContainerRow<TObj>> _callbacksContainerRows;
 
     private Func<TObj, string> _message;
     private IMessageSender<TObj> _sendMessageProvider;
-    private readonly Dictionary<string, CallbackDataContainer<TObj>> _callbackIndex;
 
     public void SetCommitter(Func<object, TObj, Task<string>> commitStateExpr)
     {
         _handler = commitStateExpr;
     }
 
-    public bool IsCommandHandle(IQueryTelegramCommand<CallbackQuery> currentCommand)
+    public async Task<bool> IsCommandHandle(TObj obj, IQueryTelegramCommand<CallbackQuery> currentCommand)
     {
         var curComDesc = currentCommand.GetCommandInfo();
-        return _callbacksContainerRows.Any(x => x.HasCommand(curComDesc));
+        var callbacks = await CallbackBuilder.Build(obj);
+        return callbacks.Any(x => x.HasCommand(curComDesc));
     }
 
     public StateType GetStateType()
     {
         return _stateType;
-    }
-
-
-    public CallbackDataContainerRow<TObj> AddCallbackRow()
-    {
-        var newRow = new CallbackDataContainerRow<TObj>();
-        _callbacksContainerRows.Add(newRow);
-        return newRow;
-    }
-
-    public void AddIndex(string callbackId, CallbackDataContainer<TObj> container)
-    {
-        _callbackIndex.Add(callbackId, container);
     }
 
     public void SetMessage(Func<TObj, string> messageProvider, IMessageSender<TObj> sendMessageProvider)
