@@ -6,7 +6,7 @@ namespace Telegram.Commands.Core.Fluent.Builders;
 
 public interface IStateBuilder<TObj>
 {
-    IMessageBuilder<TObj> WithMessage(Func<TObj, string> messageProvider, IMessageSender<TObj> sender);
+    IMessageBuilder<TObj> WithMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sender);
 }
 
 public interface IMessageSender<in TObj>

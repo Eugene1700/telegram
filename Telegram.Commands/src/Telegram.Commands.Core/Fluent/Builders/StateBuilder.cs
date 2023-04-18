@@ -102,7 +102,7 @@ internal class StateBuilder<TObj> : IMessageBuilder<TObj>, IStateBuilder<TObj>, 
         return this;
     }
 
-    public IMessageBuilder<TObj> WithMessage(Func<TObj, string> messageProvider, IMessageSender<TObj> sender)
+    public IMessageBuilder<TObj> WithMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sender)
     {
         _state.SetMessage(messageProvider, sender);
         return this;

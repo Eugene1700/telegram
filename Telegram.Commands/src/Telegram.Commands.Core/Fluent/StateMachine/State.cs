@@ -42,7 +42,7 @@ internal class State<TObj> : IState<TObj>
             replyMarkup = builder.GetResult();
         }
 
-        var messageText = _message(obj);
+        var messageText = await _message(obj);
         var mes = new TelegramMessage(messageText, replyMarkup);
         await _sendMessageProvider.Send(currentQuery, obj, mes);
     }
@@ -72,7 +72,7 @@ internal class State<TObj> : IState<TObj>
 
     private Func<object, TObj, Task<string>> _handler;
 
-    private Func<TObj, string> _message;
+    private Func<TObj, Task<string>> _message;
     private IMessageSender<TObj> _sendMessageProvider;
 
     public void SetCommitter(Func<object, TObj, Task<string>> commitStateExpr)
@@ -92,7 +92,7 @@ internal class State<TObj> : IState<TObj>
         return _stateType;
     }
 
-    public void SetMessage(Func<TObj, string> messageProvider, IMessageSender<TObj> sendMessageProvider)
+    public void SetMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sendMessageProvider)
     {
         _message = messageProvider;
         _sendMessageProvider = sendMessageProvider;

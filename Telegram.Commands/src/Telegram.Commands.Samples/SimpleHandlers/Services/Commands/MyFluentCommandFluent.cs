@@ -50,7 +50,7 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
 
     protected override IStateMachine<MyObject> StateMachine(IStateMachineBuilder<MyObject> builder)
     {
-        return builder.Entry(States.Name).WithMessage(_ => "Hi! What's your name?", this)
+        return builder.Entry(States.Name).WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
             .WithCallbacks()
             .Row().ExitStateByCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
             .Row().ExitStateByCallback("skip", "Skip", "data", States.Surname)
@@ -58,10 +58,10 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
             .Row().ExitStateByCallback<MyObject, CancelCallback>("Cancel", "someData")
             .Row().ExitStateByCallback(KeyBoardBuild, TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()).ExitStateByCallback(CallbackDataWithCommand())
             .ExitState(FirstNameMessageHandler)
-            .NewState(States.Surname).WithMessage(obj => $"Ok, send me your surname, {obj.FirstName}", this)
+            .NewState(States.Surname).WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), this)
             .WithCallbacks().KeyBoard(GetSurnameKeyboard)
             .ExitState(SecondNameHandler)
-            .NewState(States.Validate).WithMessage(_=>"Your name is too short! Please, send me again", this)
+            .NewState(States.Validate).WithMessage("Your name is too short! Please, send me again", this)
             .WithCallbacks()
             .Row().ExitStateByCallback("skip","Skip", "data", States.Surname)
             .ExitState(FirstNameMessageHandler)
