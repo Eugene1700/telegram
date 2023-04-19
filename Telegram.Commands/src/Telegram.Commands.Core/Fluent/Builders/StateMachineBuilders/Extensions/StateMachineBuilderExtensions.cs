@@ -10,8 +10,8 @@ public static class StateMachineBuilderExtensions
         return builder.Entry(stateId.ToString(), durationInSec);
     }
     
-    public static IStateBuilder<TObj> NewState<TObj, TEnum>(this IStateMachineBodyBuilder<TObj> builder, TEnum stateId) where TEnum: Enum
+    public static IStateBuilder<TObj> State<TObj, TEnum>(this IStateMachineBodyBuilder<TObj> builder, TEnum stateId) where TEnum: Enum
     {
-        return builder.NewState(stateId.ToString());
+        return builder.State(stateId.ToString());
     }
 }

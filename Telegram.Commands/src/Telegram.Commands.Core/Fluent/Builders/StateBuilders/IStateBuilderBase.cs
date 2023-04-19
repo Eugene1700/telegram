@@ -8,6 +8,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 public interface IStateBuilderBase<TObj>
 {
     IStateBase<TObj> GetState();
-    IStateMachineBodyBuilder<TObj> NextState<TQuery>(Func<TQuery, TObj, Task<string>> commitStateExpr) where TQuery : class;
-    IStateMachineBodyBuilder<TObj> NextState(string stateId);
+    IStateMachineBodyBuilder<TObj> Next<TQuery>(Func<TQuery, TObj, Task<string>> commitStateExpr) where TQuery : class;
+    IStateMachineBodyBuilder<TObj> Next(string stateId);
+    IStateMachineBodyBuilder<TObj> Loop();
 }

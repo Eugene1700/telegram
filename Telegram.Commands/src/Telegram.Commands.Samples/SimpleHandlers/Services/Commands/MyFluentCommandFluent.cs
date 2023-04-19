@@ -54,33 +54,33 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
     {
         return builder.Entry(States.Name).WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
             .WithCallbacks()
-            .Row().ExitStateFromCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
-            .Row().NextStateFromCallback("skip", "Skip", "data", States.Surname)
-            .Row().NextStateFromCallback("exit", "Exit", "data", States.Exit)
-            .Row().ExitStateFromCallback("sendText", "Send TEXT", "TEXT", SendTextHandler)
+            .Row().OnCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
+            .Row().NextFromCallback("skip", "Skip", "data", States.Surname)
+            .Row().NextFromCallback("exit", "Exit", "data", States.Exit)
+            .Row().OnCallback("sendText", "Send TEXT", "TEXT", SendTextHandler)
             .Row().ExitFromCallback<MyObject, CancelCallback>("Cancel", "someData")
             .Row().ExitFromCallback<MyObject, CancelCallback>("Cancel", "someData")
-            .Row().NextStateFromCallback(KeyBoardBuild,
+            .Row().ExitFromCallback(KeyBoardBuild,
                 TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
-            .NextStateFromCallback(CallbackDataWithCommand())
-            .NextState(FirstNameMessageHandler)
-            .NewState(States.Surname)
+            .ExitFromCallback(CallbackDataWithCommand())
+            .Next(FirstNameMessageHandler)
+            .State(States.Surname)
             .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), this)
             .WithCallbacks().KeyBoard(GetSurnameKeyboard)
-            .NextState(SecondNameHandler)
-            .NewState(States.Validate).WithMessage("Your name is too short! Please, send me again", this)
+            .Next(SecondNameHandler)
+            .State(States.Validate).WithMessage("Your name is too short! Please, send me again", this)
             .WithCallbacks()
-            .Row().NextStateFromCallback("skip", "Skip", "data", States.Surname)
-            .NextState(FirstNameMessageHandler)
+            .Row().NextFromCallback("skip", "Skip", "data", States.Surname)
+            .Next(FirstNameMessageHandler)
             .Exit<MyObject, States, object>(States.Exit, Finalize).Build();
     }
 
     private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject> arg2)
     {
-        arg2.Row().NextStateFromCallback("skip", "Skip", arg1.FirstName, States.Exit)
-            .NextStateFromCallback("returnToEntry", "Back", arg1.FirstName, States.Name)
-            .ExitStateFromCallback("defaultSecondName", "Default SecondName Smith", "Smith", SecondNameCallbackHandler)
-            .Row().NextStateFromCallback("def", "Finish", arg1.FirstName, States.Exit);
+        arg2.Row().NextFromCallback("skip", "Skip", arg1.FirstName, States.Exit)
+            .NextFromCallback("returnToEntry", "Back", arg1.FirstName, States.Name)
+            .OnCallback("defaultSecondName", "Default SecondName Smith", "Smith", SecondNameCallbackHandler)
+            .Row().NextFromCallback("def", "Finish", arg1.FirstName, States.Exit);
         return Task.CompletedTask;
     }
 

@@ -52,26 +52,26 @@ internal class CallbackBuilder<TObj>: ICallbackRowBuilderBase<TObj>
         return this;
     }
 
-    public ICallbackRowBuilderBase<TObj> NextStateFromCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
+    public ICallbackRowBuilderBase<TObj> OnCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> handler) where TQuery : class
     {
-        _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
+        _currentRow.AddContainer(callbackId, callbackProvider, handler);
         return this;
     }
 
-    public ICallbackRowBuilderBase<TObj> NextStateFromCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId)
+    public ICallbackRowBuilderBase<TObj> NextFromCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId)
     {
         Func<object, TObj, string, Task<string>> commitExpr = (_, _, _) => Task.FromResult(stateId);
         _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
         return this;
     }
 
-    public ICallbackRowBuilderBase<TObj> NextStateFromCallback(CallbackDataWithCommand callbackDataWithCommand)
+    public ICallbackRowBuilderBase<TObj> ExitFromCallback(CallbackDataWithCommand callbackDataWithCommand)
     {
         CallbackData CallbackProvider(TObj _) => callbackDataWithCommand;
-        return NextStateFromCallback(CallbackProvider, callbackDataWithCommand.CommandDescriptor);
+        return ExitFromCallback(CallbackProvider, callbackDataWithCommand.CommandDescriptor);
     }
 
-    public ICallbackRowBuilderBase<TObj> NextStateFromCallback(Func<TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
+    public ICallbackRowBuilderBase<TObj> ExitFromCallback(Func<TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
     {
         _currentRow.AddContainer(callbackProvider,
             telegramCommandDescriptor: telegramCommandDescriptor);

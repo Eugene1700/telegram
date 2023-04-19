@@ -15,7 +15,7 @@ internal class StateMachineBuilder<TObj> : IStateMachineBuilder<TObj>, IStateMac
         _stateMachine = new StateMachine<TObj>();
     }
 
-    public IStateBuilder<TObj> NewState(string stateId)
+    public IStateBuilder<TObj> State(string stateId)
     {
         return NewState(stateId, StateType.Body);
     }
