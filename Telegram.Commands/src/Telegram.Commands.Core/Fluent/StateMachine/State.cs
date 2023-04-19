@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
-using Telegram.Commands.Core.Fluent.Builders;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine;
@@ -13,12 +13,13 @@ internal class State<TObj> : IState<TObj>
 {
     private readonly StateType _stateType;
 
-    public State(string id, StateType stateType, uint? durationInSec)
+    public State(string id, StateType stateType, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer = null)
     {
         _stateType = stateType;
         Id = id;
         DurationInSec = durationInSec;
         CallbackBuilder = new CallbackBuilder<TObj>();
+        _finalizer = finalizer;
     }
 
     public string Id { get; }
@@ -74,13 +75,14 @@ internal class State<TObj> : IState<TObj>
 
     private Func<TObj, Task<string>> _message;
     private IMessageSender<TObj> _sendMessageProvider;
+    private readonly Func<object,TObj,Task<ITelegramCommandExecutionResult>> _finalizer;
 
     public void SetCommitter(Func<object, TObj, Task<string>> commitStateExpr)
     {
         _handler = commitStateExpr;
     }
 
-    public async Task<bool> IsCommandHandle(TObj obj, IQueryTelegramCommand<CallbackQuery> currentCommand)
+    public async Task<bool> IsCommandHandle<TQuery>(TObj obj, IQueryTelegramCommand<TQuery> currentCommand)
     {
         var curComDesc = currentCommand.GetCommandInfo();
         var callbacks = await CallbackBuilder.Build(obj);
@@ -90,6 +92,11 @@ internal class State<TObj> : IState<TObj>
     public StateType GetStateType()
     {
         return _stateType;
+    }
+
+    public Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery query, TObj sessionObjectObject)
+    {
+        return _finalizer?.Invoke(query, sessionObjectObject);
     }
 
     public void SetMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sendMessageProvider)

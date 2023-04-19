@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Fluent.Builders;
+using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Services;
 
-namespace Telegram.Commands.Core.Fluent.StateMachine;
+namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 
 internal class CallbackBuilder<TObj>: ICallbackRowBuilderBase<TObj>
 {
@@ -52,26 +52,26 @@ internal class CallbackBuilder<TObj>: ICallbackRowBuilderBase<TObj>
         return this;
     }
 
-    public ICallbackRowBuilderBase<TObj> ExitStateByCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
+    public ICallbackRowBuilderBase<TObj> NextStateFromCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
     {
         _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
         return this;
     }
 
-    public ICallbackRowBuilderBase<TObj> ExitStateByCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId)
+    public ICallbackRowBuilderBase<TObj> NextStateFromCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId)
     {
         Func<object, TObj, string, Task<string>> commitExpr = (_, _, _) => Task.FromResult(stateId);
         _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
         return this;
     }
 
-    public ICallbackRowBuilderBase<TObj> ExitStateByCallback(CallbackDataWithCommand callbackDataWithCommand)
+    public ICallbackRowBuilderBase<TObj> NextStateFromCallback(CallbackDataWithCommand callbackDataWithCommand)
     {
         CallbackData CallbackProvider(TObj _) => callbackDataWithCommand;
-        return ExitStateByCallback(CallbackProvider, callbackDataWithCommand.CommandDescriptor);
+        return NextStateFromCallback(CallbackProvider, callbackDataWithCommand.CommandDescriptor);
     }
 
-    public ICallbackRowBuilderBase<TObj> ExitStateByCallback(Func<TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
+    public ICallbackRowBuilderBase<TObj> NextStateFromCallback(Func<TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
     {
         _currentRow.AddContainer(callbackProvider,
             telegramCommandDescriptor: telegramCommandDescriptor);

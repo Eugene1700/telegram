@@ -1,15 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Fluent;
-using Telegram.Commands.Core.Fluent.Builders;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
+using Telegram.Commands.Core.Fluent.Builders.Extensions;
+using Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
+using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
+using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Models;
 using Telegram.Commands.Core.Services;
@@ -52,28 +54,33 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
     {
         return builder.Entry(States.Name).WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
             .WithCallbacks()
-            .Row().ExitStateByCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
-            .Row().ExitStateByCallback("skip", "Skip", "data", States.Surname)
-            .Row().ExitStateByCallback("sendText", "Send TEXT", "TEXT", SendTextHandler)
-            .Row().ExitStateByCallback<MyObject, CancelCallback>("Cancel", "someData")
-            .Row().ExitStateByCallback(KeyBoardBuild, TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()).ExitStateByCallback(CallbackDataWithCommand())
-            .ExitState(FirstNameMessageHandler)
-            .NewState(States.Surname).WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), this)
+            .Row().ExitStateFromCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
+            .Row().NextStateFromCallback("skip", "Skip", "data", States.Surname)
+            .Row().NextStateFromCallback("exit", "Exit", "data", States.Exit)
+            .Row().ExitStateFromCallback("sendText", "Send TEXT", "TEXT", SendTextHandler)
+            .Row().ExitFromCallback<MyObject, CancelCallback>("Cancel", "someData")
+            .Row().ExitFromCallback<MyObject, CancelCallback>("Cancel", "someData")
+            .Row().NextStateFromCallback(KeyBoardBuild,
+                TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
+            .NextStateFromCallback(CallbackDataWithCommand())
+            .NextState(FirstNameMessageHandler)
+            .NewState(States.Surname)
+            .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), this)
             .WithCallbacks().KeyBoard(GetSurnameKeyboard)
-            .ExitState(SecondNameHandler)
+            .NextState(SecondNameHandler)
             .NewState(States.Validate).WithMessage("Your name is too short! Please, send me again", this)
             .WithCallbacks()
-            .Row().ExitStateByCallback("skip","Skip", "data", States.Surname)
-            .ExitState(FirstNameMessageHandler)
-            .Finish(States.Exit);
+            .Row().NextStateFromCallback("skip", "Skip", "data", States.Surname)
+            .NextState(FirstNameMessageHandler)
+            .Exit<MyObject, States, object>(States.Exit, Finalize).Build();
     }
 
     private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject> arg2)
     {
-        arg2.Row().ExitStateByCallback("skip", "Skip", arg1.FirstName, States.Exit)
-            .ExitStateByCallback("returnToEntry", "Back", arg1.FirstName, States.Name)
-            .ExitStateByCallback("defaultSecondName", "Default SecondName Smith", "Smith", SecondNameCallbackHandler)
-            .Row().ExitStateByCallback("def", "Finish", arg1.FirstName, States.Exit);
+        arg2.Row().NextStateFromCallback("skip", "Skip", arg1.FirstName, States.Exit)
+            .NextStateFromCallback("returnToEntry", "Back", arg1.FirstName, States.Name)
+            .ExitStateFromCallback("defaultSecondName", "Default SecondName Smith", "Smith", SecondNameCallbackHandler)
+            .Row().NextStateFromCallback("def", "Finish", arg1.FirstName, States.Exit);
         return Task.CompletedTask;
     }
 
@@ -141,7 +148,7 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
         return States.Exit;
     }
 
-    protected override async Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery currentQuery, MyObject obj)
+    private async Task<ITelegramCommandExecutionResult> Finalize(object currentQuery, MyObject obj)
     {
         long chatId = 0;
         if (currentQuery is Message message)

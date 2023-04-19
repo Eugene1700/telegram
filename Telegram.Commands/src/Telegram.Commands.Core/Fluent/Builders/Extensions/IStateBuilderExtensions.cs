@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
+using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
-namespace Telegram.Commands.Core.Fluent.Builders;
+namespace Telegram.Commands.Core.Fluent.Builders.Extensions;
 
 public static class IStateBuilderExtensions
 {

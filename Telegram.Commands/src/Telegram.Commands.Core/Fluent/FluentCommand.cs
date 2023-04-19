@@ -1,9 +1,7 @@
-﻿using System;
-using System.Threading.Tasks;
-using Telegram.Bot.Types;
+﻿using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
-using Telegram.Commands.Core.Fluent.Builders;
+using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Models;
 
@@ -11,7 +9,6 @@ namespace Telegram.Commands.Core.Fluent;
 
 public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentObject<TObject>>
 {
-
     public async Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query,
         FluentObject<TObject> sessionObject)
     {
@@ -40,7 +37,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
         var next = stateMachine.GetStateInternal(nextStateId);
         if (next.GetStateType() == StateType.Finish)
         {
-            return await Finalize(query, sessionObject.Object);
+            return await next.Finalize(query, sessionObject.Object);
         }
 
         if (next.Id != currentState.Id)
@@ -68,7 +65,7 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
             return await DefaultExecute(query, sessionObject);
         
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
-        if (await currentState.IsCommandHandle(sessionObject.Object, currentCommand as IQueryTelegramCommand<CallbackQuery>))
+        if (await currentState.IsCommandHandle(sessionObject.Object, currentCommand))
         {
             return await currentCommand.Execute(query);
         }
@@ -86,6 +83,5 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
     protected abstract Task<TObject> Entry<TQuery>(TQuery query, TObject currentObject);
 
     protected abstract IStateMachine<TObject> StateMachine(IStateMachineBuilder<TObject> builder);
-    protected abstract Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery currentQuery, TObject obj);
 
 }
