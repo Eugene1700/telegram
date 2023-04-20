@@ -6,38 +6,38 @@ using Telegram.Commands.Core.Fluent.StateMachine;
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 
-internal class StateMachineBuilder<TObj> : IStateMachineBuilder<TObj>, IStateMachineBodyBuilder<TObj>
+internal class StateMachineBuilder<TObj, TStates, TCallbacks> : IStateMachineBuilder<TObj, TStates, TCallbacks>, IStateMachineBodyBuilder<TObj, TStates, TCallbacks> where TCallbacks : struct, Enum
 {
-    private readonly StateMachine<TObj> _stateMachine;
+    private readonly StateMachine<TObj, TStates, TCallbacks> _stateMachine;
 
     public StateMachineBuilder()
     {
-        _stateMachine = new StateMachine<TObj>();
+        _stateMachine = new StateMachine<TObj, TStates, TCallbacks>();
     }
 
-    public IStateBuilder<TObj> State(string stateId)
+    public IStateBuilder<TObj, TStates, TCallbacks> State(TStates stateId)
     {
         return NewState(stateId, StateType.Body);
     }
 
-    private IStateBuilder<TObj> NewState(string stateId, StateType stateType, uint? durationInSec = null)
+    private IStateBuilder<TObj, TStates, TCallbacks> NewState(TStates stateId, StateType stateType, uint? durationInSec = null)
     {
         var newState = _stateMachine.AddState(stateId, stateType, durationInSec, null);
-        var entryStateBuilder = new StateBuilder<TObj>(newState, this);
+        var entryStateBuilder = new StateBuilder<TObj, TStates, TCallbacks>(newState, this);
         return entryStateBuilder;
     }
 
-    public IStateBuilder<TObj> Entry(string stateId, uint? durationInSec = null)
+    public IStateBuilder<TObj, TStates, TCallbacks> Entry(TStates stateId, uint? durationInSec = null)
     {
         return NewState(stateId, StateType.Entry, durationInSec);
     }
 
-    public IStateMachine<TObj> Build()
+    public IStateMachine<TStates> Build()
     {
         return _stateMachine;
     }
 
-    public IStateMachineBodyBuilder<TObj> Exit<TQuery>(string stateId, Func<TQuery, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery : class
+    public IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Exit<TQuery>(TStates stateId, Func<TQuery, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery : class
     {
         _stateMachine.AddExit(stateId, finalizer);
         return this;

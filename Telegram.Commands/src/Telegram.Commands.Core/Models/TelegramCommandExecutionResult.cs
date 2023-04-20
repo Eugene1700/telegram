@@ -1,4 +1,5 @@
-﻿using Telegram.Commands.Abstract.Interfaces;
+﻿using System;
+using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Fluent;
 
@@ -129,15 +130,15 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
-        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject>(TObject obj, uint? sessionDurationInSec = 600)
-            where TNextCommand : FluentCommand<TObject>
+        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject, TStates, TCallbacks>(TObject obj, uint? sessionDurationInSec = 600)
+            where TNextCommand : FluentCommand<TObject, TStates, TCallbacks> where TCallbacks : struct, Enum
         {
-            var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject>();
+            var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject, TStates, TCallbacks>();
             return new TelegramCommandExecutionResult
             {
-                Data = new FluentObject<TObject>(obj)
+                Data = new FluentObject<TObject, TStates>(obj)
                 {
-                    CurrentStateId = null
+                    CurrentStateId = default
                 },
                 Result = ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,
@@ -146,8 +147,8 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
-        internal static TelegramCommandExecutionResult AheadFluent<TObj>(FluentCommand<TObj> command,
-            FluentObject<TObj> sessionObject, uint? sessionDurationInSec)
+        internal static TelegramCommandExecutionResult AheadFluent<TObj, TStates, TCallbacks>(FluentCommand<TObj, TStates, TCallbacks> command,
+            FluentObject<TObj, TStates> sessionObject, uint? sessionDurationInSec) where TCallbacks: struct, Enum
         {
             var commandInfo = command.GetCommandInfo();
             return new TelegramCommandExecutionResult

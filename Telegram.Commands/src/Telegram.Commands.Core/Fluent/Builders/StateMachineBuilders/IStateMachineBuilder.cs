@@ -2,7 +2,7 @@
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 
-public interface IStateMachineBuilder<TObj>: IStateMachineBaseBuilder<TObj>
+public interface IStateMachineBuilder<TObj, TStates, TCallbacks>: IStateMachineBaseBuilder<TObj, TStates, TCallbacks>
 {
-    IStateBuilder<TObj> Entry(string stateId, uint? durationInSec = null);
+    IStateBuilder<TObj, TStates, TCallbacks> Entry(TStates stateId, uint? durationInSec = null);
 }

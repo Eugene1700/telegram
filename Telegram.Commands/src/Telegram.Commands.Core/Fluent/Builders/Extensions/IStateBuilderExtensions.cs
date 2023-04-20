@@ -5,7 +5,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions;
 
 public static class IStateBuilderExtensions
 {
-    public static IMessageBuilder<TObj> WithMessage<TObj>(this IStateBuilder<TObj> stateBuilder, string message,
+    public static IMessageBuilder<TObj, TStates, TCallbacks> WithMessage<TObj, TStates, TCallbacks>(this IStateBuilder<TObj, TStates, TCallbacks> stateBuilder, string message,
         IMessageSender<TObj> sender)
     {
         return stateBuilder.WithMessage(_ => Task.FromResult(message), sender);

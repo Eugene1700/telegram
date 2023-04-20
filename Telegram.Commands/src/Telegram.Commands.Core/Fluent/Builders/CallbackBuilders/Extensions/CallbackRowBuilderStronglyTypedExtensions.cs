@@ -6,11 +6,11 @@ using Telegram.Commands.Core.Services;
 namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 
 public static class CallbackRowBuilderStronglyTypedExtensions {
-    public static ICallbackRowBuilder<TObj> OnCallback<TObj, TEnum>(this ICallbackRowBuilder<TObj> builder, 
-        string callbackId,
+    public static ICallbackRowBuilder<TObj, TStates, TCallbacks> OnCallback<TObj, TStates, TCallbacks>(this ICallbackRowBuilder<TObj, TStates, TCallbacks> builder, 
+        TCallbacks callbackId,
         string text, 
         string data, 
-        Func<CallbackQuery, TObj, string, Task<TEnum>> handler)
+        Func<CallbackQuery, TObj, string, Task<TStates>> handler)
     {
         return builder.OnCallback(callbackId, new CallbackDataWithCommand
         {
@@ -19,11 +19,11 @@ public static class CallbackRowBuilderStronglyTypedExtensions {
         }, handler);
     }
     
-    public static ICallbackRowBuilderBase<TObj> OnCallback<TObj, TEnum>(this ICallbackRowBuilderBase<TObj> builder, 
-        string callbackId,
+    public static ICallbackRowBuilderBase<TObj, TStates, TCallbacks> OnCallback<TObj, TStates, TCallbacks>(this ICallbackRowBuilderBase<TObj, TStates, TCallbacks> builder, 
+        TCallbacks callbackId,
         string text, 
         string data, 
-        Func<CallbackQuery, TObj, string, Task<TEnum>> handler)
+        Func<CallbackQuery, TObj, string, Task<TStates>> handler)
     {
         return builder.OnCallback(callbackId, new CallbackDataWithCommand
         {

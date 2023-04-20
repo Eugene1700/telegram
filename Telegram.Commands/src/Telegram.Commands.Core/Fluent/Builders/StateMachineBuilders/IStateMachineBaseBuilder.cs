@@ -5,9 +5,9 @@ using Telegram.Commands.Core.Fluent.StateMachine;
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 
-public interface IStateMachineBaseBuilder<TObj>
+public interface IStateMachineBaseBuilder<TObj, TStates, TCallbacks>
 {
-    IStateMachine<TObj> Build();
-    IStateMachineBodyBuilder<TObj> Exit<TQuery>(string stateId,
+    IStateMachine<TStates> Build();
+    IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Exit<TQuery>(TStates stateId,
         Func<TQuery, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery: class;
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -11,15 +12,33 @@ using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
-using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Models;
 using Telegram.Commands.Core.Services;
 
 namespace SimpleHandlers.Services.Commands;
 
+public enum States
+{
+    Name,
+    Surname,
+    Validate,
+    Exit
+}
+
+public enum FluentCallbacks
+{
+    DefaultName,
+    Skip,
+    Exit,
+    Text,
+    ReturnToEntry,
+    DefaultSecondName,
+    SendNumber
+}
+
 [Command(Name = "myfluent")]
-public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyObject>
+public class MyFluentCommandFluent: FluentCommand<MyObject, States, FluentCallbacks>, IMessageSender<MyObject>
 {
     private readonly ITelegramBotClient _telegramBotClient;
 
@@ -42,27 +61,20 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
         return Task.FromResult(o);
     }
 
-    public enum States
+    protected override IStateMachine<States> StateMachine(IStateMachineBuilder<MyObject, States, FluentCallbacks> builder)
     {
-        Name,
-        Surname,
-        Validate,
-        Exit
-    }
-
-    protected override IStateMachine<MyObject> StateMachine(IStateMachineBuilder<MyObject> builder)
-    {
-        return builder.Entry(States.Name).WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
+        var a = builder.Entry(States.Name).WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
             .WithCallbacks()
-            .Row().OnCallback("defaultName", "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
-            .Row().NextFromCallback("skip", "Skip", "data", States.Surname)
-            .Row().NextFromCallback("exit", "Exit", "data", States.Exit)
-            .Row().OnCallback("sendText", "Send TEXT", "TEXT", SendTextHandler)
-            .Row().ExitFromCallback<MyObject, CancelCallback>("Cancel", "someData")
-            .Row().ExitFromCallback<MyObject, CancelCallback>("Cancel", "someData")
+            .Row().OnCallback(FluentCallbacks.DefaultName, "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
+            .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname)
+            .Row().NextFromCallback(FluentCallbacks.Exit, "Exit", "data", States.Exit)
+            .Row().OnCallback(FluentCallbacks.Text, "Send TEXT", "TEXT", SendUserDataHandler)
+            .Row().ExitFromCallback<MyObject, States, FluentCallbacks, CancelCallback>("Cancel", "someData")
+            .Row().ExitFromCallback<MyObject, States, FluentCallbacks, CancelCallback>("Cancel", "someData")
             .Row().ExitFromCallback(KeyBoardBuild,
                 TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
             .ExitFromCallback(CallbackDataWithCommand())
+            .KeyBoard(SameCallbackKey)
             .Next(FirstNameMessageHandler)
             .State(States.Surname)
             .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), this)
@@ -70,17 +82,30 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
             .Next(SecondNameHandler)
             .State(States.Validate).WithMessage("Your name is too short! Please, send me again", this)
             .WithCallbacks()
-            .Row().NextFromCallback("skip", "Skip", "data", States.Surname)
+            .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname)
             .Next(FirstNameMessageHandler)
-            .Exit<MyObject, States, object>(States.Exit, Finalize).Build();
+            .Exit<object>(States.Exit, Finalize);
+            
+            return a.Build();
     }
 
-    private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject> arg2)
+    private Task SameCallbackKey(MyObject arg1, ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg2)
     {
-        arg2.Row().NextFromCallback("skip", "Skip", arg1.FirstName, States.Exit)
-            .NextFromCallback("returnToEntry", "Back", arg1.FirstName, States.Name)
-            .OnCallback("defaultSecondName", "Default SecondName Smith", "Smith", SecondNameCallbackHandler)
-            .Row().NextFromCallback("def", "Finish", arg1.FirstName, States.Exit);
+        var b = arg2.Row();
+        foreach (var num in Enumerable.Range(0, 5))
+        {
+            b.OnCallback(FluentCallbacks.SendNumber, $"{num}", $"{num}", SendUserDataHandler);
+        }
+        return Task.CompletedTask;
+    }
+    
+
+    private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg2)
+    {
+        arg2.Row().NextFromCallback(FluentCallbacks.Skip, "Skip", arg1.FirstName, States.Exit)
+            .NextFromCallback(FluentCallbacks.ReturnToEntry, "Back", arg1.FirstName, States.Name)
+            .OnCallback(FluentCallbacks.DefaultSecondName, "Default SecondName Smith", "Smith", SecondNameCallbackHandler)
+            .Row().NextFromCallback(FluentCallbacks.Exit, "Finish", arg1.FirstName, States.Exit);
         return Task.CompletedTask;
     }
 
@@ -104,7 +129,7 @@ public class MyFluentCommandFluent: FluentCommand<MyObject>, IMessageSender<MyOb
             };
     }
 
-    private async Task<States> SendTextHandler(CallbackQuery arg1, MyObject arg2, string userData)
+    private async Task<States> SendUserDataHandler(CallbackQuery arg1, MyObject arg2, string userData)
     {
         await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, userData);
         return States.Name;

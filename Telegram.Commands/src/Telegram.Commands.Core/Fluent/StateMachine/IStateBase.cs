@@ -1,7 +1,9 @@
+using System;
+
 namespace Telegram.Commands.Core.Fluent.StateMachine;
 
-public interface IStateBase<T>
+public interface IStateBase<out TStates>
 {
-    string Id { get; }
+    TStates Id { get; }
     uint? DurationInSec { get; }
 }

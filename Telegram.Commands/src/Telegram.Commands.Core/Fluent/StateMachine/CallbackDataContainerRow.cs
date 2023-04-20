@@ -8,13 +8,13 @@ using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine;
 
-internal class CallbackDataContainerRow<TObj>
+internal class CallbackDataContainerRow<TObj, TStates, TCallbacks> where TCallbacks : struct, Enum
 {
-    private readonly List<CallbackDataContainer<TObj>> _containers;
+    private readonly List<CallbackDataContainer<TObj, TStates, TCallbacks>> _containers;
 
     public CallbackDataContainerRow()
     {
-        _containers = new List<CallbackDataContainer<TObj>>();
+        _containers = new List<CallbackDataContainer<TObj, TStates, TCallbacks>>();
     }
 
     public bool HasCommand(ITelegramCommandDescriptor curComDesc)
@@ -22,33 +22,38 @@ internal class CallbackDataContainerRow<TObj>
         return _containers.Any(x => x.HasCommand(curComDesc));
     }
 
-    public CallbackDataContainer<TObj> AddContainer<TQuery>(string callbackId,
-        Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr)
+    public CallbackDataContainer<TObj, TStates, TCallbacks> AddContainer<TQuery>(TCallbacks callbackId,
+        Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<TStates>> handler)
         where TQuery : class
     {
-        Task<string> Committer(object q, TObj o, string d) => commitExpr(q as TQuery, o, d);
+        Task<TStates> Handle(object q, TObj o, string d) => handler(q as TQuery, o, d);
 
-        var newContainer = new CallbackDataContainer<TObj>(callbackId, callbackProvider, Committer);
+        var newContainer = new CallbackDataContainer<TObj, TStates, TCallbacks>(callbackId, callbackProvider, Handle);
         _containers.Add(newContainer);
         return newContainer;
     }
 
-    public ReadOnlyCollection<CallbackDataContainer<TObj>> GetContainers()
+    public ReadOnlyCollection<CallbackDataContainer<TObj, TStates, TCallbacks>> GetContainers()
     {
         return _containers.AsReadOnly();
     }
 
-    public CallbackDataContainer<TObj> AddContainer(Func<TObj, CallbackData> callbackProvider,
+    public CallbackDataContainer<TObj, TStates, TCallbacks> AddContainer(Func<TObj, CallbackData> callbackProvider,
         ITelegramCommandDescriptor telegramCommandDescriptor)
     {
-        var newContainer = new CallbackDataContainer<TObj>(callbackProvider, telegramCommandDescriptor);
+        var newContainer =
+            new CallbackDataContainer<TObj, TStates, TCallbacks>(callbackProvider, telegramCommandDescriptor);
         _containers.Add(newContainer);
         return newContainer;
     }
 
-    public bool TryGetByKey(string callbackKey, out CallbackDataContainer<TObj> o)
+    public bool TryGetByKey(TCallbacks callbackKey, string hash, TObj obj,
+        out CallbackDataContainer<TObj, TStates, TCallbacks> o)
     {
-        o = _containers.FirstOrDefault(x => x.CallbackKey == callbackKey);
+        o = null;
+        var containers = _containers.Where(x => x.CallbackKey.ToString() == callbackKey.ToString()).ToArray();
+        if (!containers.Any()) return false;
+        o = containers.Length == 1 ? containers.Single() : containers.FirstOrDefault(x => x.GetHash(obj) == hash);
         return o != null;
     }
 }

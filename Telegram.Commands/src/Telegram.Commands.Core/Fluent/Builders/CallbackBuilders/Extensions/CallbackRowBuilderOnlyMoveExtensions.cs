@@ -5,34 +5,27 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 
 public static class CallbackRowBuilderOnlyMoveExtensions {
     
-    public static ICallbackRowBuilder<TObj> NextFromCallback<TObj, TEnum>(this ICallbackRowBuilder<TObj> builder, 
-        string callbackId, 
-        Func<TObj, CallbackData> callbackProvider, 
-        TEnum nextStateId) where TEnum : Enum
-    {
-        return builder.NextFromCallback(callbackId, callbackProvider, nextStateId.ToString());
-    }
-    
-    public static ICallbackRowBuilder<TObj> NextFromCallback<TObj, TEnum>(this ICallbackRowBuilder<TObj> builder, 
-        string callbackId, 
-        CallbackData callback, TEnum nextStateId) where TEnum : Enum
-    {
-        return builder.NextFromCallback(callbackId, _ => callback, nextStateId.ToString());
-    }
-    
-    public static ICallbackRowBuilderBase<TObj> NextFromCallback<TObj, TEnum>(this ICallbackRowBuilderBase<TObj> builder, 
-        string callbackId, 
+    public static ICallbackRowBuilder<TObj, TStates, TCallbacks> NextFromCallback<TObj, TStates, TCallbacks>(this ICallbackRowBuilder<TObj, TStates, TCallbacks> builder, 
+        TCallbacks callbackId, 
         CallbackData callback, 
-        TEnum nextStateId) where TEnum : Enum
+        TStates nextStateId)
     {
-        return builder.NextFromCallback(callbackId, _ => callback, nextStateId.ToString());
+        return builder.NextFromCallback(callbackId, _ => callback, nextStateId);
+    }
+    
+    public static ICallbackRowBuilderBase<TObj, TStates, TCallbacks> NextFromCallback<TObj, TStates, TCallbacks>(this ICallbackRowBuilderBase<TObj, TStates, TCallbacks> builder, 
+        TCallbacks callbackId, 
+        CallbackData callback, 
+        TStates nextStateId)
+    {
+        return builder.NextFromCallback(callbackId, _ => callback, nextStateId);
     }
 
-    public static ICallbackRowBuilder<TObj> NextFromCallback<TObj, TEnum>(this ICallbackRowBuilder<TObj> builder, 
-        string callbackId, 
+    public static ICallbackRowBuilder<TObj, TStates, TCallbacks> NextFromCallback<TObj, TStates, TCallbacks>(this ICallbackRowBuilder<TObj, TStates, TCallbacks> builder, 
+        TCallbacks callbackId, 
         string text, 
         string data, 
-        TEnum nextStateId) where TEnum : Enum
+        TStates nextStateId)
     {
         return builder.NextFromCallback(callbackId, new CallbackData
         {
@@ -41,11 +34,11 @@ public static class CallbackRowBuilderOnlyMoveExtensions {
         }, nextStateId);
     }
     
-    public static ICallbackRowBuilderBase<TObj> NextFromCallback<TObj, TEnum>(this ICallbackRowBuilderBase<TObj> builder, 
-        string callbackId, 
+    public static ICallbackRowBuilderBase<TObj, TStates, TCallbacks> NextFromCallback<TObj, TStates, TCallbacks>(this ICallbackRowBuilderBase<TObj, TStates, TCallbacks> builder, 
+        TCallbacks callbackId, 
         string text, 
         string data, 
-        TEnum nextStateId) where TEnum : Enum
+        TStates nextStateId)
     {
         return builder.NextFromCallback(callbackId, new CallbackData
         {

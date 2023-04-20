@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
@@ -7,31 +8,34 @@ using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Fluent;
 
-public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentObject<TObject>>
+public abstract class FluentCommand<TObject, TStates, TCallbacks> : IBehaviorTelegramCommand<FluentObject<TObject, TStates>> where TCallbacks : struct, Enum
 {
     public async Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query,
-        FluentObject<TObject> sessionObject)
+        FluentObject<TObject, TStates> sessionObject)
     {
         var stateMachine = GetStateMachine();
         if (sessionObject == null)
         {
-            sessionObject = new FluentObject<TObject>(await Entry(query, default))
+            sessionObject = new FluentObject<TObject, TStates>(await Entry(query, default))
             {
-                CurrentStateId = stateMachine.GetEntryState().Id
+                CurrentStateId =
+                {
+                    Data = stateMachine.GetEntryState().Id
+                }
             };
-            var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
+            var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
             await entryState.SendMessage(query, sessionObject.Object);
             return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
         }
 
-        if (string.IsNullOrWhiteSpace(sessionObject.CurrentStateId))
+        if (!sessionObject.CurrentStateId.IsInit)
         {
             var d = await Entry(query, sessionObject.Object);
             sessionObject.Object = d;
-            sessionObject.CurrentStateId = stateMachine.GetEntryState().Id;
+            sessionObject.CurrentStateId.Data = stateMachine.GetEntryState().Id;
         }
         
-        var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
+        var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
         var nextStateId = await currentState.HandleQuery(query, sessionObject.Object);
 
         var next = stateMachine.GetStateInternal(nextStateId);
@@ -40,31 +44,31 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
             return await next.Finalize(query, sessionObject.Object);
         }
 
-        if (next.Id != currentState.Id)
+        if (next.Id.ToString() != currentState.Id.ToString())
         {
             await next.SendMessage(query, sessionObject.Object);
         }
 
-        sessionObject.CurrentStateId = next.Id;
+        sessionObject.CurrentStateId.Data = next.Id;
         return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, next.DurationInSec);
     }
 
-    private StateMachine<TObject> GetStateMachine()
+    private StateMachine<TObject, TStates, TCallbacks> GetStateMachine()
     {
-        var builderStateMachine = new StateMachineBuilder<TObject>();
-        var stateMachine = (StateMachine<TObject>)StateMachine(builderStateMachine);
+        var builderStateMachine = new StateMachineBuilder<TObject, TStates, TCallbacks>();
+        var stateMachine = (StateMachine<TObject, TStates, TCallbacks>)StateMachine(builderStateMachine);
         return stateMachine;
     }
 
     
     public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand,
-        TQuery query, FluentObject<TObject> sessionObject)
+        TQuery query, FluentObject<TObject, TStates> sessionObject)
     {
         var stateMachine = GetStateMachine();
         if (sessionObject.CurrentStateId == null) 
             return await DefaultExecute(query, sessionObject);
         
-        var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId);
+        var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
         if (await currentState.IsCommandHandle(sessionObject.Object, currentCommand))
         {
             return await currentCommand.Execute(query);
@@ -74,14 +78,14 @@ public abstract class FluentCommand<TObject> : IBehaviorTelegramCommand<FluentOb
     }
 
     public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(
-        ISessionTelegramCommand<TQuery, FluentObject<TObject>> currentCommand, TQuery query,
-        FluentObject<TObject> sessionObject)
+        ISessionTelegramCommand<TQuery, FluentObject<TObject, TStates>> currentCommand, TQuery query,
+        FluentObject<TObject, TStates> sessionObject)
     {
         return await DefaultExecute(query, sessionObject);
     }
 
     protected abstract Task<TObject> Entry<TQuery>(TQuery query, TObject currentObject);
 
-    protected abstract IStateMachine<TObject> StateMachine(IStateMachineBuilder<TObject> builder);
+    protected abstract IStateMachine<TStates> StateMachine(IStateMachineBuilder<TObject, TStates, TCallbacks> builder);
 
 }

@@ -22,6 +22,6 @@ public class MyFluentInitCommand : IQueryTelegramCommand<Message>
     public async Task<ITelegramCommandExecutionResult> Execute(Message query)
     {
         await _telegramBotClient.SendTextMessageAsync(query.GetChatId(),"Hi! Tell me your name, please");
-        return TelegramCommandExecutionResult.AheadFluent<MyFluentCommandFluent, MyObject>(new MyObject(), null);
+        return TelegramCommandExecutionResult.AheadFluent<MyFluentCommandFluent, MyObject, States, FluentCallbacks>(new MyObject(), null);
     }
 }

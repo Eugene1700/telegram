@@ -9,22 +9,21 @@ using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine;
 
-internal class State<TObj> : IState<TObj>
+internal class State<TObj, TStates, TCallbacks> : IState<TObj, TStates> where TCallbacks : struct, Enum
 {
     private readonly StateType _stateType;
+    public TStates Id { get; }
+    public uint? DurationInSec { get; }
+    internal CallbackBuilder<TObj, TStates, TCallbacks> CallbackBuilder { get; }
 
-    public State(string id, StateType stateType, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer = null)
+    public State(TStates id, StateType stateType, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer = null)
     {
         _stateType = stateType;
         Id = id;
         DurationInSec = durationInSec;
-        CallbackBuilder = new CallbackBuilder<TObj>();
+        CallbackBuilder = new CallbackBuilder<TObj, TStates, TCallbacks>();
         _finalizer = finalizer;
     }
-
-    public string Id { get; }
-    public uint? DurationInSec { get; }
-    internal CallbackBuilder<TObj> CallbackBuilder { get; }
 
     public async Task SendMessage<TQuery>(TQuery currentQuery, TObj obj)
     {
@@ -48,9 +47,9 @@ internal class State<TObj> : IState<TObj>
         await _sendMessageProvider.Send(currentQuery, obj, mes);
     }
 
-    public Task<string> HandleQuery<TQuery>(TQuery query, TObj obj)
+    public Task<TStates> HandleQuery<TQuery>(TQuery query, TObj obj)
     {
-        if (CallbackDataContainer<TObj>.IsCallback(query))
+        if (CallbackDataContainer<TObj, TStates, TCallbacks>.IsCallback(query))
         {
             return HandleCallback(query, obj);
         }
@@ -58,28 +57,28 @@ internal class State<TObj> : IState<TObj>
         return _handler(query, obj);
     }
 
-    private async Task<string> HandleCallback<TQuery>(TQuery query, TObj obj)
+    private async Task<TStates> HandleCallback<TQuery>(TQuery query, TObj obj)
     {
         var callbacks = await CallbackBuilder.Build(obj);
-        var (callbackKey, callbackUserData) = CallbackDataContainer<TObj>.ExtractData(query);
-        CallbackDataContainer<TObj> container = null;
-        if (callbacks.Any(x => x.TryGetByKey(callbackKey, out container)))
+        var (callbackKey, hash, callbackUserData) = CallbackDataContainer<TObj, TStates, TCallbacks>.ExtractData(query);
+        CallbackDataContainer<TObj, TStates, TCallbacks> container = null;
+        if (callbacks.Any(x => x.TryGetByKey(callbackKey, hash, obj, out container)))
         {
-            return await container.Commit(query, obj, callbackUserData);
+            return await container.Handle(query, obj, callbackUserData);
         }
 
         throw new InvalidOperationException();
     }
 
-    private Func<object, TObj, Task<string>> _handler;
+    private Func<object, TObj, Task<TStates>> _handler;
 
     private Func<TObj, Task<string>> _message;
     private IMessageSender<TObj> _sendMessageProvider;
     private readonly Func<object,TObj,Task<ITelegramCommandExecutionResult>> _finalizer;
 
-    public void SetCommitter(Func<object, TObj, Task<string>> commitStateExpr)
+    public void SetHandler(Func<object, TObj, Task<TStates>> handler)
     {
-        _handler = commitStateExpr;
+        _handler = handler;
     }
 
     public async Task<bool> IsCommandHandle<TQuery>(TObj obj, IQueryTelegramCommand<TQuery> currentCommand)

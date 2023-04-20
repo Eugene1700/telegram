@@ -1,6 +1,6 @@
 namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 
-public interface ICallbacksBuilderBase<TObj>
+public interface ICallbacksBuilderBase<TObj, TStates, TCallbacks>
 {
-    ICallbackRowBuilderBase<TObj> Row();
+    ICallbackRowBuilderBase<TObj, TStates, TCallbacks> Row();
 }

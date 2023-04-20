@@ -7,7 +7,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 
 public static class CallbackRowBuilderExitCommandExtensions
 {
-    public static  ICallbackRowBuilder<TObj> ExitFromCallback<TObj, TCommand>(this ICallbackRowBuilder<TObj> builder, 
+    public static  ICallbackRowBuilder<TObj, TStates, TCallbacks> ExitFromCallback<TObj, TStates, TCallbacks, TCommand>(this ICallbackRowBuilder<TObj, TStates, TCallbacks> builder, 
         Func<TObj, CallbackData> callbackProvider)
         where TCommand : IQueryTelegramCommand<CallbackQuery>
     {
@@ -23,10 +23,10 @@ public static class CallbackRowBuilderExitCommandExtensions
         }, TelegramCommandExtensions.GetCommandInfo<TCommand, CallbackQuery>());
     }
 
-    public static ICallbackRowBuilder<TObj> ExitFromCallback<TObj, TCommand>(this ICallbackRowBuilder<TObj> builder, string text, string data)
+    public static ICallbackRowBuilder<TObj, TStates, TCallbacks> ExitFromCallback<TObj, TStates, TCallbacks, TCommand>(this ICallbackRowBuilder<TObj, TStates, TCallbacks> builder, string text, string data)
         where TCommand : IQueryTelegramCommand<CallbackQuery>
     {
-        return builder.ExitFromCallback<TObj, TCommand>(_ => new CallbackData
+        return builder.ExitFromCallback<TObj, TStates, TCallbacks, TCommand>(_ => new CallbackData
         {
             Text = text,
             CallbackText = data

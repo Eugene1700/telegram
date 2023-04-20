@@ -5,12 +5,12 @@ using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 
-public interface ICallbackRowBuilder<TObj> : ICallbacksBuilder<TObj>
+public interface ICallbackRowBuilder<TObj, TStates, TCallbacks> : ICallbacksBuilder<TObj, TStates, TCallbacks>
 {
-    ICallbackRowBuilder<TObj> OnCallback<TQuery>(string callbackId, Func<TObj, CallbackData> callbackProvider,
-        Func<TQuery, TObj, string, Task<string>> handler) where TQuery : class;
-    ICallbackRowBuilder<TObj> NextFromCallback(string callbackId, Func<TObj, CallbackData> callbackProvider, string stateId);
-    ICallbackRowBuilder<TObj> ExitFromCallback(CallbackDataWithCommand callbackDataWithCommand);
-    ICallbackRowBuilder<TObj> ExitFromCallback(Func<TObj, CallbackData> callbackProvider,
+    ICallbackRowBuilder<TObj, TStates, TCallbacks> OnCallback<TQuery>(TCallbacks callbackId, Func<TObj, CallbackData> callbackProvider,
+        Func<TQuery, TObj, string, Task<TStates>> handler) where TQuery : class;
+    ICallbackRowBuilder<TObj, TStates, TCallbacks> NextFromCallback(TCallbacks callbackId, Func<TObj, CallbackData> callbackProvider, TStates stateId);
+    ICallbackRowBuilder<TObj, TStates, TCallbacks> ExitFromCallback(CallbackDataWithCommand callbackDataWithCommand);
+    ICallbackRowBuilder<TObj, TStates, TCallbacks> ExitFromCallback(Func<TObj, CallbackData> callbackProvider,
         ITelegramCommandDescriptor telegramCommandDescriptor);
 }

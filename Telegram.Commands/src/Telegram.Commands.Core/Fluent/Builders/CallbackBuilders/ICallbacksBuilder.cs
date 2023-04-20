@@ -4,8 +4,8 @@ using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
 namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 
-public interface ICallbacksBuilder<TObj> : IStateBuilderBase<TObj>
+public interface ICallbacksBuilder<TObj, TStates, TCallbacks> : IStateBuilderBase<TObj, TStates, TCallbacks>
 {
-    ICallbackRowBuilder<TObj> Row();
-    ICallbacksBuilder<TObj> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj>, Task> provider);
+    ICallbackRowBuilder<TObj, TStates, TCallbacks> Row();
+    ICallbacksBuilder<TObj, TStates, TCallbacks> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider);
 }

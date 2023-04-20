@@ -2,68 +2,86 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine;
 
-internal class CallbackDataContainer<TObj>
+internal class CallbackDataContainer<TObj, TStates, TCallbacks> where TCallbacks : struct, Enum
 {
-    private readonly Func<TObj, CallbackDataWithCommand> _builder;
+    private readonly Func<TObj, (CallbackDataWithCommand, string)> _builder;
     private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
-    private readonly Func<object, TObj, string, Task<string>> _committer;
-    private static string _fcudKey = "fcUd";
-    private const string _fcbidKey = "fcbId";
+    private readonly Func<object, TObj, string, Task<TStates>> _handler;
+    private const string _fcudKey = "fud";
+    private const string _fcbidKey = "fid";
+    private const string _fcbidHashKey = "fh";
 
-    public CallbackDataContainer(string callbackId, Func<TObj, CallbackData> provider,
-        Func<object, TObj, string, Task<string>> committer = null)
+    public CallbackDataContainer(TCallbacks callbackId, Func<TObj, CallbackData> provider,
+        Func<object, TObj, string, Task<TStates>> handler = null)
     {
-        CallbackDataWithCommand NewProvider(TObj o)
+        (CallbackDataWithCommand, string) NewProvider(TObj o)
         {
             var callbackData = provider(o);
-            return new CallbackDataWithCommand { CallbackMode = callbackData.CallbackMode, CallbackText = $"{_fcbidKey}={callbackId}&{_fcudKey}={callbackData.CallbackText}", Text = callbackData.Text };
+            var hash = ComputeHash(GetHashableString(callbackData));
+            return (
+                new CallbackDataWithCommand
+                {
+                    CallbackMode = callbackData.CallbackMode,
+                    CallbackText =
+                        $"{_fcbidKey}={callbackId}&{_fcbidHashKey}={hash}&{_fcudKey}={callbackData.CallbackText}",
+                    Text = callbackData.Text
+                }, hash);
         }
 
         CallbackKey = callbackId;
         _builder = NewProvider;
         _telegramCommandDescriptor = null;
-        _committer = committer;
+        _handler = handler;
     }
-    
+
+    private string GetHashableString(CallbackData callbackData)
+    {
+        return $"{callbackData.Text}{callbackData.CallbackText}{callbackData.CallbackMode}";
+    }
+
     public CallbackDataContainer(Func<TObj, CallbackData> provider, ITelegramCommandDescriptor telegramCommandDescriptor)
     {
-        Func<TObj, CallbackDataWithCommand> newProvider = (o) =>
+        (CallbackDataWithCommand, string) NewProvider(TObj o)
         {
             var callbackData = provider(o);
-            return new CallbackDataWithCommand
-            {
-                CallbackMode = callbackData.CallbackMode,
-                CallbackText = callbackData.CallbackText,
-                Text = callbackData.Text,
-                CommandDescriptor = telegramCommandDescriptor
-            };
-        };
+            return (
+                new CallbackDataWithCommand
+                {
+                    CallbackMode = callbackData.CallbackMode, CallbackText = callbackData.CallbackText,
+                    Text = callbackData.Text, CommandDescriptor = telegramCommandDescriptor
+                }, null);
+        }
 
-        CallbackKey = null;
-        _builder = newProvider;
+        CallbackKey = default;
+        _builder = NewProvider;
         _telegramCommandDescriptor = telegramCommandDescriptor;
-        _committer = null;
+        _handler = null;
     }
 
-    public string CallbackKey { get; }
+    public TCallbacks CallbackKey { get; }
 
     public CallbackDataWithCommand Build(TObj obj)
     {
         if (_builder != null)
-            return _builder(obj);
+        {
+            var (c, _) = _builder(obj);
+            return c;
+        }
 
         throw new InvalidOperationException();
     }
 
-    public Task<string> Commit<TQuery>(TQuery query, TObj obj, string callbackUserData)
+    public Task<TStates> Handle<TQuery>(TQuery query, TObj obj, string callbackUserData)
     {
-        return _committer?.Invoke(query, obj, callbackUserData);
+        return _handler?.Invoke(query, obj, callbackUserData);
     }
 
     public bool HasCommand(ITelegramCommandDescriptor descriptor)
@@ -77,7 +95,7 @@ internal class CallbackDataContainer<TObj>
         return data.Split("&").Any(x => x.StartsWith(_fcbidKey));
     }
 
-    public static (string, string) ExtractData<TQuery>(TQuery query)
+    public static (TCallbacks,string, string) ExtractData<TQuery>(TQuery query)
     {
         var data = query.GetData();
        var parametrs = data.Split("&").Select(x =>
@@ -90,7 +108,33 @@ internal class CallbackDataContainer<TObj>
             return new KeyValuePair<string, string>(parts[0], parts[1]);
         }).ToArray();
        var callbackId = parametrs.SingleOrDefault(x => x.Key == _fcbidKey).Value;
+       var hash = parametrs.SingleOrDefault(x => x.Key == _fcbidHashKey).Value;
        var userData = parametrs.SingleOrDefault(x => x.Key == _fcudKey).Value;
-       return (callbackId, userData);
+       return (Enum.Parse<TCallbacks>(callbackId), hash, userData);
+    }
+
+    private static string ComputeHash(string source)
+    {
+        var tmpSource = Encoding.Unicode.GetBytes(source);
+        var tmpNewHash = MD5.Create().ComputeHash(tmpSource);
+        var byteArrayToString = ByteArrayToString(tmpNewHash);
+        return byteArrayToString.Substring(byteArrayToString.Length - 8);
+    }
+    
+    static string ByteArrayToString(byte[] arrInput)
+    {
+        int i;
+        StringBuilder sOutput = new StringBuilder(arrInput.Length);
+        for (i=0;i < arrInput.Length -1; i++)
+        {
+            sOutput.Append(arrInput[i].ToString("X2"));
+        }
+        return sOutput.ToString();
+    }
+
+    public string GetHash(TObj obj)
+    {
+        var (_,h) = _builder(obj);
+        return h;
     }
 }

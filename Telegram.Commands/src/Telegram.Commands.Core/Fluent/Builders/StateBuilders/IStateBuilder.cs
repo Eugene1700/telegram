@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
-public interface IStateBuilder<TObj>
+public interface IStateBuilder<TObj, TStates, TCallbacks>
 {
-    IMessageBuilder<TObj> WithMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sender);
+    IMessageBuilder<TObj, TStates, TCallbacks> WithMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sender);
 }
