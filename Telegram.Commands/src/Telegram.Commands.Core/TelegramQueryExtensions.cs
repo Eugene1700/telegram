@@ -111,7 +111,7 @@ namespace Telegram.Commands.Core
 
         public static string ExtractCommand(string query)
         {
-            string com = "";
+            var com = query;
             if (query[0] == '/')
             {
                 var botNameStart = query.IndexOf("@");

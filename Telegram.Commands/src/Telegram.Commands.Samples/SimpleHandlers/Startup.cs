@@ -32,7 +32,7 @@ namespace SimpleHandlers
             services.AddEntityStorage(builder =>
                 builder
                     .UseSqlite($"Data Source=dev.db"));
-            services.AddScoped<IMode, TranslatorModeService>();
+            services.UseEFOnlyTranslator();
             
             services.AddScoped<SystemClockService>();
             services.AddScoped<IClock>(sp => sp.GetService<SystemClockService>());

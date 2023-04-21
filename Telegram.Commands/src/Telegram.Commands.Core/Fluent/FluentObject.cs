@@ -2,30 +2,27 @@
 
 public class FluentObject<TObject, TStates>
 {
-    public FluentObject(TObject o)
+    public FluentObject(TObject o, FireType? fireType)
     {
         Object = o;
         CurrentStateId = new Initiable<TStates>();
+        FireType = fireType;
     }
 
     public Initiable<TStates> CurrentStateId { get; set; }
     public TObject Object { get; set; }
+    public FireType? FireType { get; set; }
+}
+
+public enum FireType
+{
+    Entry,
+    HandleCurrent
 }
 
 public class Initiable<T>
 {
-    private T _data;
-    private bool _isInit;
+    public T Data { get; set; }
 
-    public T Data
-    {
-        get => _data;
-        set
-        {
-            _data = value;
-            _isInit = true;
-        }
-    }
-
-    public bool IsInit => _isInit;
+    public bool IsInit { get; set; }
 }

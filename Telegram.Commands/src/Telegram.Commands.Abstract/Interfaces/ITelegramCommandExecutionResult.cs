@@ -13,6 +13,7 @@
     {
         Freeze,
         Ahead,
-        Break
+        Break,
+        Fire
     }
 }

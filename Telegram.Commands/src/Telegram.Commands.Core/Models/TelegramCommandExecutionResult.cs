@@ -130,20 +130,17 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
-        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject, TStates, TCallbacks>(TObject obj, uint? sessionDurationInSec = 600)
+        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject, TStates, TCallbacks>(TObject obj, bool fire, uint? sessionDurationInSec = 600)
             where TNextCommand : FluentCommand<TObject, TStates, TCallbacks> where TCallbacks : struct, Enum
         {
             var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject, TStates, TCallbacks>();
             return new TelegramCommandExecutionResult
             {
-                Data = new FluentObject<TObject, TStates>(obj)
-                {
-                    CurrentStateId = default
-                },
-                Result = ExecuteResult.Ahead,
+                Data = new FluentObject<TObject, TStates>(obj, fire ? FireType.Entry : FireType.HandleCurrent),
+                Result = fire ? ExecuteResult.Fire : ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
-                SessionDurationInSec = sessionDurationInSec
+                SessionDurationInSec = sessionDurationInSec,
             };
         }
         

@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using EntityStorage;
+using EntityStorage.Extensions;
 using Newtonsoft.Json;
 using SimpleHandlers.Domain;
 using Telegram.Commands.Abstract.Interfaces;

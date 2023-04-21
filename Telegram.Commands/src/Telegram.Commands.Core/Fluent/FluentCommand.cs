@@ -16,12 +16,13 @@ public abstract class FluentCommand<TObject, TStates, TCallbacks> : IBehaviorTel
         var stateMachine = GetStateMachine();
         if (sessionObject == null)
         {
-            sessionObject = new FluentObject<TObject, TStates>(await Entry(query, default))
+            sessionObject = new FluentObject<TObject, TStates>(await Entry(query, default), null)
             {
                 CurrentStateId =
                 {
-                    Data = stateMachine.GetEntryState().Id
-                }
+                    Data = stateMachine.GetEntryState().Id,
+                    IsInit = true
+                },
             };
             var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
             await entryState.SendMessage(query, sessionObject.Object);
@@ -33,6 +34,13 @@ public abstract class FluentCommand<TObject, TStates, TCallbacks> : IBehaviorTel
             var d = await Entry(query, sessionObject.Object);
             sessionObject.Object = d;
             sessionObject.CurrentStateId.Data = stateMachine.GetEntryState().Id;
+            sessionObject.CurrentStateId.IsInit = true;
+            if (sessionObject.FireType == FireType.Entry)
+            {
+                var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
+                await entryState.SendMessage(query, sessionObject.Object);
+                return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
+            }
         }
         
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);

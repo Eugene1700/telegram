@@ -135,21 +135,27 @@ namespace Telegram.Commands.Core.Services
             }
 
             var activeSession = _sessionManager.GetCurrentSession(chatId, userId);
-            if (commandExecutionResult.Result == ExecuteResult.Ahead)
+            if (commandExecutionResult.Result is ExecuteResult.Ahead or ExecuteResult.Fire)
             {
                 if (activeSession == null)
                 {
                     await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor,
                         sessionChatId,
                         userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
-                    return;
+                    
+                }
+                else
+                {
+                    await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
+                        chatId,
+                        sessionChatId,
+                        userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
                 }
 
-                await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
-                    chatId,
-                    sessionChatId,
-                    userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
-
+                if (commandExecutionResult.Result == ExecuteResult.Fire)
+                {
+                    await QueryHandler(query);
+                }
                 return;
             }
 
@@ -162,13 +168,15 @@ namespace Telegram.Commands.Core.Services
             var chatId = query.GetChatId();
             if (commandDesc.SessionCommand?.Authorized ?? false)
             {
-                if (!await _authProvider.AuthUser(query.GetFromId(), new CommandExecutionContext<T>(query, commandDesc.SessionCommand)))
+                if (!await _authProvider.AuthUser(query.GetFromId(),
+                        new CommandExecutionContext<T>(query, commandDesc.SessionCommand)))
                     throw new TelegramCommandsPermissionException("Unauthorized user", chatId);
             }
 
             if (commandDesc.QueryCommand?.Authorized ?? false)
             {
-                if (!await _authProvider.AuthUser(query.GetFromId(), new CommandExecutionContext<T>(query, commandDesc.QueryCommand)))
+                if (!await _authProvider.AuthUser(query.GetFromId(),
+                        new CommandExecutionContext<T>(query, commandDesc.QueryCommand)))
                     throw new TelegramCommandsPermissionException("Unauthorized user", chatId);
             }
         }
@@ -241,7 +249,7 @@ namespace Telegram.Commands.Core.Services
             {
                 if (commandDescriptorComposition.SessionCommand != null)
                     AssertChatType(query, commandDescriptorComposition.SessionCommand.Descriptor);
-                if (commandDescriptorComposition.QueryCommand != null) 
+                if (commandDescriptorComposition.QueryCommand != null)
                     AssertChatType(query, commandDescriptorComposition.QueryCommand.Descriptor);
                 return;
             }
