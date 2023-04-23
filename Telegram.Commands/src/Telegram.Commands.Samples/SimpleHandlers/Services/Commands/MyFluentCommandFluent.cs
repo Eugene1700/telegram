@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
@@ -15,6 +16,7 @@ using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Models;
 using Telegram.Commands.Core.Services;
+using Telegram.Commands.UI.Pagination;
 
 namespace SimpleHandlers.Services.Commands;
 
@@ -34,11 +36,12 @@ public enum FluentCallbacks
     Text,
     ReturnToEntry,
     DefaultSecondName,
-    SendNumber
+    SendNumber,
+    Pagination
 }
 
 [Command(Name = "myfluent")]
-public class MyFluentCommandFluent: FluentCommand<MyObject, States, FluentCallbacks>, IMessageSender<MyObject>
+public class MyFluentCommandFluent : FluentCommand<MyObject, States, FluentCallbacks>, IMessageSender<MyObject>
 {
     private readonly ITelegramBotClient _telegramBotClient;
 
@@ -57,36 +60,53 @@ public class MyFluentCommandFluent: FluentCommand<MyObject, States, FluentCallba
         };
         var o = myObject ?? new MyObject();
         o.ChatId = chatId;
-        
+
         return Task.FromResult(o);
     }
 
-    protected override IStateMachine<States> StateMachine(IStateMachineBuilder<MyObject, States, FluentCallbacks> builder)
+    protected override IStateMachine<States> StateMachine(
+        IStateMachineBuilder<MyObject, States, FluentCallbacks> builder)
     {
         var a = builder.Entry(States.Name).WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
             .WithCallbacks()
-            .Row().OnCallback(FluentCallbacks.DefaultName, "Default Name (Jack)", "Jack", FirstNameCallbackHandler)
-            .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname)
-            .Row().NextFromCallback(FluentCallbacks.Exit, "Exit", "data", States.Exit)
-            .Row().OnCallback(FluentCallbacks.Text, "Send TEXT", "TEXT", SendUserDataHandler)
+            .Row().OnCallback(FluentCallbacks.DefaultName, "Default Name (Jack)", "Jack", FirstNameCallbackHandler,
+                true)
+            .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname, true)
+            .Row().NextFromCallback(FluentCallbacks.Exit, "Exit", "data", States.Exit, true)
+            .Row().OnCallback(FluentCallbacks.Text, "Send TEXT", "TEXT", SendUserDataHandler, false)
             .Row().ExitFromCallback<MyObject, States, FluentCallbacks, CancelCallback>("Cancel", "someData")
             .Row().ExitFromCallback<MyObject, States, FluentCallbacks, CancelCallback>("Cancel", "someData")
             .Row().ExitFromCallback(KeyBoardBuild,
                 TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
             .ExitFromCallback(CallbackDataWithCommand())
             .KeyBoard(SameCallbackKey)
-            .Next(FirstNameMessageHandler)
+            .KeyboardWithPagination(FluentCallbacks.Pagination, Paginator)
+            .Next(FirstNameMessageHandler, true)
             .State(States.Surname)
             .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), this)
             .WithCallbacks().KeyBoard(GetSurnameKeyboard)
-            .Next(SecondNameHandler)
+            .Next(SecondNameHandler, true)
             .State(States.Validate).WithMessage("Your name is too short! Please, send me again", this)
             .WithCallbacks()
-            .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname)
-            .Next(FirstNameMessageHandler)
+            .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname, true)
+            .Next(FirstNameMessageHandler, true)
             .Exit<object>(States.Exit, Finalize);
-            
-            return a.Build();
+
+        return a.Build();
+    }
+
+    private Task<IFluentPaginationMenu> Paginator(MyObject arg1, int arg2,
+        ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg3)
+    {
+        var b = arg3.Row();
+        arg1.Limit = 5;
+        arg1.TotalCount = 100;
+        foreach (var num in Enumerable.Range(5 * arg2, 5 * (arg2 + 1)))
+        {
+            b.OnCallback(FluentCallbacks.SendNumber, $"{num}", $"{num}", SendUserDataHandler, false);
+        }
+
+        return Task.FromResult<IFluentPaginationMenu>(arg1);
     }
 
     private Task SameCallbackKey(MyObject arg1, ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg2)
@@ -94,18 +114,20 @@ public class MyFluentCommandFluent: FluentCommand<MyObject, States, FluentCallba
         var b = arg2.Row();
         foreach (var num in Enumerable.Range(0, 5))
         {
-            b.OnCallback(FluentCallbacks.SendNumber, $"{num}", $"{num}", SendUserDataHandler);
+            b.OnCallback(FluentCallbacks.SendNumber, $"{num}", $"{num}", SendUserDataHandler, false);
         }
+
         return Task.CompletedTask;
     }
-    
+
 
     private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg2)
     {
-        arg2.Row().NextFromCallback(FluentCallbacks.Skip, "Skip", arg1.FirstName, States.Exit)
-            .NextFromCallback(FluentCallbacks.ReturnToEntry, "Back", arg1.FirstName, States.Name)
-            .OnCallback(FluentCallbacks.DefaultSecondName, "Default SecondName Smith", "Smith", SecondNameCallbackHandler)
-            .Row().NextFromCallback(FluentCallbacks.Exit, "Finish", arg1.FirstName, States.Exit);
+        arg2.Row().NextFromCallback(FluentCallbacks.Skip, "Skip", arg1.FirstName, States.Exit, true)
+            .NextFromCallback(FluentCallbacks.ReturnToEntry, "Back", arg1.FirstName, States.Name, true)
+            .OnCallback(FluentCallbacks.DefaultSecondName, "Default SecondName Smith", "Smith",
+                SecondNameCallbackHandler, true)
+            .Row().NextFromCallback(FluentCallbacks.Exit, "Finish", arg1.FirstName, States.Exit, true);
         return Task.CompletedTask;
     }
 
@@ -122,11 +144,11 @@ public class MyFluentCommandFluent: FluentCommand<MyObject, States, FluentCallba
     private static CallbackData KeyBoardBuild(MyObject obj)
     {
         return new CallbackDataWithCommand
-            {
-                Text = "Another cancel",
-                CallbackText = "data",
-                CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
-            };
+        {
+            Text = "Another cancel",
+            CallbackText = "data",
+            CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+        };
     }
 
     private async Task<States> SendUserDataHandler(CallbackQuery arg1, MyObject arg2, string userData)
@@ -139,12 +161,12 @@ public class MyFluentCommandFluent: FluentCommand<MyObject, States, FluentCallba
     {
         return await FirstNameHandler(userData, obj);
     }
-    
+
     private async Task<States> SecondNameCallbackHandler(CallbackQuery query, MyObject obj, string userData)
     {
         return await SecondNameHandler(userData, obj);
     }
-    
+
     private static async Task<States> FirstNameMessageHandler(Message query, MyObject obj)
     {
         return await FirstNameHandler(query.Text, obj);
@@ -166,7 +188,7 @@ public class MyFluentCommandFluent: FluentCommand<MyObject, States, FluentCallba
     {
         return await SecondNameHandler(message.Text, obj);
     }
-    
+
     public async Task<States> SecondNameHandler(string text, MyObject obj)
     {
         obj.SecondName = text;
@@ -192,15 +214,24 @@ public class MyFluentCommandFluent: FluentCommand<MyObject, States, FluentCallba
 
     public Task Send<TQuery>(TQuery currentQuery, MyObject obj, ITelegramMessage message)
     {
+        if (currentQuery is CallbackQuery callbackQuery)
+        {
+            return _telegramBotClient.EditMessageTextAsync(obj.ChatId, callbackQuery.Message.MessageId, message.Message,
+                replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
+        }
+
         return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Message,
             replyMarkup: message.ReplyMarkup);
     }
 }
 
-public class MyObject
+public class MyObject : IFluentPagination, IFluentPaginationMenu
 {
     public string SecondName { get; set; }
     public string FirstName { get; set; }
 
     public long ChatId { get; set; }
+    public long TotalCount { get; set; }
+    public int Limit { get; set; }
+    public int PageNumber { get; set; }
 }

@@ -7,8 +7,8 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
 
 public static class StateBuilderExtensions {
     
-    public static IStateMachineBodyBuilder<TObj, TStates, TCallbacks>  Next<TObj, TStates, TCallbacks>(this IStateBuilderBase<TObj, TStates, TCallbacks> builder, Func<Message, TObj, Task<TStates>> handler)
+    public static IStateMachineBodyBuilder<TObj, TStates, TCallbacks>  Next<TObj, TStates, TCallbacks>(this IStateBuilder<TObj, TStates, TCallbacks> builder, Func<Message, TObj, Task<TStates>> handler, bool force)
     {
-        return builder.Next(handler);
+        return builder.Next(handler, force);
     }
 }

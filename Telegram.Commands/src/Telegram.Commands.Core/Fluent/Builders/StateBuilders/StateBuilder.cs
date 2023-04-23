@@ -15,6 +15,8 @@ internal class StateBuilder<TObj, TStates, TCallbacks> : IMessageBuilder<TObj, T
     private readonly StateMachineBuilder<TObj, TStates, TCallbacks> _stateMachineBuilder;
     private readonly Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>> _bodyExits;
     private int _currentBodyIndex;
+    private readonly Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>> _messages;
+    private int _messagesIndex;
 
     public StateBuilder(State<TObj, TStates, TCallbacks> state, StateMachineBuilder<TObj, TStates, TCallbacks> stateMachineBuilder)
     {
@@ -23,9 +25,9 @@ internal class StateBuilder<TObj, TStates, TCallbacks> : IMessageBuilder<TObj, T
         _bodyExits = new Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>>();
     }
     
-    public IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Next<TQuery>(Func<TQuery, TObj, Task<TStates>> handler) where TQuery : class
+    public IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Next<TQuery>(Func<TQuery, TObj, Task<TStates>> handler, bool force) where TQuery : class
     {
-        _state.SetHandler((q, o) => handler(q as TQuery,o));
+        _state.SetHandler((q, o) => handler(q as TQuery,o), force);
         return _stateMachineBuilder;
     }
 
@@ -39,7 +41,7 @@ internal class StateBuilder<TObj, TStates, TCallbacks> : IMessageBuilder<TObj, T
         var i = _bodyExits.Count;
         _bodyExits.Add(i, new List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>());
         _currentBodyIndex = i;
-        _state.CallbackBuilder.AddProvider((o, b) =>
+        _state.GetCurrentCallbackBuilder().AddProvider((o, b) =>
         {
             var rowBuilder = b.Row();
             var exits = _bodyExits[i];
@@ -55,7 +57,7 @@ internal class StateBuilder<TObj, TStates, TCallbacks> : IMessageBuilder<TObj, T
 
     public ICallbacksBuilder<TObj, TStates, TCallbacks> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider)
     {
-        _state.CallbackBuilder.AddProvider(provider);
+        _state.GetCurrentCallbackBuilder().AddProvider(provider);
         return this;
     }
 
@@ -64,32 +66,38 @@ internal class StateBuilder<TObj, TStates, TCallbacks> : IMessageBuilder<TObj, T
         return _state;
     }
 
-    public IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Next(TStates stateId)
+    public IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Next(TStates stateId, bool force)
     {
-        _state.SetHandler((q, o) => Task.FromResult(stateId));
+        _state.SetHandler((q, o) => Task.FromResult(stateId), force);
         return _stateMachineBuilder;
     }
 
-    public IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Loop()
+    public IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Loop(bool force)
     {
-        return Next(_state.Id);
+        return Next(_state.Id, force);
     }
 
-    public ICallbackRowBuilder<TObj, TStates, TCallbacks> OnCallback<TQuery>(TCallbacks callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<TStates>> handler) where TQuery : class
+    public ICallbackRowBuilder<TObj, TStates, TCallbacks> OnCallback<TQuery>(TCallbacks callbackId, 
+        Func<TObj, CallbackData> callbackProvider, 
+        Func<TQuery, TObj, string, Task<TStates>> handler,
+        bool force) where TQuery : class
     {
         _bodyExits[_currentBodyIndex].Add((b) =>
         {
-            b.OnCallback(callbackId, callbackProvider, handler);
+            b.OnCallback(callbackId, callbackProvider, handler, force);
         });
         return this;
     }
 
-    public ICallbackRowBuilder<TObj, TStates, TCallbacks> NextFromCallback(TCallbacks callbackId, Func<TObj, CallbackData> callbackProvider, TStates stateId)
+    public ICallbackRowBuilder<TObj, TStates, TCallbacks> NextFromCallback(TCallbacks callbackId, 
+        Func<TObj, CallbackData> callbackProvider, 
+        TStates stateId,
+        bool force)
     {
-        Func<object, TObj, string, Task<TStates>> commitExpr = (_, _, _) => Task.FromResult(stateId);
+        Task<TStates> Handle(object o, TObj obj, string s) => Task.FromResult(stateId);
         _bodyExits[_currentBodyIndex].Add((b) =>
         {
-            b.OnCallback(callbackId, callbackProvider, commitExpr);
+            b.OnCallback(callbackId, callbackProvider, (Func<object, TObj, string, Task<TStates>>)Handle, force);
         });
         return this;
     }
@@ -111,7 +119,17 @@ internal class StateBuilder<TObj, TStates, TCallbacks> : IMessageBuilder<TObj, T
 
     public IMessageBuilder<TObj, TStates, TCallbacks> WithMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sender)
     {
-        _state.SetMessage(messageProvider, sender);
+        _state.AddMessage(messageProvider, sender);
         return this;
     }
+
+    public IStateBuilder<TObj, TStates, TCallbacks> WithMessages(Func<TObj, IStateBuilderBase<TObj, TStates, TCallbacks>, Task> messageFlowProvider)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+internal class MessageBuilder<TObj, TStates, TCallbacks>
+{
+    
 }

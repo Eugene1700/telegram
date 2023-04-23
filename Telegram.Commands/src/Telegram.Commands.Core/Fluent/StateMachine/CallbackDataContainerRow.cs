@@ -23,12 +23,14 @@ internal class CallbackDataContainerRow<TObj, TStates, TCallbacks> where TCallba
     }
 
     public CallbackDataContainer<TObj, TStates, TCallbacks> AddContainer<TQuery>(TCallbacks callbackId,
-        Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<TStates>> handler)
+        Func<TObj, CallbackData> callbackProvider, 
+        Func<TQuery, TObj, string, Task<TStates>> handler,
+        bool force)
         where TQuery : class
     {
         Task<TStates> Handle(object q, TObj o, string d) => handler(q as TQuery, o, d);
 
-        var newContainer = new CallbackDataContainer<TObj, TStates, TCallbacks>(callbackId, callbackProvider, Handle);
+        var newContainer = new CallbackDataContainer<TObj, TStates, TCallbacks>(callbackId, callbackProvider, Handle, force);
         _containers.Add(newContainer);
         return newContainer;
     }

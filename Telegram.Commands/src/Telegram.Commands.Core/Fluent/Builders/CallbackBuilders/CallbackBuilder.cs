@@ -24,16 +24,15 @@ internal class CallbackBuilder<TObj, TStates, TCallbacks>: ICallbackRowBuilderBa
         _providers.Add(provider);
     }
 
-    public async Task<CallbackDataContainerRow<TObj, TStates, TCallbacks>[]> Build(TObj obj, bool force = false)
+    public async Task<CallbackDataContainerRow<TObj, TStates, TCallbacks>[]> Build(TObj obj, bool force = true)
     {
-        if (_buildOnce && force)
+        if (force)
         {
-            _providers.Clear();
             _containerRows.Clear();
             _currentRow = null;
         }
 
-        if (!_buildOnce)
+        if (!_buildOnce || force)
         {
             foreach (var provider in _providers)
             {
@@ -54,16 +53,25 @@ internal class CallbackBuilder<TObj, TStates, TCallbacks>: ICallbackRowBuilderBa
         return this;
     }
 
-    public ICallbackRowBuilderBase<TObj, TStates, TCallbacks> OnCallback<TQuery>(TCallbacks callbackId, Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<TStates>> handler) where TQuery : class
+    public ICallbacksBuilderBase<TObj, TStates, TCallbacks> Keyboard(Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider)
     {
-        _currentRow.AddContainer(callbackId, callbackProvider, handler);
+        AddProvider(provider);
         return this;
     }
 
-    public ICallbackRowBuilderBase<TObj, TStates, TCallbacks> NextFromCallback(TCallbacks callbackId, Func<TObj, CallbackData> callbackProvider, TStates stateId)
+    public ICallbackRowBuilderBase<TObj, TStates, TCallbacks> OnCallback<TQuery>(TCallbacks callbackId, 
+        Func<TObj, CallbackData> callbackProvider, 
+        Func<TQuery, TObj, string, Task<TStates>> handler,
+        bool force) where TQuery : class
+    {
+        _currentRow.AddContainer(callbackId, callbackProvider, handler, force);
+        return this;
+    }
+
+    public ICallbackRowBuilderBase<TObj, TStates, TCallbacks> NextFromCallback(TCallbacks callbackId, Func<TObj, CallbackData> callbackProvider, TStates stateId, bool force)
     {
         Func<object, TObj, string, Task<TStates>> commitExpr = (_, _, _) => Task.FromResult(stateId);
-        _currentRow.AddContainer(callbackId, callbackProvider, commitExpr);
+        _currentRow.AddContainer(callbackId, callbackProvider, commitExpr, force);
         return this;
     }
 

@@ -15,12 +15,14 @@ internal class CallbackDataContainer<TObj, TStates, TCallbacks> where TCallbacks
     private readonly Func<TObj, (CallbackDataWithCommand, string)> _builder;
     private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
     private readonly Func<object, TObj, string, Task<TStates>> _handler;
+    private readonly bool _forceNext;
     private const string _fcudKey = "fud";
     private const string _fcbidKey = "fid";
     private const string _fcbidHashKey = "fh";
+    public TCallbacks CallbackKey { get; }
 
     public CallbackDataContainer(TCallbacks callbackId, Func<TObj, CallbackData> provider,
-        Func<object, TObj, string, Task<TStates>> handler = null)
+        Func<object, TObj, string, Task<TStates>> handler = null, bool force = false)
     {
         (CallbackDataWithCommand, string) NewProvider(TObj o)
         {
@@ -40,14 +42,11 @@ internal class CallbackDataContainer<TObj, TStates, TCallbacks> where TCallbacks
         _builder = NewProvider;
         _telegramCommandDescriptor = null;
         _handler = handler;
+        _forceNext = force;
     }
 
-    private string GetHashableString(CallbackData callbackData)
-    {
-        return $"{callbackData.Text}{callbackData.CallbackText}{callbackData.CallbackMode}";
-    }
-
-    public CallbackDataContainer(Func<TObj, CallbackData> provider, ITelegramCommandDescriptor telegramCommandDescriptor)
+    public CallbackDataContainer(Func<TObj, CallbackData> provider, 
+        ITelegramCommandDescriptor telegramCommandDescriptor)
     {
         (CallbackDataWithCommand, string) NewProvider(TObj o)
         {
@@ -64,9 +63,8 @@ internal class CallbackDataContainer<TObj, TStates, TCallbacks> where TCallbacks
         _builder = NewProvider;
         _telegramCommandDescriptor = telegramCommandDescriptor;
         _handler = null;
+        _forceNext = false;
     }
-
-    public TCallbacks CallbackKey { get; }
 
     public CallbackDataWithCommand Build(TObj obj)
     {
@@ -79,9 +77,9 @@ internal class CallbackDataContainer<TObj, TStates, TCallbacks> where TCallbacks
         throw new InvalidOperationException();
     }
 
-    public Task<TStates> Handle<TQuery>(TQuery query, TObj obj, string callbackUserData)
+    public async Task<(TStates, bool)> Handle<TQuery>(TQuery query, TObj obj, string callbackUserData)
     {
-        return _handler?.Invoke(query, obj, callbackUserData);
+        return (await _handler?.Invoke(query, obj, callbackUserData), _forceNext);
     }
 
     public bool HasCommand(ITelegramCommandDescriptor descriptor)
@@ -113,15 +111,13 @@ internal class CallbackDataContainer<TObj, TStates, TCallbacks> where TCallbacks
        return (Enum.Parse<TCallbacks>(callbackId), hash, userData);
     }
 
-    private static string ComputeHash(string source)
+    public string GetHash(TObj obj)
     {
-        var tmpSource = Encoding.Unicode.GetBytes(source);
-        var tmpNewHash = MD5.Create().ComputeHash(tmpSource);
-        var byteArrayToString = ByteArrayToString(tmpNewHash);
-        return byteArrayToString.Substring(byteArrayToString.Length - 8);
+        var (_,h) = _builder(obj);
+        return h;
     }
     
-    static string ByteArrayToString(byte[] arrInput)
+    private static string ByteArrayToString(byte[] arrInput)
     {
         int i;
         StringBuilder sOutput = new StringBuilder(arrInput.Length);
@@ -131,10 +127,17 @@ internal class CallbackDataContainer<TObj, TStates, TCallbacks> where TCallbacks
         }
         return sOutput.ToString();
     }
-
-    public string GetHash(TObj obj)
+    
+    private string GetHashableString(CallbackData callbackData)
     {
-        var (_,h) = _builder(obj);
-        return h;
+        return $"{callbackData.Text}{callbackData.CallbackText}{callbackData.CallbackMode}";
+    }
+    
+    private static string ComputeHash(string source)
+    {
+        var tmpSource = Encoding.Unicode.GetBytes(source);
+        var tmpNewHash = MD5.Create().ComputeHash(tmpSource);
+        var byteArrayToString = ByteArrayToString(tmpNewHash);
+        return byteArrayToString.Substring(byteArrayToString.Length - 8);
     }
 }

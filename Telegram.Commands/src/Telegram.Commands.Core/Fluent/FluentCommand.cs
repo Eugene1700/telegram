@@ -25,7 +25,7 @@ public abstract class FluentCommand<TObject, TStates, TCallbacks> : IBehaviorTel
                 },
             };
             var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
-            await entryState.SendMessage(query, sessionObject.Object);
+            await entryState.SendMessages(query, sessionObject.Object);
             return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
         }
 
@@ -38,13 +38,13 @@ public abstract class FluentCommand<TObject, TStates, TCallbacks> : IBehaviorTel
             if (sessionObject.FireType == FireType.Entry)
             {
                 var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
-                await entryState.SendMessage(query, sessionObject.Object);
+                await entryState.SendMessages(query, sessionObject.Object);
                 return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
             }
         }
         
         var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
-        var nextStateId = await currentState.HandleQuery(query, sessionObject.Object);
+        var (nextStateId, force) = await currentState.HandleQuery(query, sessionObject.Object);
 
         var next = stateMachine.GetStateInternal(nextStateId);
         if (next.GetStateType() == StateType.Finish)
@@ -52,9 +52,9 @@ public abstract class FluentCommand<TObject, TStates, TCallbacks> : IBehaviorTel
             return await next.Finalize(query, sessionObject.Object);
         }
 
-        if (next.Id.ToString() != currentState.Id.ToString())
+        if (next.Id.ToString() != currentState.Id.ToString() || force)
         {
-            await next.SendMessage(query, sessionObject.Object);
+            await next.SendMessages(query, sessionObject.Object);
         }
 
         sessionObject.CurrentStateId.Data = next.Id;
