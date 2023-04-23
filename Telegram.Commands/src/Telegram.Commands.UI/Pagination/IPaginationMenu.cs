@@ -2,20 +2,20 @@
 {
     public interface IFluentPaginationMenu
     {
-        public long TotalCount { get; }
-        public int Limit { get; }
+        public ulong TotalCount { get; }
+        public uint Limit { get; }
     }
     
     public interface IFluentPagination
     {
-        public int PageNumber { get; set; }
+        public uint PageNumber { get; set; }
     }
     
     public interface IPaginationMenu
     {
-        public int PageNumber { get; }
+        public uint PageNumber { get; }
         
-        public long TotalCount { get; }
-        public int Limit { get; }
+        public ulong TotalCount { get; }
+        public uint Limit { get; }
     }
 }

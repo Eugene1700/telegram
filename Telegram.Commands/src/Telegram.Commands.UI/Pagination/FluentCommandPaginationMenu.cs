@@ -11,7 +11,7 @@ public static class FluentCommandPaginationMenu
     public static ICallbacksBuilder<TObj, TStates, TCallbacks> KeyboardWithPagination<TObj, TStates, TCallbacks>(
         this ICallbacksBuilder<TObj, TStates, TCallbacks> builder,
         TCallbacks callbackId,
-        Func<TObj, int, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task<IFluentPaginationMenu>> paginator) where TObj: IFluentPagination
+        Func<TObj, uint, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task<IFluentPaginationMenu>> paginator) where TObj: IFluentPagination
     {
         var state = builder.GetState();
 
@@ -39,7 +39,7 @@ public static class FluentCommandPaginationMenu
 
         Task<TStates> Mover(CallbackQuery _, TObj o, string cd)
         {
-            var pageNum = int.Parse(cd);
+            var pageNum = uint.Parse(cd);
             o.PageNumber = pageNum;
             return Task.FromResult(stateId);
         }
@@ -76,14 +76,14 @@ public static class FluentCommandPaginationMenu
 
 internal class FluentPaginator: IPaginationMenu
 {
-    public FluentPaginator(IFluentPaginationMenu pagination, int currentPage)
+    public FluentPaginator(IFluentPaginationMenu pagination, uint currentPage)
     {
         PageNumber = currentPage;
         TotalCount = pagination.TotalCount;
         Limit = pagination.Limit;
     }
 
-    public int PageNumber { get; }
-    public long TotalCount { get; }
-    public int Limit { get; }
+    public uint PageNumber { get; }
+    public ulong TotalCount { get; }
+    public uint Limit { get; }
 }

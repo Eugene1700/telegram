@@ -95,13 +95,14 @@ public class MyFluentCommandFluent : FluentCommand<MyObject, States, FluentCallb
         return a.Build();
     }
 
-    private Task<IFluentPaginationMenu> Paginator(MyObject arg1, int arg2,
+    private Task<IFluentPaginationMenu> Paginator(MyObject arg1, uint arg2,
         ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg3)
     {
         var b = arg3.Row();
         arg1.Limit = 5;
         arg1.TotalCount = 100;
-        foreach (var num in Enumerable.Range(5 * arg2, 5 * (arg2 + 1)))
+        var from = (int)(5 * (arg2 - 1));
+        foreach (var num in Enumerable.Range(from, 5))
         {
             b.OnCallback(FluentCallbacks.SendNumber, $"{num}", $"{num}", SendUserDataHandler, false);
         }
@@ -231,7 +232,7 @@ public class MyObject : IFluentPagination, IFluentPaginationMenu
     public string FirstName { get; set; }
 
     public long ChatId { get; set; }
-    public long TotalCount { get; set; }
-    public int Limit { get; set; }
-    public int PageNumber { get; set; }
+    public ulong TotalCount { get; set; }
+    public uint Limit { get; set; }
+    public uint PageNumber { get; set; }
 }

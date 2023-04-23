@@ -19,9 +19,9 @@ namespace Telegram.Commands.UI.Pagination
             return pagination.PagesCount() == pagination.PageNumber;
         }
         
-        public static int PagesCount(this IPaginationMenu pagination)
+        public static uint PagesCount(this IPaginationMenu pagination)
         {
-            return (int) Math.Round((double) pagination.TotalCount / pagination.Limit, MidpointRounding.ToPositiveInfinity);
+            return (uint) Math.Round((double) pagination.TotalCount / pagination.Limit, MidpointRounding.ToPositiveInfinity);
         }
         
         public static bool IsSecondOrMorePage(this IPaginationMenu pagination)
@@ -39,12 +39,12 @@ namespace Telegram.Commands.UI.Pagination
             return (pagination.PageNumber + 1) == pagination.PagesCount();
         }
         
-        public static int PreviousPageNumber(this IPaginationMenu pagination)
+        public static uint PreviousPageNumber(this IPaginationMenu pagination)
         {
             return pagination.PageNumber <= 1 ? 0 : pagination.PageNumber - 1;
         }
         
-        public static int NextPageNumber(this IPaginationMenu pagination)
+        public static uint NextPageNumber(this IPaginationMenu pagination)
         {
             var pagesCount = pagination.PagesCount();
             return pagination.PageNumber == pagesCount
