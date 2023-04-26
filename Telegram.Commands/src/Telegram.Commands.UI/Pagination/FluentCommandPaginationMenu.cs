@@ -24,7 +24,10 @@ public static class FluentCommandPaginationMenu
             var currentPage = o.PageNumber;
             var pagination = await paginator(o, currentPage, b);
             var fluentPaginator = new FluentPaginator(pagination, currentPage);
-            Paginate(state.Id, callbackId, b, fluentPaginator);
+            if (fluentPaginator.PagesCount() > 1)
+            {
+                Paginate(state.Id, callbackId, b, fluentPaginator);
+            }
         }
 
         return builder.KeyBoard(Func);

@@ -18,6 +18,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Telegram.Commands.Core\Telegram.Commands.Core.csproj" />
+      <ProjectReference Include="..\Telegram.Commands.UI\Telegram.Commands.UI.csproj" />
     </ItemGroup>
 
     <ItemGroup>
