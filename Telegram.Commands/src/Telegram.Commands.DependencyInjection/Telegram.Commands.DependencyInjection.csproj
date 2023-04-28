@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Authors>eugene1700</Authors>
         <Description>DI for Telegram.Commands</Description>
         <PackageProjectUrl>https://github.com/Eugene1700/telegram</PackageProjectUrl>
         <PackageLicenseUrl>MIT</PackageLicenseUrl>
         <PackageTags>telegrambotapi telegram di</PackageTags>
+        <TargetFrameworks>net6.0;netcoreapp3.1</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>

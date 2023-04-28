@@ -1,6 +1,7 @@
-﻿namespace Telegram.Commands.Core.Fluent.StateMachine;
-
-public interface IStateMachine<TStates>
+﻿namespace Telegram.Commands.Core.Fluent.StateMachine
 {
-    IStateBase<TStates> GetState(TStates currentStateId);
+    public interface IStateMachine<TStates>
+    {
+        IStateBase<TStates> GetState(TStates currentStateId);
+    }
 }

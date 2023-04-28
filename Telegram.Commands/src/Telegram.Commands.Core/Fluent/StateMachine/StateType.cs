@@ -1,8 +1,9 @@
-namespace Telegram.Commands.Core.Fluent.StateMachine;
-
-internal enum StateType
+namespace Telegram.Commands.Core.Fluent.StateMachine
 {
-    Entry,
-    Body,
-    Finish
+    internal enum StateType
+    {
+        Entry,
+        Body,
+        Finish
+    }
 }

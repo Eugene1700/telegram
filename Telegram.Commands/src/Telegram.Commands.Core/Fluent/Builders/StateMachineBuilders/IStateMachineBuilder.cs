@@ -1,8 +1,9 @@
 ﻿using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
-namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
-
-public interface IStateMachineBuilder<TObj, TStates, TCallbacks>: IStateMachineBaseBuilder<TObj, TStates, TCallbacks>
+namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
 {
-    IStateBuilder<TObj, TStates, TCallbacks> Entry(TStates stateId, uint? durationInSec = null);
+    public interface IStateMachineBuilder<TObj, TStates, TCallbacks>: IStateMachineBaseBuilder<TObj, TStates, TCallbacks>
+    {
+        IStateBuilder<TObj, TStates, TCallbacks> Entry(TStates stateId, uint? durationInSec = null);
+    }
 }

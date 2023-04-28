@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFrameworks>net6.0;net7.0;netcoreapp3.1</TargetFrameworks>
+        <AutoGenerateBindingRedirects />
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,8 +13,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.13" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.12" />
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.32" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="5.0.17" />
       <PackageReference Include="Telegram.Bot" Version="18.0.0" />
     </ItemGroup>
 

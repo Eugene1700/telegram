@@ -135,7 +135,7 @@ namespace Telegram.Commands.Core.Services
             }
 
             var activeSession = _sessionManager.GetCurrentSession(chatId, userId);
-            if (commandExecutionResult.Result is ExecuteResult.Ahead or ExecuteResult.Fire)
+            if (commandExecutionResult.Result == ExecuteResult.Ahead || commandExecutionResult.Result == ExecuteResult.Fire)
             {
                 if (activeSession == null)
                 {
