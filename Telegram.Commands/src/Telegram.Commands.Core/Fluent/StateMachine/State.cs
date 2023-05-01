@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
@@ -20,8 +21,12 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public uint? DurationInSec { get; }
 
         private readonly StateMessagesBuilder<TObj, TStates, TCallbacks> _messagesBuilder;
+        private readonly IMessagesSender<TObj> _sender;
 
-        public State(TStates id, StateType stateType, uint? durationInSec,
+        public State(TStates id, 
+            StateType stateType, 
+            IMessagesSender<TObj> sender, 
+            uint? durationInSec,
             Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer = null)
         {
             _stateType = stateType;
@@ -29,14 +34,22 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             DurationInSec = durationInSec;
             _finalizer = finalizer;
             _messagesBuilder = new StateMessagesBuilder<TObj, TStates, TCallbacks>();
+            _sender = sender;
         }
 
         public async Task SendMessages<TQuery>(TQuery currentQuery, TObj obj)
         {
             var messageContainers = await _messagesBuilder.Build(obj);
+            var groupSending = _sender != null;
+            var messages = new List<ITelegramMessage>();
             foreach (var messageContainer in messageContainers)
             {
-                await messageContainer.SendMessage(currentQuery, obj);
+                messages.Add(await messageContainer.SendMessage(currentQuery, obj, !groupSending));
+            }
+
+            if (groupSending)
+            {
+                await _sender.Send(currentQuery, obj, messages.ToArray());
             }
         }
 

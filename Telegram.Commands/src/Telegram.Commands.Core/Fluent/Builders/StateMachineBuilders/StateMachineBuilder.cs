@@ -15,21 +15,22 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
             _stateMachine = new StateMachine<TObj, TStates, TCallbacks>();
         }
 
-        public IStateBuilder<TObj, TStates, TCallbacks> State(TStates stateId)
+        private IStateBuilder<TObj, TStates, TCallbacks> NewState(TStates stateId, StateType stateType,
+            IMessagesSender<TObj> messagesSender, uint? durationInSec)
         {
-            return NewState(stateId, StateType.Body);
-        }
-
-        private IStateBuilder<TObj, TStates, TCallbacks> NewState(TStates stateId, StateType stateType, uint? durationInSec = null)
-        {
-            var newState = _stateMachine.AddState(stateId, stateType, durationInSec, null);
+            var newState = _stateMachine.AddState(stateId, stateType, messagesSender, durationInSec, null);
             var entryStateBuilder = new StateBuilder<TObj, TStates, TCallbacks>(newState, this);
             return entryStateBuilder;
         }
 
         public IStateBuilder<TObj, TStates, TCallbacks> Entry(TStates stateId, uint? durationInSec = null)
         {
-            return NewState(stateId, StateType.Entry, durationInSec);
+            return NewState(stateId, StateType.Entry, null, durationInSec);
+        }
+
+        public IStateBuilder<TObj, TStates, TCallbacks> Entry(TStates stateId, IMessagesSender<TObj> sender, uint? durationInSec = null)
+        {
+            return NewState(stateId, StateType.Entry, sender, durationInSec);
         }
 
         public IStateMachine<TStates> Build()
@@ -41,6 +42,16 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
         {
             _stateMachine.AddExit(stateId, finalizer);
             return this;
+        }
+
+        public IStateBuilder<TObj, TStates, TCallbacks> State(TStates stateId, uint? durationInSec = null)
+        {
+            return NewState(stateId, StateType.Body, null, durationInSec);
+        }
+
+        public IStateBuilder<TObj, TStates, TCallbacks> State(TStates stateId, IMessagesSender<TObj> sender, uint? durationInSec = null)
+        {
+            return NewState(stateId, StateType.Body, sender, durationInSec);
         }
     }
 }

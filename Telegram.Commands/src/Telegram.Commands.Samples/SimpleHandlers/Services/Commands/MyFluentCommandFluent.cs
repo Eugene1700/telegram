@@ -42,7 +42,7 @@ namespace SimpleHandlers.Services.Commands
     }
 
     [Command(Name = "myfluent")]
-    public class MyFluentCommandFluent : FluentCommand<MyObject, States, FluentCallbacks>, IMessageSender<MyObject>
+    public class MyFluentCommandFluent : FluentCommand<MyObject, States, FluentCallbacks>, IMessageSender<MyObject>, IMessagesSender<MyObject>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -233,6 +233,11 @@ namespace SimpleHandlers.Services.Commands
 
             return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Message,
                 replyMarkup: message.ReplyMarkup);
+        }
+
+        public Task Send<TQuery>(TQuery currentQuery, MyObject obj, ITelegramMessage[] message)
+        {
+            throw new NotImplementedException();
         }
     }
 

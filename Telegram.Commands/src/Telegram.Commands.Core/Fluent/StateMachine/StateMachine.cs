@@ -15,20 +15,20 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _states = new Dictionary<TStates, IState<TObj, TStates>>();
         }
 
-        public State<TObj, TStates, TCallbacks> AddState(TStates stateId, StateType stateType, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
+        public State<TObj, TStates, TCallbacks> AddState(TStates stateId, StateType stateType, IMessagesSender<TObj> sender, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
         {
             State<TObj, TStates, TCallbacks> newState;
             switch (stateType)
             {
                 case StateType.Entry:
-                    newState = new State<TObj, TStates, TCallbacks>(stateId, stateType, durationInSec);
+                    newState = new State<TObj, TStates, TCallbacks>(stateId, stateType, sender, durationInSec);
                     _entryStateId = stateId;
                     break;
                 case StateType.Body:
-                    newState = new State<TObj, TStates, TCallbacks>(stateId, stateType, durationInSec);
+                    newState = new State<TObj, TStates, TCallbacks>(stateId, stateType, sender, durationInSec);
                     break;
                 case StateType.Finish:
-                    newState = new State<TObj, TStates, TCallbacks>(stateId, stateType, durationInSec, finalizer);
+                    newState = new State<TObj, TStates, TCallbacks>(stateId, stateType, sender, durationInSec, finalizer);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(stateType), stateType, null);
@@ -42,7 +42,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             Func<TQuery, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery : class
         {
             Task<ITelegramCommandExecutionResult> FinalizerObj(object q, TObj o) => finalizer(q as TQuery, o);
-            return AddState(stateId, StateType.Finish, null, FinalizerObj);
+            return AddState(stateId, StateType.Finish, null, null, FinalizerObj);
         }
 
         public IStateBase<TStates> GetState(TStates currentStateId)
