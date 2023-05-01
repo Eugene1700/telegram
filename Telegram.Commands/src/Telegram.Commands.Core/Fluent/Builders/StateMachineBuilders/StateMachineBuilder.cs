@@ -16,7 +16,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
         }
 
         private IStateBuilder<TObj, TStates, TCallbacks> NewState(TStates stateId, StateType stateType,
-            IMessagesSender<TObj> messagesSender, uint? durationInSec)
+            Func<object, TObj, ITelegramMessage[], Task> messagesSender, uint? durationInSec)
         {
             var newState = _stateMachine.AddState(stateId, stateType, messagesSender, durationInSec, null);
             var entryStateBuilder = new StateBuilder<TObj, TStates, TCallbacks>(newState, this);
@@ -28,7 +28,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
             return NewState(stateId, StateType.Entry, null, durationInSec);
         }
 
-        public IStateBuilder<TObj, TStates, TCallbacks> Entry(TStates stateId, IMessagesSender<TObj> sender, uint? durationInSec = null)
+        public IStateBuilder<TObj, TStates, TCallbacks> Entry(TStates stateId, Func<object, TObj, ITelegramMessage[], Task> sender, uint? durationInSec = null)
         {
             return NewState(stateId, StateType.Entry, sender, durationInSec);
         }
@@ -49,7 +49,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
             return NewState(stateId, StateType.Body, null, durationInSec);
         }
 
-        public IStateBuilder<TObj, TStates, TCallbacks> State(TStates stateId, IMessagesSender<TObj> sender, uint? durationInSec = null)
+        public IStateBuilder<TObj, TStates, TCallbacks> State(TStates stateId, Func<object, TObj, ITelegramMessage[], Task> sender, uint? durationInSec = null)
         {
             return NewState(stateId, StateType.Body, sender, durationInSec);
         }

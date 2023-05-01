@@ -21,11 +21,11 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public uint? DurationInSec { get; }
 
         private readonly StateMessagesBuilder<TObj, TStates, TCallbacks> _messagesBuilder;
-        private readonly IMessagesSender<TObj> _sender;
+        private readonly Func<object, TObj, ITelegramMessage[], Task> _sender;
 
         public State(TStates id, 
             StateType stateType, 
-            IMessagesSender<TObj> sender, 
+            Func<object, TObj, ITelegramMessage[], Task> sender, 
             uint? durationInSec,
             Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer = null)
         {
@@ -49,7 +49,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
             if (groupSending)
             {
-                await _sender.Send(currentQuery, obj, messages.ToArray());
+                await _sender(currentQuery, obj, messages.ToArray());
             }
         }
 
@@ -103,7 +103,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             return _finalizer?.Invoke(query, sessionObjectObject);
         }
 
-        public void AddMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sender)
+        public void AddMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sender)
         {
             _messagesBuilder.AddMessage(messageProvider, sender);
         }

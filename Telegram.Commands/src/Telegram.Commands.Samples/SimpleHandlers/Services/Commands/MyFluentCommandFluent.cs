@@ -42,7 +42,7 @@ namespace SimpleHandlers.Services.Commands
     }
 
     [Command(Name = "myfluent")]
-    public class MyFluentCommandFluent : FluentCommand<MyObject, States, FluentCallbacks>, IMessageSender<MyObject>, IMessagesSender<MyObject>
+    public class MyFluentCommandFluent : FluentCommand<MyObject, States, FluentCallbacks>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -69,7 +69,7 @@ namespace SimpleHandlers.Services.Commands
             IStateMachineBuilder<MyObject, States, FluentCallbacks> builder)
         {
             var a = builder.Entry(States.Name)
-                .WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
+                .WithMessage(_ => Task.FromResult("Hi! What's your name?"), Send)
                 .WithCallbacks()
                 .Row().OnCallback(FluentCallbacks.DefaultName, "Default Name (Jack)", "Jack", FirstNameCallbackHandler,
                     true)
@@ -86,11 +86,11 @@ namespace SimpleHandlers.Services.Commands
                 .WithMessages(OtherMessages)
                 .Next(FirstNameMessageHandler, true)
                 .State(States.Surname)
-                .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), this)
+                .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), Send)
                 .WithCallbacks().KeyBoard(GetSurnameKeyboard)
                 .Next(SecondNameHandler, true)
                 .State(States.Validate)
-                .WithMessage("Your name is too short! Please, send me again", this)
+                .WithMessage("Your name is too short! Please, send me again", Send)
                 .WithCallbacks()
                 .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname, true)
                 .Next(FirstNameMessageHandler, true)
@@ -101,8 +101,14 @@ namespace SimpleHandlers.Services.Commands
 
         private Task OtherMessages(MyObject arg1, IStateBuilderBase<MyObject, States, FluentCallbacks> builder)
         {
-            builder.WithMessage("Next message", this);
+            builder.WithMessage("Next message", SendSubMessage);
             return Task.CompletedTask;
+        }
+
+        private Task SendSubMessage(object currentQuery, MyObject obj, ITelegramMessage message)
+        {
+            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Message,
+                replyMarkup: message.ReplyMarkup);
         }
 
         private Task<IFluentPaginationMenu> Paginator(MyObject arg1, uint arg2,

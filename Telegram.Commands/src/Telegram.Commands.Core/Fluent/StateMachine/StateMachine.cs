@@ -15,7 +15,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _states = new Dictionary<TStates, IState<TObj, TStates>>();
         }
 
-        public State<TObj, TStates, TCallbacks> AddState(TStates stateId, StateType stateType, IMessagesSender<TObj> sender, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
+        public State<TObj, TStates, TCallbacks> AddState(TStates stateId, StateType stateType, Func<object, TObj, ITelegramMessage[], Task> sender, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
         {
             State<TObj, TStates, TCallbacks> newState;
             switch (stateType)

@@ -53,7 +53,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine{
             _providers.Add(messageFlowProvider);
         }
 
-        public void AddMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sender)
+        public void AddMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sender)
         {
             var i = _bodyExits.Count;
             _bodyExits.Add(i, new CallbackBuilder<TObj, TStates, TCallbacks>());
@@ -96,7 +96,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine{
         }
 
         public IMessageBuilderBase<TObj, TStates, TCallbacks> WithMessage(Func<TObj, Task<string>> messageProvider,
-            IMessageSender<TObj> sender)
+            Func<object, TObj, ITelegramMessage, Task> sender)
         {
             var newContainer = new MessageContainer<TObj, TStates, TCallbacks>(messageProvider, sender);
             _containersMessages.Add(newContainer);
@@ -104,7 +104,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine{
             return this;
         }
 
-        void WithMessage(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sender,
+        void WithMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sender,
             CallbackBuilder<TObj, TStates, TCallbacks> callbackBuilder)
         {
             var newContainer =

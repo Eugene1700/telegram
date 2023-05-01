@@ -12,15 +12,15 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
     internal class MessageContainer<TObj, TStates, TCallbacks> where TCallbacks : struct, Enum
     {
         private readonly Func<TObj, Task<string>> _message;
-        private readonly IMessageSender<TObj> _sendMessageProvider;
+        private readonly Func<object, TObj, ITelegramMessage, Task>  _sendMessageProvider;
         internal CallbackBuilder<TObj, TStates, TCallbacks> CallbackBuilder { get; }
 
-        public MessageContainer(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sendMessageProvider) :
+        public MessageContainer(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider) :
             this(messageProvider, sendMessageProvider, new CallbackBuilder<TObj, TStates, TCallbacks>())
         {
         }
 
-        internal MessageContainer(Func<TObj, Task<string>> messageProvider, IMessageSender<TObj> sendMessageProvider,
+        internal MessageContainer(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider,
             CallbackBuilder<TObj, TStates, TCallbacks> callbackBuilder)
         {
             _message = messageProvider;
@@ -48,7 +48,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             var messageText = await _message(obj);
             var mes = new TelegramMessage(messageText, replyMarkup);
             if (useOwnSender)
-                await _sendMessageProvider.Send(currentQuery, obj, mes);
+                await _sendMessageProvider(currentQuery, obj, mes);
             return mes;
         }
 
