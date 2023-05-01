@@ -13,16 +13,10 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
     {
         private readonly State<TObj, TStates, TCallbacks> _state;
         private readonly StateMachineBuilder<TObj, TStates, TCallbacks> _stateMachineBuilder;
-        private readonly Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>> _bodyExits;
-        private int _currentBodyIndex;
-        private readonly Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>> _messages;
-        private int _messagesIndex;
-
         public StateBuilder(State<TObj, TStates, TCallbacks> state, StateMachineBuilder<TObj, TStates, TCallbacks> stateMachineBuilder)
         {
             _state = state;
             _stateMachineBuilder = stateMachineBuilder;
-            _bodyExits = new Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>>();
         }
     
         public IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Next<TQuery>(Func<TQuery, TObj, Task<TStates>> handler, bool force) where TQuery : class
@@ -38,26 +32,13 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
 
         public ICallbackRowBuilder<TObj, TStates, TCallbacks> Row()
         {
-            var i = _bodyExits.Count;
-            _bodyExits.Add(i, new List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>());
-            _currentBodyIndex = i;
-            _state.GetCurrentCallbackBuilder().AddProvider((o, b) =>
-            {
-                var rowBuilder = b.Row();
-                var exits = _bodyExits[i];
-                foreach (var exit in exits)
-                {
-                    exit(rowBuilder);
-                }
-                return Task.CompletedTask;
-            });
-        
+            _state.AddRow();
             return this;
         }
 
         public ICallbacksBuilder<TObj, TStates, TCallbacks> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider)
         {
-            _state.GetCurrentCallbackBuilder().AddProvider(provider);
+            _state.AddKeyBoardProvider(provider);
             return this;
         }
 
@@ -82,10 +63,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             Func<TQuery, TObj, string, Task<TStates>> handler,
             bool force) where TQuery : class
         {
-            _bodyExits[_currentBodyIndex].Add((b) =>
-            {
-                b.OnCallback(callbackId, callbackProvider, handler, force);
-            });
+            _state.AddOnCallback(callbackId, callbackProvider, handler, force);
             return this;
         }
 
@@ -94,11 +72,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             TStates stateId,
             bool force)
         {
-            Task<TStates> Handle(object o, TObj obj, string s) => Task.FromResult(stateId);
-            _bodyExits[_currentBodyIndex].Add((b) =>
-            {
-                b.OnCallback(callbackId, callbackProvider, (Func<object, TObj, string, Task<TStates>>)Handle, force);
-            });
+            _state.AddNextFromCallback(callbackId, callbackProvider, stateId, force);
             return this;
         }
 
@@ -110,10 +84,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
 
         public ICallbackRowBuilder<TObj, TStates, TCallbacks> ExitFromCallback(Func<TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
         {
-            _bodyExits[_currentBodyIndex].Add((b) =>
-            {
-                b.ExitFromCallback(callbackProvider, telegramCommandDescriptor);
-            });
+            _state.AddExitFromCallback(callbackProvider, telegramCommandDescriptor);
             return this;
         }
 
@@ -125,12 +96,8 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
 
         public IStateBuilder<TObj, TStates, TCallbacks> WithMessages(Func<TObj, IStateBuilderBase<TObj, TStates, TCallbacks>, Task> messageFlowProvider)
         {
-            throw new NotImplementedException();
+            _state.AddMessagesProvider(messageFlowProvider);
+            return this;
         }
-    }
-
-    internal class MessageBuilder<TObj, TStates, TCallbacks>
-    {
-    
     }
 }

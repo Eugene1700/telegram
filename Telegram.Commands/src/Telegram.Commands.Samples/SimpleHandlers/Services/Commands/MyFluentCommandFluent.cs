@@ -11,6 +11,7 @@ using Telegram.Commands.Core.Fluent;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.Extensions;
+using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
@@ -67,7 +68,8 @@ namespace SimpleHandlers.Services.Commands
         protected override IStateMachine<States> StateMachine(
             IStateMachineBuilder<MyObject, States, FluentCallbacks> builder)
         {
-            var a = builder.Entry(States.Name).WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
+            var a = builder.Entry(States.Name)
+                .WithMessage(_ => Task.FromResult("Hi! What's your name?"), this)
                 .WithCallbacks()
                 .Row().OnCallback(FluentCallbacks.DefaultName, "Default Name (Jack)", "Jack", FirstNameCallbackHandler,
                     true)
@@ -81,18 +83,26 @@ namespace SimpleHandlers.Services.Commands
                 .ExitFromCallback(CallbackDataWithCommand())
                 .KeyBoard(SameCallbackKey)
                 .KeyboardWithPagination(FluentCallbacks.Pagination, Paginator)
+                .WithMessages(OtherMessages)
                 .Next(FirstNameMessageHandler, true)
                 .State(States.Surname)
                 .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), this)
                 .WithCallbacks().KeyBoard(GetSurnameKeyboard)
                 .Next(SecondNameHandler, true)
-                .State(States.Validate).WithMessage("Your name is too short! Please, send me again", this)
+                .State(States.Validate)
+                .WithMessage("Your name is too short! Please, send me again", this)
                 .WithCallbacks()
                 .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname, true)
                 .Next(FirstNameMessageHandler, true)
                 .Exit<object>(States.Exit, Finalize);
 
             return a.Build();
+        }
+
+        private Task OtherMessages(MyObject arg1, IStateBuilderBase<MyObject, States, FluentCallbacks> builder)
+        {
+            builder.WithMessage("Next message", this);
+            return Task.CompletedTask;
         }
 
         private Task<IFluentPaginationMenu> Paginator(MyObject arg1, uint arg2,

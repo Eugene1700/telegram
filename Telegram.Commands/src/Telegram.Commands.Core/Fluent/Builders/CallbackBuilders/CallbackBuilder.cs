@@ -13,11 +13,15 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
         private CallbackDataContainerRow<TObj, TStates, TCallbacks> _currentRow;
         private readonly List<CallbackDataContainerRow<TObj, TStates, TCallbacks>> _containerRows;
         private bool _buildOnce = false;
+        private readonly Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>> _bodyExits;
+        private int _currentBodyIndex;
 
         public CallbackBuilder()
         {
             _providers = new List<Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task>>();
             _containerRows = new List<CallbackDataContainerRow<TObj, TStates, TCallbacks>>();
+            _bodyExits = new Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>>();
+
         }
         public void AddProvider(Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider)
         {
@@ -86,6 +90,47 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
             _currentRow.AddContainer(callbackProvider,
                 telegramCommandDescriptor: telegramCommandDescriptor);
             return this;
+        }
+        
+        public void AddRow()
+        {
+            var i = _bodyExits.Count;
+            _bodyExits.Add(i, new List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>());
+            _currentBodyIndex = i;
+            AddProvider((o, b) =>
+            {
+                var rowBuilder = b.Row();
+                var exits = _bodyExits[i];
+                foreach (var exit in exits)
+                {
+                    exit(rowBuilder);
+                }
+                return Task.CompletedTask;
+            });
+        }
+
+        public void AddOnCallback<TQuery>(TCallbacks callbackId, Func<TObj,CallbackData> callbackProvider, Func<TQuery,TObj,string,Task<TStates>> handler, bool force) where TQuery : class
+        {
+            _bodyExits[_currentBodyIndex].Add((b) =>
+            {
+                b.OnCallback(callbackId, callbackProvider, handler, force);
+            });
+        }
+        public void AddExitFromCallback(Func<TObj,CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
+        {
+            _bodyExits[_currentBodyIndex].Add((b) =>
+            {
+                b.ExitFromCallback(callbackProvider, telegramCommandDescriptor);
+            });
+        }
+
+        public void AddNextFromCallback(TCallbacks callbackId, Func<TObj,CallbackData> callbackProvider, TStates stateId, bool force)
+        {
+            Task<TStates> Handle(object o, TObj obj, string s) => Task.FromResult(stateId);
+            _bodyExits[_currentBodyIndex].Add((b) =>
+            {
+                b.OnCallback(callbackId, callbackProvider, (Func<object, TObj, string, Task<TStates>>)Handle, force);
+            });
         }
     }
 }

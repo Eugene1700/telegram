@@ -10,5 +10,12 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
         {
             return stateBuilder.WithMessage(_ => Task.FromResult(message), sender);
         }
+        
+        public static IMessageBuilderBase<TObj, TStates, TCallbacks> WithMessage<TObj, TStates, TCallbacks>(this IStateBuilderBase<TObj, TStates, TCallbacks> stateBuilder, 
+            string message,
+            IMessageSender<TObj> sender)
+        {
+            return stateBuilder.WithMessage(_ => Task.FromResult(message), sender);
+        }
     }
 }

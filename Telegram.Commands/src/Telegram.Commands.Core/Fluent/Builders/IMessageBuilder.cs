@@ -1,4 +1,5 @@
-﻿using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
+﻿using System;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
 namespace Telegram.Commands.Core.Fluent.Builders

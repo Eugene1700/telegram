@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
 
