@@ -9,23 +9,21 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
 {
     internal class CallbackBuilder<TObj, TStates, TCallbacks>: ICallbackRowBuilderBase<TObj, TStates, TCallbacks> where TCallbacks : struct, Enum
     {
-        private readonly List<Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task>> _providers;
         private CallbackDataContainerRow<TObj, TStates, TCallbacks> _currentRow;
         private readonly List<CallbackDataContainerRow<TObj, TStates, TCallbacks>> _containerRows;
+        private readonly List<CallbackDataContainerRowsBuilder<TObj, TStates, TCallbacks>> _rowBuilders;
         private bool _buildOnce = false;
-        private readonly Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>> _bodyExits;
-        private int _currentBodyIndex;
+        private CallbackDataContainerRowsBuilder<TObj,TStates,TCallbacks> _currentRowBuilder;
 
         public CallbackBuilder()
         {
-            _providers = new List<Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task>>();
             _containerRows = new List<CallbackDataContainerRow<TObj, TStates, TCallbacks>>();
-            _bodyExits = new Dictionary<int, List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>>();
-
+            _rowBuilders = new List<CallbackDataContainerRowsBuilder<TObj, TStates, TCallbacks>>();
         }
         public void AddProvider(Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider)
         {
-            _providers.Add(provider);
+            var newRowBuilder = new CallbackDataContainerRowsBuilder<TObj, TStates, TCallbacks>(provider);
+            _rowBuilders.Add(newRowBuilder);
         }
 
         public async Task<CallbackDataContainerRow<TObj, TStates, TCallbacks>[]> Build(TObj obj, bool force = true)
@@ -38,9 +36,13 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
 
             if (!_buildOnce || force)
             {
-                foreach (var provider in _providers)
+                foreach (var rowBuilder in _rowBuilders)
                 {
-                    await provider(obj, this);
+                    if (await rowBuilder.TryBuild(obj, this)) continue;
+                    if (rowBuilder.TryGetContainer(out var cont))
+                    {
+                        _containerRows.Add(cont);
+                    }
                 }
 
                 _buildOnce = true;
@@ -72,7 +74,8 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
             return this;
         }
 
-        public ICallbackRowBuilderBase<TObj, TStates, TCallbacks> NextFromCallback(TCallbacks callbackId, Func<TObj, CallbackData> callbackProvider, TStates stateId, bool force)
+        public ICallbackRowBuilderBase<TObj, TStates, TCallbacks> NextFromCallback(TCallbacks callbackId, 
+            Func<TObj, CallbackData> callbackProvider, TStates stateId, bool force)
         {
             Task<TStates> CommitExpr(object x, TObj y, string z) => Task.FromResult(stateId);
             _currentRow.AddContainer(callbackId, callbackProvider, (Func<object, TObj, string, Task<TStates>>)CommitExpr, force);
@@ -94,43 +97,25 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
         
         public void AddRow()
         {
-            var i = _bodyExits.Count;
-            _bodyExits.Add(i, new List<Action<ICallbackRowBuilderBase<TObj, TStates, TCallbacks>>>());
-            _currentBodyIndex = i;
-            AddProvider((o, b) =>
-            {
-                var rowBuilder = b.Row();
-                var exits = _bodyExits[i];
-                foreach (var exit in exits)
-                {
-                    exit(rowBuilder);
-                }
-                return Task.CompletedTask;
-            });
+            var newRowBuilder = new CallbackDataContainerRowsBuilder<TObj, TStates, TCallbacks>();
+            _rowBuilders.Add(newRowBuilder);
+            _currentRowBuilder = newRowBuilder;
         }
 
         public void AddOnCallback<TQuery>(TCallbacks callbackId, Func<TObj,CallbackData> callbackProvider, Func<TQuery,TObj,string,Task<TStates>> handler, bool force) where TQuery : class
         {
-            _bodyExits[_currentBodyIndex].Add((b) =>
-            {
-                b.OnCallback(callbackId, callbackProvider, handler, force);
-            });
+            _currentRowBuilder.AddOnCallback(callbackId, callbackProvider, handler, force);
         }
         public void AddExitFromCallback(Func<TObj,CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
         {
-            _bodyExits[_currentBodyIndex].Add((b) =>
-            {
-                b.ExitFromCallback(callbackProvider, telegramCommandDescriptor);
-            });
+            _currentRowBuilder.ExitFromCallback(callbackProvider, telegramCommandDescriptor);
         }
 
         public void AddNextFromCallback(TCallbacks callbackId, Func<TObj,CallbackData> callbackProvider, TStates stateId, bool force)
         {
-            Task<TStates> Handle(object o, TObj obj, string s) => Task.FromResult(stateId);
-            _bodyExits[_currentBodyIndex].Add((b) =>
-            {
-                b.OnCallback(callbackId, callbackProvider, (Func<object, TObj, string, Task<TStates>>)Handle, force);
-            });
+            Task<TStates> Handle(object q, TObj obj, string s) => Task.FromResult(stateId);
+            _currentRowBuilder.AddOnCallback(callbackId, callbackProvider,
+                (Func<object, TObj, string, Task<TStates>>)Handle, force);
         }
     }
 }
