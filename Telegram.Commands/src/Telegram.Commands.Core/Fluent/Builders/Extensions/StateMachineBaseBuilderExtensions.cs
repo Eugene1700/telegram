@@ -8,7 +8,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
 {
     public static class StateMachineBaseBuilderExtensions
     {
-        public static IStateMachineBodyBuilder<TObj, TStates, TCallbacks> Exit<TObj, TStates, TCallbacks>(this IStateMachineBaseBuilder<TObj, TStates, TCallbacks> builder, 
+        public static IStateMachineBodyBuilder<TObj, TStates> Exit<TObj, TStates, TCallbacks>(this IStateMachineBaseBuilder<TObj, TStates> builder, 
             TStates stateId, Func<Message, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
         {
             return builder.Exit(stateId, finalizer);

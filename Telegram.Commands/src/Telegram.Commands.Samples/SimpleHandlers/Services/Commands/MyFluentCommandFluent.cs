@@ -42,7 +42,7 @@ namespace SimpleHandlers.Services.Commands
     }
 
     [Command(Name = "myfluent")]
-    public class MyFluentCommandFluent : FluentCommand<MyObject, States, FluentCallbacks>
+    public class MyFluentCommandFluent : FluentCommand<MyObject, States>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -66,23 +66,23 @@ namespace SimpleHandlers.Services.Commands
         }
 
         protected override IStateMachine<States> StateMachine(
-            IStateMachineBuilder<MyObject, States, FluentCallbacks> builder)
+            IStateMachineBuilder<MyObject, States> builder)
         {
             var a = builder.Entry(States.Name)
                 .WithMessage(_ => Task.FromResult("Hi! What's your name?"), Send)
                 .WithCallbacks()
-                .Row().OnCallback(FluentCallbacks.DefaultName, "Default Name (Jack)", "Jack", FirstNameCallbackHandler,
+                .Row().OnCallback("Default Name (Jack)", "Jack", FirstNameCallbackHandler,
                     true)
-                .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname, true)
-                .Row().NextFromCallback(FluentCallbacks.Exit, "Exit", "data", States.Exit, true)
-                .Row().OnCallback(FluentCallbacks.Text, "Send TEXT", "TEXT", SendUserDataHandler, false)
+                .Row().NextFromCallback("Skip", "data", States.Surname, true)
+                .Row().NextFromCallback( "Exit", "data", States.Exit, true)
+                .Row().OnCallback("Send TEXT", "TEXT", SendUserDataHandler, false)
                 .Row().ExitFromCallback<MyObject, States, FluentCallbacks, CancelCallback>("Cancel", "someData")
                 .Row().ExitFromCallback<MyObject, States, FluentCallbacks, CancelCallback>("Cancel", "someData")
                 .Row().ExitFromCallback(KeyBoardBuild,
                     TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
                 .ExitFromCallback(CallbackDataWithCommand())
                 .KeyBoard(SameCallbackKey)
-                .KeyboardWithPagination(FluentCallbacks.Pagination, Paginator)
+                .KeyboardWithPagination(Paginator)
                 .WithMessages(OtherMessages)
                 .Next(FirstNameMessageHandler, true)
                 .State(States.Surname)
@@ -92,14 +92,14 @@ namespace SimpleHandlers.Services.Commands
                 .State(States.Validate)
                 .WithMessage("Your name is too short! Please, send me again", Send)
                 .WithCallbacks()
-                .Row().NextFromCallback(FluentCallbacks.Skip, "Skip", "data", States.Surname, true)
+                .Row().NextFromCallback("Skip", "data", States.Surname, true)
                 .Next(FirstNameMessageHandler, true)
                 .Exit<object>(States.Exit, Finalize);
 
             return a.Build();
         }
 
-        private Task OtherMessages(MyObject arg1, IStateBuilderBase<MyObject, States, FluentCallbacks> builder)
+        private Task OtherMessages(MyObject arg1, IStateBuilderBase<MyObject, States> builder)
         {
             builder.WithMessage("Next message", SendSubMessage);
             return Task.CompletedTask;
@@ -112,7 +112,7 @@ namespace SimpleHandlers.Services.Commands
         }
 
         private Task<IFluentPaginationMenu> Paginator(MyObject arg1, uint arg2,
-            ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg3)
+            ICallbacksBuilderBase<MyObject, States> arg3)
         {
             var b = arg3.Row();
             arg1.Limit = 5;
@@ -120,31 +120,31 @@ namespace SimpleHandlers.Services.Commands
             var from = (int)(5 * (arg2 - 1));
             foreach (var num in Enumerable.Range(from, 5))
             {
-                b.OnCallback(FluentCallbacks.SendNumber, $"{num}", $"{num}", SendUserDataHandler, false);
+                b.OnCallback($"{num}", $"{num}", SendUserDataHandler, false);
             }
 
             return Task.FromResult<IFluentPaginationMenu>(arg1);
         }
 
-        private Task SameCallbackKey(MyObject arg1, ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg2)
+        private Task SameCallbackKey(MyObject arg1, ICallbacksBuilderBase<MyObject, States> arg2)
         {
             var b = arg2.Row();
             foreach (var num in Enumerable.Range(0, 5))
             {
-                b.OnCallback(FluentCallbacks.SendNumber, $"{num}", $"{num}", SendUserDataHandler, false);
+                b.OnCallback($"{num}", $"{num}", SendUserDataHandler, false);
             }
 
             return Task.CompletedTask;
         }
 
 
-        private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject, States, FluentCallbacks> arg2)
+        private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject, States> arg2)
         {
-            arg2.Row().NextFromCallback(FluentCallbacks.Skip, "Skip", arg1.FirstName, States.Exit, true)
-                .NextFromCallback(FluentCallbacks.ReturnToEntry, "Back", arg1.FirstName, States.Name, true)
-                .OnCallback(FluentCallbacks.DefaultSecondName, "Default SecondName Smith", "Smith",
+            arg2.Row().NextFromCallback("Skip", arg1.FirstName, States.Exit, true)
+                .NextFromCallback("Back", arg1.FirstName, States.Name, true)
+                .OnCallback("Default SecondName Smith", "Smith",
                     SecondNameCallbackHandler, true)
-                .Row().NextFromCallback(FluentCallbacks.Exit, "Finish", arg1.FirstName, States.Exit, true);
+                .Row().NextFromCallback("Finish", arg1.FirstName, States.Exit, true);
             return Task.CompletedTask;
         }
 

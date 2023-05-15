@@ -130,10 +130,10 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
-        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject, TStates, TCallbacks>(TObject obj, bool fire, uint? sessionDurationInSec = 600)
-            where TNextCommand : FluentCommand<TObject, TStates, TCallbacks> where TCallbacks : struct, Enum
+        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject, TStates>(TObject obj, bool fire, uint? sessionDurationInSec = 600)
+            where TNextCommand : FluentCommand<TObject, TStates>
         {
-            var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject, TStates, TCallbacks>();
+            var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject, TStates>();
             return new TelegramCommandExecutionResult
             {
                 Data = new FluentObject<TObject, TStates>(obj, fire ? FireType.Entry : FireType.HandleCurrent),
@@ -144,8 +144,8 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
-        internal static TelegramCommandExecutionResult AheadFluent<TObj, TStates, TCallbacks>(FluentCommand<TObj, TStates, TCallbacks> command,
-            FluentObject<TObj, TStates> sessionObject, uint? sessionDurationInSec) where TCallbacks: struct, Enum
+        internal static TelegramCommandExecutionResult AheadFluent<TObj, TStates>(FluentCommand<TObj, TStates> command,
+            FluentObject<TObj, TStates> sessionObject, uint? sessionDurationInSec)
         {
             var commandInfo = command.GetCommandInfo();
             return new TelegramCommandExecutionResult

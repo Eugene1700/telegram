@@ -4,15 +4,15 @@ using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
 namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
 {
-    public interface ICallbacksBuilder<TObj, TStates, TCallbacks> : IStateBuilder<TObj, TStates, TCallbacks>
+    public interface ICallbacksBuilder<TObj, TStates> : IStateBuilder<TObj, TStates>
     {
-        ICallbackRowBuilder<TObj, TStates, TCallbacks> Row();
-        ICallbacksBuilder<TObj, TStates, TCallbacks> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider);
+        ICallbackRowBuilder<TObj, TStates> Row();
+        ICallbacksBuilder<TObj, TStates> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider);
     }
 
-    public interface ICallbacksBuilderForMessage<TObj, TStates, TCallbacks>: IStateBuilderBase<TObj, TStates, TCallbacks>
+    public interface ICallbacksBuilderForMessage<TObj, TStates>: IStateBuilderBase<TObj, TStates>
     {
-        ICallbackRowBuilderForMessage<TObj, TStates, TCallbacks> Row();
-        ICallbacksBuilderForMessage<TObj, TStates, TCallbacks> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider);
+        ICallbackRowBuilderForMessage<TObj, TStates> Row();
+        ICallbacksBuilderForMessage<TObj, TStates> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider);
     }
 }

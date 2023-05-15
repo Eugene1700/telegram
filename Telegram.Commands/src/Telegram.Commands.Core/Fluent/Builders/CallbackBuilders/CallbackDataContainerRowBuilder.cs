@@ -7,25 +7,24 @@ using Telegram.Commands.Core.Services;
 namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
 {
 
-    internal class CallbackDataContainerRowsBuilder<TObj, TStates, TCallbacks> where TCallbacks : struct, Enum
+    internal class CallbackDataContainerRowsBuilder<TObj, TStates>
     {
-        private readonly Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> _provider;
-        private readonly CallbackDataContainerRow<TObj, TStates, TCallbacks> _container;
+        private readonly Func<TObj, ICallbacksBuilderBase<TObj, TStates>, Task> _provider;
+        private readonly CallbackDataContainerRow<TObj, TStates> _container;
 
-        internal CallbackDataContainerRowsBuilder(
-            Func<TObj, ICallbacksBuilderBase<TObj, TStates, TCallbacks>, Task> provider)
+        internal CallbackDataContainerRowsBuilder(Func<TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
         {
             _provider = provider;
             _container = null;
         }
 
-        internal CallbackDataContainerRowsBuilder()
+        internal CallbackDataContainerRowsBuilder(string prefix)
         {
-            _container = new CallbackDataContainerRow<TObj, TStates, TCallbacks>();
+            _container = new CallbackDataContainerRow<TObj, TStates>(prefix);
             _provider = null;
         }
 
-        internal async Task<bool> TryBuild(TObj obj, ICallbacksBuilderBase<TObj, TStates, TCallbacks> builder)
+        internal async Task<bool> TryBuild(TObj obj, ICallbacksBuilderBase<TObj, TStates> builder)
         {
             if (_provider == null)
                 return false;
@@ -33,7 +32,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
             return true;
         }
 
-        internal bool TryGetContainer(out CallbackDataContainerRow<TObj, TStates, TCallbacks> container)
+        internal bool TryGetContainer(out CallbackDataContainerRow<TObj, TStates> container)
         {
             container = null;
             if (_container == null) return false;
@@ -41,12 +40,11 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
             return true;
         }
 
-        internal void AddOnCallback<TQuery>(TCallbacks callbackId,
-            Func<TObj, CallbackData> callbackProvider,
+        internal void AddOnCallback<TQuery>(Func<TObj, CallbackData> callbackProvider,
             Func<TQuery, TObj, string, Task<TStates>> handler,
             bool force) where TQuery : class
         {
-            _container.AddContainer(callbackId, callbackProvider, handler, force);
+            _container.AddContainer(callbackProvider, handler, force);
         }
 
         public void ExitFromCallback(Func<TObj, CallbackData> callbackProvider,

@@ -9,19 +9,22 @@ using Telegram.Commands.Core.Services;
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {
 
-    internal class MessageContainer<TObj, TStates, TCallbacks> where TCallbacks : struct, Enum
+    internal class MessageContainer<TObj, TStates>
     {
         private readonly Func<TObj, Task<string>> _message;
         private readonly Func<object, TObj, ITelegramMessage, Task>  _sendMessageProvider;
-        internal CallbackBuilder<TObj, TStates, TCallbacks> CallbackBuilder { get; }
+        internal CallbackBuilder<TObj, TStates> CallbackBuilder { get; }
 
-        public MessageContainer(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider) :
-            this(messageProvider, sendMessageProvider, new CallbackBuilder<TObj, TStates, TCallbacks>())
+        public MessageContainer(string prefix, 
+            Func<TObj, Task<string>> messageProvider, 
+            Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider) :
+            this(messageProvider, sendMessageProvider, new CallbackBuilder<TObj, TStates>($"{prefix}mc"))
         {
         }
 
-        internal MessageContainer(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider,
-            CallbackBuilder<TObj, TStates, TCallbacks> callbackBuilder)
+        internal MessageContainer(Func<TObj, Task<string>> messageProvider, 
+            Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider,
+            CallbackBuilder<TObj, TStates> callbackBuilder)
         {
             _message = messageProvider;
             _sendMessageProvider = sendMessageProvider;
@@ -55,10 +58,10 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public async Task<(bool, (TStates, bool))> TryHandleCallback<TQuery>(TQuery query, TObj obj)
         {
             var callbacks = await CallbackBuilder.Build(obj);
-            var (callbackKey, hash, callbackUserData) =
-                CallbackDataContainer<TObj, TStates, TCallbacks>.ExtractData(query);
-            CallbackDataContainer<TObj, TStates, TCallbacks> container = null;
-            if (callbacks.Any(x => x.TryGetByKey(callbackKey, hash, obj, out container)))
+            var (callbackKey, callbackUserData) =
+                CallbackDataContainer<TObj, TStates>.ExtractData(query);
+            CallbackDataContainer<TObj, TStates> container = null;
+            if (callbacks.Any(x => x.TryGetByKey(callbackKey, obj, out container)))
             {
                 return (true, await container.Handle(query, obj, callbackUserData));
             }

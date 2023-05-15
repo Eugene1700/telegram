@@ -10,32 +10,30 @@ using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {
-    internal class CallbackDataContainer<TObj, TStates, TCallbacks> where TCallbacks : struct, Enum
+    internal class CallbackDataContainer<TObj, TStates>
     {
-        private readonly Func<TObj, (CallbackDataWithCommand, string)> _builder;
+        private readonly Func<TObj, CallbackDataWithCommand> _builder;
         private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
         private readonly Func<object, TObj, string, Task<TStates>> _handler;
         private readonly bool _forceNext;
         private const string _fcudKey = "fud";
         private const string _fcbidKey = "fid";
-        private const string _fcbidHashKey = "fh";
-        public TCallbacks CallbackKey { get; }
+        public string CallbackKey { get; }
 
-        public CallbackDataContainer(TCallbacks callbackId, Func<TObj, CallbackData> provider,
+        public CallbackDataContainer(string callbackId, Func<TObj, CallbackData> provider,
             Func<object, TObj, string, Task<TStates>> handler = null, bool force = false)
         {
-            (CallbackDataWithCommand, string) NewProvider(TObj o)
+            CallbackDataWithCommand NewProvider(TObj o)
             {
                 var callbackData = provider(o);
-                var hash = ComputeHash(GetHashableString(callbackData));
-                return (
+                return 
                     new CallbackDataWithCommand
                     {
                         CallbackMode = callbackData.CallbackMode,
                         CallbackText =
-                            $"{_fcbidKey}={callbackId}&{_fcbidHashKey}={hash}&{_fcudKey}={callbackData.CallbackText}",
+                            $"{_fcbidKey}={callbackId}&{_fcudKey}={callbackData.CallbackText}",
                         Text = callbackData.Text
-                    }, hash);
+                    };
             }
 
             CallbackKey = callbackId;
@@ -48,15 +46,14 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public CallbackDataContainer(Func<TObj, CallbackData> provider, 
             ITelegramCommandDescriptor telegramCommandDescriptor)
         {
-            (CallbackDataWithCommand, string) NewProvider(TObj o)
+            CallbackDataWithCommand NewProvider(TObj o)
             {
                 var callbackData = provider(o);
-                return (
-                    new CallbackDataWithCommand
+                return new CallbackDataWithCommand
                     {
                         CallbackMode = callbackData.CallbackMode, CallbackText = callbackData.CallbackText,
                         Text = callbackData.Text, CommandDescriptor = telegramCommandDescriptor
-                    }, null);
+                    };
             }
 
             CallbackKey = default;
@@ -70,7 +67,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         {
             if (_builder != null)
             {
-                var (c, _) = _builder(obj);
+                var c = _builder(obj);
                 return c;
             }
 
@@ -93,7 +90,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             return data.Split("&").Any(x => x.StartsWith(_fcbidKey));
         }
 
-        public static (TCallbacks,string, string) ExtractData<TQuery>(TQuery query)
+        public static (string, string) ExtractData<TQuery>(TQuery query)
         {
             var data = query.GetData();
             var parametrs = data.Split("&").Select(x =>
@@ -106,39 +103,8 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
                 return new KeyValuePair<string, string>(parts[0], parts[1]);
             }).ToArray();
             var callbackId = parametrs.SingleOrDefault(x => x.Key == _fcbidKey).Value;
-            var hash = parametrs.SingleOrDefault(x => x.Key == _fcbidHashKey).Value;
             var userData = parametrs.SingleOrDefault(x => x.Key == _fcudKey).Value;
-            return (Enum.Parse<TCallbacks>(callbackId), hash, userData);
-        }
-
-        public string GetHash(TObj obj)
-        {
-            var (_,h) = _builder(obj);
-            return h;
-        }
-    
-        private static string ByteArrayToString(byte[] arrInput)
-        {
-            int i;
-            StringBuilder sOutput = new StringBuilder(arrInput.Length);
-            for (i=0;i < arrInput.Length -1; i++)
-            {
-                sOutput.Append(arrInput[i].ToString("X2"));
-            }
-            return sOutput.ToString();
-        }
-    
-        private string GetHashableString(CallbackData callbackData)
-        {
-            return $"{callbackData.Text}{callbackData.CallbackText}{callbackData.CallbackMode}";
-        }
-    
-        private static string ComputeHash(string source)
-        {
-            var tmpSource = Encoding.Unicode.GetBytes(source);
-            var tmpNewHash = MD5.Create().ComputeHash(tmpSource);
-            var byteArrayToString = ByteArrayToString(tmpNewHash);
-            return byteArrayToString.Substring(byteArrayToString.Length - 8);
+            return (callbackId, userData);
         }
     }
 }

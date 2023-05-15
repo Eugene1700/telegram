@@ -4,13 +4,13 @@ using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
 namespace Telegram.Commands.Core.Fluent.Builders
 {
-    public interface IMessageBuilder<TObj, TStates, TCallbacks> : IStateBuilder<TObj, TStates, TCallbacks>
+    public interface IMessageBuilder<TObj, TStates> : IStateBuilder<TObj, TStates>
     {
-        ICallbacksBuilder<TObj, TStates, TCallbacks> WithCallbacks();
+        ICallbacksBuilder<TObj, TStates> WithCallbacks();
     }
 
-    public interface IMessageBuilderBase<TObj, TStates, TCallbacks>: IStateBuilderBase<TObj, TStates, TCallbacks>
+    public interface IMessageBuilderBase<TObj, TStates>: IStateBuilderBase<TObj, TStates>
     {
-        ICallbacksBuilderForMessage<TObj, TStates, TCallbacks> WithCallbacks();
+        ICallbacksBuilderForMessage<TObj, TStates> WithCallbacks();
     }
 }

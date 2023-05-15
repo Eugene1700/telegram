@@ -8,7 +8,7 @@ using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Fluent
 {
-    public abstract class FluentCommand<TObject, TStates, TCallbacks> : IBehaviorTelegramCommand<FluentObject<TObject, TStates>> where TCallbacks : struct, Enum
+    public abstract class FluentCommand<TObject, TStates> : IBehaviorTelegramCommand<FluentObject<TObject, TStates>>
     {
         public async Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query,
             FluentObject<TObject, TStates> sessionObject)
@@ -61,10 +61,10 @@ namespace Telegram.Commands.Core.Fluent
             return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, next.DurationInSec);
         }
 
-        private StateMachine<TObject, TStates, TCallbacks> GetStateMachine()
+        private StateMachine<TObject, TStates> GetStateMachine()
         {
-            var builderStateMachine = new StateMachineBuilder<TObject, TStates, TCallbacks>();
-            var stateMachine = (StateMachine<TObject, TStates, TCallbacks>)StateMachine(builderStateMachine);
+            var builderStateMachine = new StateMachineBuilder<TObject, TStates>();
+            var stateMachine = (StateMachine<TObject, TStates>)StateMachine(builderStateMachine);
             return stateMachine;
         }
 
@@ -94,7 +94,7 @@ namespace Telegram.Commands.Core.Fluent
 
         protected abstract Task<TObject> Entry<TQuery>(TQuery query, TObject currentObject);
 
-        protected abstract IStateMachine<TStates> StateMachine(IStateMachineBuilder<TObject, TStates, TCallbacks> builder);
+        protected abstract IStateMachine<TStates> StateMachine(IStateMachineBuilder<TObject, TStates> builder);
 
     }
 }

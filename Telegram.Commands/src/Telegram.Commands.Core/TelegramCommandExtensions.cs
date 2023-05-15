@@ -39,7 +39,7 @@ namespace Telegram.Commands.Core
             return GetCommandInfo(command.GetType());
         }
         
-        public static ITelegramCommandDescriptor GetCommandInfo<TObj, TStates, TCallbacks>(this FluentCommand<TObj, TStates, TCallbacks> command) where TCallbacks : struct, Enum
+        public static ITelegramCommandDescriptor GetCommandInfo<TObj, TStates>(this FluentCommand<TObj, TStates> command)
         {
             return GetCommandInfo(command.GetType());
         }
@@ -56,8 +56,8 @@ namespace Telegram.Commands.Core
             return GetCommandInfo(typeof(TCommand));
         }
         
-        public static ITelegramCommandDescriptor GetFluentCommandInfo<TCommand, TObject, TStates, TCallbacks>() 
-            where TCommand: FluentCommand<TObject, TStates, TCallbacks> where TCallbacks : struct, Enum
+        public static ITelegramCommandDescriptor GetFluentCommandInfo<TCommand, TObject, TStates>() 
+            where TCommand: FluentCommand<TObject, TStates>
         {
             return GetCommandInfo(typeof(TCommand));
         }
