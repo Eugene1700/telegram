@@ -26,19 +26,8 @@ namespace SimpleHandlers.Services.Commands
         Name,
         Surname,
         Validate,
-        Exit
-    }
-
-    public enum FluentCallbacks
-    {
-        DefaultName,
-        Skip,
         Exit,
-        Text,
-        ReturnToEntry,
-        DefaultSecondName,
-        SendNumber,
-        Pagination
+        Break
     }
 
     [Command(Name = "myfluent")]
@@ -76,8 +65,9 @@ namespace SimpleHandlers.Services.Commands
                 .Row().NextFromCallback("Skip", "data", States.Surname, true)
                 .Row().NextFromCallback( "Exit", "data", States.Exit, true)
                 .Row().OnCallback("Send TEXT", "TEXT", SendUserDataHandler, false)
-                .Row().ExitFromCallback<MyObject, States, FluentCallbacks, CancelCallback>("Cancel", "someData")
-                .Row().ExitFromCallback<MyObject, States, FluentCallbacks, CancelCallback>("Cancel", "someData")
+                .Row().NextFromCallback("Message with break", "", States.Break, false)
+                .Row().ExitFromCallback<MyObject, States, CancelCallback>("Cancel", "someData")
+                .Row().ExitFromCallback<MyObject, States, CancelCallback>("Cancel", "someData")
                 .Row().ExitFromCallback(KeyBoardBuild,
                     TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
                 .ExitFromCallback(CallbackDataWithCommand())
@@ -94,6 +84,9 @@ namespace SimpleHandlers.Services.Commands
                 .WithCallbacks()
                 .Row().NextFromCallback("Skip", "data", States.Surname, true)
                 .Next(FirstNameMessageHandler, true)
+                .State(States.Break)
+                .WithMessage("Message without waiting answer", Send)
+                .FireAndForget()
                 .Exit<object>(States.Exit, Finalize);
 
             return a.Build();

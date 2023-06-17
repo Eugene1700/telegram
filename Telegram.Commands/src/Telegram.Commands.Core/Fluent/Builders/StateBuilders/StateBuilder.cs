@@ -58,6 +58,12 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             return Next(_state.Id, force);
         }
 
+        public IStateMachineBodyBuilder<TObj, TStates> FireAndForget()
+        {
+            _state.ThisStateWithoutAnswer();
+            return _stateMachineBuilder;
+        }
+
         public ICallbackRowBuilder<TObj, TStates> OnCallback<TQuery>(Func<TObj, CallbackData> callbackProvider, 
             Func<TQuery, TObj, string, Task<TStates>> handler,
             bool force) where TQuery : class

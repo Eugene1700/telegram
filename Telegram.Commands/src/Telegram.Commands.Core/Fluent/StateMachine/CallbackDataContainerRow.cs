@@ -45,7 +45,6 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public CallbackDataContainer<TObj, TStates> AddContainer(Func<TObj, CallbackData> callbackProvider,
             ITelegramCommandDescriptor telegramCommandDescriptor)
         {
-            var callbackId = $"{_prefix}tc{_containers.Count}";
             var newContainer =
                 new CallbackDataContainer<TObj, TStates>(callbackProvider, telegramCommandDescriptor);
             _containers.Add(newContainer);

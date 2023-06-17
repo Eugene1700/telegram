@@ -21,6 +21,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
         private readonly StateMessagesBuilder<TObj, TStates> _messagesBuilder;
         private readonly Func<object, TObj, ITelegramMessage[], Task> _sender;
+        private bool _withoutAnswer;
 
         public State(TStates id, 
             StateType stateType, 
@@ -34,6 +35,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _finalizer = finalizer;
             _messagesBuilder = new StateMessagesBuilder<TObj, TStates>(id.ToString());
             _sender = sender;
+            _withoutAnswer = false;
         }
 
         public async Task SendMessages<TQuery>(TQuery currentQuery, TObj obj)
@@ -102,6 +104,8 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             return _finalizer?.Invoke(query, sessionObjectObject);
         }
 
+        public bool NeedAnswer => !_withoutAnswer;
+
         public void AddMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sender)
         {
             _messagesBuilder.AddMessage(messageProvider, sender);
@@ -136,6 +140,11 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public void AddNextFromCallback(Func<TObj,CallbackData> callbackProvider, TStates stateId, bool force)
         {
             _messagesBuilder.AddNextFromCallback(callbackProvider, stateId, force);
+        }
+
+        public void ThisStateWithoutAnswer()
+        {
+            _withoutAnswer = true;
         }
     }
 }

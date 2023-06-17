@@ -12,6 +12,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
         IStateMachineBodyBuilder<TObj, TStates> Next<TQuery>(Func<TQuery, TObj, Task<TStates>> handler, bool force) where TQuery : class;
         IStateMachineBodyBuilder<TObj, TStates> Next(TStates stateId, bool force);
         IStateMachineBodyBuilder<TObj, TStates> Loop(bool force);
+        IStateMachineBodyBuilder<TObj, TStates> FireAndForget();
         IMessageBuilder<TObj, TStates> WithMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task> sender = null);
         IStateBuilder<TObj, TStates> WithMessages(Func<TObj, IStateBuilderBase<TObj, TStates>, Task> messageFlowProvider);
     }

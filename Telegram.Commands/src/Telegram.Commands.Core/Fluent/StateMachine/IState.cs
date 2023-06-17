@@ -11,5 +11,6 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         Task<bool> IsCommandHandle<TQuery>(TObj obj, IQueryTelegramCommand<TQuery> currentCommand);
         StateType GetStateType();
         Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery query, TObj sessionObjectObject);
+        bool NeedAnswer { get;}
     }
 }
