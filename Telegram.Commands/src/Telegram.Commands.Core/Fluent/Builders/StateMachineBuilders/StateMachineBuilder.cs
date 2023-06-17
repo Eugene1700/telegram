@@ -6,7 +6,7 @@ using Telegram.Commands.Core.Fluent.StateMachine;
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
 {
-    internal class StateMachineBuilder<TObj, TStates> : IStateMachineBuilder<TObj, TStates>, IStateMachineBodyBuilder<TObj, TStates>
+    internal class StateMachineBuilder<TObj, TStates> : IStateMachineBuilder<TObj, TStates>
     {
         private readonly StateMachine<TObj, TStates> _stateMachine;
 
@@ -23,22 +23,12 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
             return entryStateBuilder;
         }
 
-        public IStateBuilder<TObj, TStates> Entry(TStates stateId, uint? durationInSec = null)
-        {
-            return NewState(stateId, StateType.Entry, null, durationInSec);
-        }
-
-        public IStateBuilder<TObj, TStates> Entry(TStates stateId, Func<object, TObj, ITelegramMessage[], Task> sender, uint? durationInSec = null)
-        {
-            return NewState(stateId, StateType.Entry, sender, durationInSec);
-        }
-
         public IStateMachine<TStates> Build()
         {
             return _stateMachine;
         }
 
-        public IStateMachineBodyBuilder<TObj, TStates> Exit<TQuery>(TStates stateId, Func<TQuery, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery : class
+        public IStateMachineBuilder<TObj, TStates> Exit<TQuery>(TStates stateId, Func<TQuery, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery : class
         {
             _stateMachine.AddExit(stateId, finalizer);
             return this;

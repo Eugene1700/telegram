@@ -8,7 +8,6 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
     internal class StateMachine<TObj, TStates> : IStateMachine<TStates>
     {
         private readonly Dictionary<TStates, IState<TObj, TStates>> _states;
-        private TStates _entryStateId;
 
         public StateMachine()
         {
@@ -17,22 +16,12 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
         public State<TObj, TStates> AddState(TStates stateId, StateType stateType, Func<object, TObj, ITelegramMessage[], Task> sender, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
         {
-            State<TObj, TStates> newState;
-            switch (stateType)
+            var newState = stateType switch
             {
-                case StateType.Entry:
-                    newState = new State<TObj, TStates>(stateId, stateType, sender, durationInSec);
-                    _entryStateId = stateId;
-                    break;
-                case StateType.Body:
-                    newState = new State<TObj, TStates>(stateId, stateType, sender, durationInSec);
-                    break;
-                case StateType.Finish:
-                    newState = new State<TObj, TStates>(stateId, stateType, sender, durationInSec, finalizer);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(stateType), stateType, null);
-            }
+                StateType.Body => new State<TObj, TStates>(stateId, stateType, sender, durationInSec),
+                StateType.Finish => new State<TObj, TStates>(stateId, stateType, sender, durationInSec, finalizer),
+                _ => throw new ArgumentOutOfRangeException(nameof(stateType), stateType, null)
+            };
 
             _states.Add(stateId, newState);
             return newState;
@@ -54,10 +43,6 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         {
             return _states[currentStateId];
         }
-
-        public IState<TObj, TStates> GetEntryState()
-        {
-            return _states[_entryStateId];
-        }
+        
     }
 }

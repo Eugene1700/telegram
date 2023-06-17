@@ -19,7 +19,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             _stateMachineBuilder = stateMachineBuilder;
         }
     
-        public IStateMachineBodyBuilder<TObj, TStates> Next<TQuery>(Func<TQuery, TObj, Task<TStates>> handler, bool force) where TQuery : class
+        public IStateMachineBuilder<TObj, TStates> Next<TQuery>(Func<TQuery, TObj, Task<TStates>> handler, bool force) where TQuery : class
         {
             _state.SetHandler((q, o) => handler(q as TQuery,o), force);
             return _stateMachineBuilder;
@@ -47,18 +47,18 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             return _state;
         }
 
-        public IStateMachineBodyBuilder<TObj, TStates> Next(TStates stateId, bool force)
+        public IStateMachineBuilder<TObj, TStates> Next(TStates stateId, bool force)
         {
             _state.SetHandler((q, o) => Task.FromResult(stateId), force);
             return _stateMachineBuilder;
         }
 
-        public IStateMachineBodyBuilder<TObj, TStates> Loop(bool force)
+        public IStateMachineBuilder<TObj, TStates> Loop(bool force)
         {
             return Next(_state.Id, force);
         }
 
-        public IStateMachineBodyBuilder<TObj, TStates> FireAndForget()
+        public IStateMachineBuilder<TObj, TStates> FireAndForget()
         {
             _state.ThisStateWithoutAnswer();
             return _stateMachineBuilder;
