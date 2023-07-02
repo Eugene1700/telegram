@@ -20,10 +20,11 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         internal MessageFlowBuilder(string prefix, Func<TObj, Task<string>> messageProvider,
-            Func<object, TObj, ITelegramMessage, Task> sendMessageProvider)
+            Func<object, TObj, ITelegramMessage, Task> sendMessageProvider, IState<TObj, TStates> currentState)
         {
             _provider = null;
-            _container = new MessageContainer<TObj, TStates>($"{prefix}mfb", messageProvider, sendMessageProvider);
+            _container =
+                new MessageContainer<TObj, TStates>($"{prefix}mfb", messageProvider, sendMessageProvider, currentState);
         }
 
         public void AddRow()

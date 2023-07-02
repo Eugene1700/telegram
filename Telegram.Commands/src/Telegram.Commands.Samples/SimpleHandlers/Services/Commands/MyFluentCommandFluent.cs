@@ -78,6 +78,7 @@ namespace SimpleHandlers.Services.Commands
                 .State(States.Surname)
                 .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), Send)
                 .WithCallbacks().KeyBoard(GetSurnameKeyboard)
+                .Row().Back("Back", "", BackHandler, true)
                 .Next(SecondNameHandler, true)
                 .State(States.Validate)
                 .WithMessage("Your name is too short! Please, send me again", Send)
@@ -90,6 +91,11 @@ namespace SimpleHandlers.Services.Commands
                 .Exit<object>(States.Exit, Finalize);
 
             return a.Build();
+        }
+
+        private Task BackHandler<TQuery>(TQuery arg1, MyObject arg2, string arg3) where TQuery : class
+        {
+            return Task.CompletedTask;
         }
 
         private Task OtherMessages(MyObject arg1, IStateBuilderBase<MyObject, States> builder)
@@ -137,6 +143,7 @@ namespace SimpleHandlers.Services.Commands
                 .NextFromCallback("Back", arg1.FirstName, States.Name, true)
                 .OnCallback("Default SecondName Smith", "Smith",
                     SecondNameCallbackHandler, true)
+                .Row().Back("Back", arg1.FirstName,  true)
                 .Row().NextFromCallback("Finish", arg1.FirstName, States.Exit, true);
             return Task.CompletedTask;
         }

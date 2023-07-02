@@ -9,7 +9,7 @@ using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
 {
-    internal class StateBuilder<TObj, TStates> : IMessageBuilder<TObj, TStates>, IStateBuilder<TObj, TStates>, ICallbackRowBuilder<TObj, TStates>
+    internal class StateBuilder<TObj, TStates> : IMessageBuilder<TObj, TStates>, ICallbackRowBuilder<TObj, TStates>
     {
         private readonly State<TObj, TStates> _state;
         private readonly StateMachineBuilder<TObj, TStates> _stateMachineBuilder;
@@ -90,6 +90,17 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
         {
             _state.AddExitFromCallback(callbackProvider, telegramCommandDescriptor);
             return this;
+        }
+
+        public ICallbackRowBuilder<TObj, TStates> Back<TQuery>(Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task> handler, bool force) where TQuery : class
+        {
+            async Task<TStates> HandlerSt(TQuery q, TObj o, string d)
+            {
+                await handler(q, o, d);
+                var parentState = _state.GetParentState();
+                return parentState ?? _state.Id;
+            }
+            return OnCallback<TQuery>(callbackProvider, HandlerSt, force);
         }
 
         public IMessageBuilder<TObj, TStates> WithMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task> sender)

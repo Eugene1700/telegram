@@ -13,6 +13,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         ICallbackRowBuilderForMessage<TObj, TStates>
     {
         private readonly string _prefix;
+        private readonly IState<TObj, TStates> _currentState;
         private readonly List<MessageFlowBuilder<TObj, TStates>> _messageFlowBuilders;
         private MessageFlowBuilder<TObj, TStates> _currMessageFlowBuilder;
 
@@ -20,9 +21,10 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         private MessageContainer<TObj, TStates> _currentMessageContainer;
         private bool _buildOnce = false;
 
-        public StateMessagesBuilder(string prefix)
+        public StateMessagesBuilder(string prefix, IState<TObj, TStates> currentState)
         {
             _prefix = prefix;
+            _currentState = currentState;
             _messageFlowBuilders = new List<MessageFlowBuilder<TObj, TStates>>();
             _containersMessages = new List<MessageContainer<TObj, TStates>>();
         }
@@ -65,7 +67,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         {
             var newBuilder =
                 new MessageFlowBuilder<TObj, TStates>($"{_prefix}mfb{_messageFlowBuilders.Count}", messageProvider,
-                    sender);
+                    sender, _currentState);
             _messageFlowBuilders.Add(newBuilder);
             _currMessageFlowBuilder = newBuilder;
         }
@@ -102,7 +104,8 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             Func<object, TObj, ITelegramMessage, Task> sender)
         {
             var newContainer =
-                new MessageContainer<TObj, TStates>($"{_prefix}mc{_containersMessages.Count}", messageProvider, sender);
+                new MessageContainer<TObj, TStates>($"{_prefix}mc{_containersMessages.Count}", messageProvider, sender,
+                    _currentState);
             _containersMessages.Add(newContainer);
             _currentMessageContainer = newContainer;
             return this;

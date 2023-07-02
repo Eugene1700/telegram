@@ -13,6 +13,8 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
         ICallbackRowBuilder<TObj, TStates> ExitFromCallback(CallbackDataWithCommand callbackDataWithCommand);
         ICallbackRowBuilder<TObj, TStates> ExitFromCallback(Func<TObj, CallbackData> callbackProvider,
             ITelegramCommandDescriptor telegramCommandDescriptor);
+        ICallbackRowBuilder<TObj, TStates> Back<TQuery>(Func<TObj, CallbackData> callbackProvider,
+            Func<TQuery, TObj, string, Task> handler, bool force) where TQuery : class;
     }
 
     public interface ICallbackRowBuilderForMessage<TObj, TStates> : ICallbacksBuilderForMessage<TObj, TStates>

@@ -17,8 +17,9 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
         public MessageContainer(string prefix, 
             Func<TObj, Task<string>> messageProvider, 
-            Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider) :
-            this(messageProvider, sendMessageProvider, new CallbackBuilder<TObj, TStates>($"{prefix}mc"))
+            Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider,
+            IState<TObj, TStates> currentState) :
+            this(messageProvider, sendMessageProvider, new CallbackBuilder<TObj, TStates>($"{prefix}mc", currentState))
         {
         }
 

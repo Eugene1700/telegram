@@ -95,11 +95,11 @@ namespace Telegram.Commands.Core.Services
             return CommandDescriptorComposition.CreateQueryResult(new FullCommandDescriptor(type));
         }
 
-        private async Task QueryHandler<T>(T query)
+        private async Task QueryHandler<T>(T query, bool stopCurrentExtracting = false)
         {
             try
             {
-                var commandDesc = GetCommand(query);
+                var commandDesc = GetCommand(query, stopCurrentExtracting);
                 if (commandDesc == null)
                     return;
 
@@ -135,7 +135,8 @@ namespace Telegram.Commands.Core.Services
             }
 
             var activeSession = _sessionManager.GetCurrentSession(chatId, userId);
-            if (commandExecutionResult.Result == ExecuteResult.Ahead || commandExecutionResult.Result == ExecuteResult.Fire)
+            if (commandExecutionResult.Result == ExecuteResult.Ahead || 
+                commandExecutionResult.Result == ExecuteResult.Fire)
             {
                 if (activeSession == null)
                 {
@@ -154,7 +155,7 @@ namespace Telegram.Commands.Core.Services
 
                 if (commandExecutionResult.Result == ExecuteResult.Fire)
                 {
-                    await QueryHandler(query);
+                    await QueryHandler(query, true);
                 }
                 return;
             }
@@ -181,7 +182,7 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private CommandDescriptorComposition GetCommand<T>(T query)
+        private CommandDescriptorComposition GetCommand<T>(T query, bool stopCurrentExtracting)
         {
             var chatId = query.GetChatId();
             if (TryGetSessionCommandStr(query, out var commandStr))
@@ -189,7 +190,7 @@ namespace Telegram.Commands.Core.Services
                 var comDesc = FindCommand(commandStr, chatId);
                 if (!comDesc.IsBehaviorTelegramCommand)
                     return CommandDescriptorComposition.CreateSessionResult(comDesc);
-                if (!TryGetQueryCommandStr(query, out var currentCommandStr))
+                if (!TryGetQueryCommandStr(query, out var currentCommandStr) || stopCurrentExtracting)
                     return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
                 var queryCommandDesc = FindCommand(currentCommandStr, chatId);
                 return CommandDescriptorComposition.CreateBehaviorResult(comDesc, queryCommandDesc);

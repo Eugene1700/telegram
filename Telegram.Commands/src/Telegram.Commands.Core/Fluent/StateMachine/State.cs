@@ -22,6 +22,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         private readonly StateMessagesBuilder<TObj, TStates> _messagesBuilder;
         private readonly Func<object, TObj, ITelegramMessage[], Task> _sender;
         private bool _withoutAnswer;
+        private TStates _parentState;
 
         public State(TStates id, 
             StateType stateType, 
@@ -33,9 +34,10 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             Id = id;
             DurationInSec = durationInSec;
             _finalizer = finalizer;
-            _messagesBuilder = new StateMessagesBuilder<TObj, TStates>(id.ToString());
+            _messagesBuilder = new StateMessagesBuilder<TObj, TStates>(id.ToString(), this);
             _sender = sender;
             _withoutAnswer = false;
+            _parentState = default;
         }
 
         public async Task SendMessages<TQuery>(TQuery currentQuery, TObj obj)
@@ -105,6 +107,10 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         public bool NeedAnswer => !_withoutAnswer;
+        public void SetParentState(IState<TObj, TStates> currentState)
+        {
+            _parentState = currentState.Id;
+        }
 
         public void AddMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sender)
         {
@@ -145,6 +151,11 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public void ThisStateWithoutAnswer()
         {
             _withoutAnswer = true;
+        }
+
+        public TStates GetParentState()
+        {
+            return _parentState;
         }
     }
 }

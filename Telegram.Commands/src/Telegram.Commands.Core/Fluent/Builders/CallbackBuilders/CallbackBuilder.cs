@@ -10,15 +10,17 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
     internal class CallbackBuilder<TObj, TStates>: ICallbackRowBuilderBase<TObj, TStates>
     {
         private readonly string _prefix;
+        private readonly IState<TObj, TStates> _currentState;
         private CallbackDataContainerRow<TObj, TStates> _currentRow;
         private readonly List<CallbackDataContainerRow<TObj, TStates>> _containerRows;
         private readonly List<CallbackDataContainerRowsBuilder<TObj, TStates>> _rowBuilders;
         private bool _buildOnce = false;
         private CallbackDataContainerRowsBuilder<TObj,TStates> _currentRowBuilder;
 
-        public CallbackBuilder(string prefix)
+        public CallbackBuilder(string prefix, IState<TObj, TStates> currentState)
         {
             _prefix = prefix;
+            _currentState = currentState;
             _containerRows = new List<CallbackDataContainerRow<TObj, TStates>>();
             _rowBuilders = new List<CallbackDataContainerRowsBuilder<TObj, TStates>>();
         }
@@ -95,7 +97,18 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
                 telegramCommandDescriptor: telegramCommandDescriptor);
             return this;
         }
-        
+
+        public ICallbackRowBuilderBase<TObj, TStates> Back<TQuery>(Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task> handler, bool force) where TQuery : class
+        {
+            Func<TQuery, TObj, string, Task<TStates>> handlerSt = async (q, o, d) =>
+            {
+                await handler(q, o, d);
+                var parentState = _currentState.GetParentState();
+                return parentState ?? _currentState.Id;
+            };
+            return OnCallback(callbackProvider, handlerSt, force);
+        }
+
         public void AddRow()
         {
             var newPrefix = $"{_prefix}s{_rowBuilders.Count}";

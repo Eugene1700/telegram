@@ -52,6 +52,7 @@ namespace Telegram.Commands.Core.Fluent
             var (nextStateId, force) = await currentState.HandleQuery(query, sessionObject.Object);
 
             var next = stateMachine.GetStateInternal(nextStateId);
+            next.SetParentState(currentState);
             if (next.GetStateType() == StateType.Finish)
             {
                 return await next.Finalize(query, sessionObject.Object);
