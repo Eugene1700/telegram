@@ -26,6 +26,7 @@ namespace Telegram.Commands.Core.Fluent
                         Data = nextState,
                         IsInit = true
                     },
+                    ParentStateId = new Initiable<TStates>()
                 };
                 var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
                 await entryState.SendMessages(query, sessionObject.Object);
@@ -40,6 +41,7 @@ namespace Telegram.Commands.Core.Fluent
                 sessionObject.Object = obj;
                 sessionObject.CurrentStateId.Data = nextState;
                 sessionObject.CurrentStateId.IsInit = true;
+                sessionObject.ParentStateId = new Initiable<TStates>();
                 if (sessionObject.FireType == FireType.Entry)
                 {
                     var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
@@ -49,10 +51,17 @@ namespace Telegram.Commands.Core.Fluent
             }
 
             var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
+            if (sessionObject.ParentStateId.IsInit)
+                currentState.SetParentState(sessionObject.ParentStateId.Data);
             var (nextStateId, force) = await currentState.HandleQuery(query, sessionObject.Object);
-
+            
             var next = stateMachine.GetStateInternal(nextStateId);
-            next.SetParentState(currentState);
+            if (next.Id.ToString() != currentState.Id.ToString())
+            {
+                sessionObject.ParentStateId.Data = currentState.Id;
+                sessionObject.ParentStateId.IsInit = true;
+            }
+
             if (next.GetStateType() == StateType.Finish)
             {
                 return await next.Finalize(query, sessionObject.Object);

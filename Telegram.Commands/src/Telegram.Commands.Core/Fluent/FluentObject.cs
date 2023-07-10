@@ -12,6 +12,7 @@
         public Initiable<TStates> CurrentStateId { get; set; }
         public TObject Object { get; set; }
         public FireType? FireType { get; set; }
+        public Initiable<TStates> ParentStateId { get; set; }
     }
 
     public enum FireType

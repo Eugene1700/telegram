@@ -107,10 +107,6 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         public bool NeedAnswer => !_withoutAnswer;
-        public void SetParentState(IState<TObj, TStates> currentState)
-        {
-            _parentState = currentState.Id;
-        }
 
         public void AddMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task>  sender)
         {
@@ -156,6 +152,11 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public TStates GetParentState()
         {
             return _parentState;
+        }
+
+        public void SetParentState(TStates state)
+        {
+            _parentState = state;
         }
     }
 }
