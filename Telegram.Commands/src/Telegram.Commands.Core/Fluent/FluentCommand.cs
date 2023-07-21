@@ -88,6 +88,19 @@ namespace Telegram.Commands.Core.Fluent
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand,
             TQuery query, FluentObject<TObject, TStates> sessionObject)
         {
+            var interceptResult = TryIntercept(currentCommand, query, sessionObject.Object);
+            if (interceptResult.MustIntercept)
+            {
+                var executionResult = await currentCommand.Execute(query);
+                if (interceptResult.IsTerminalResult)
+                    return executionResult;
+                if (interceptResult.ResultCallback != null)
+                {
+                    await interceptResult.ResultCallback(query, sessionObject.Object, executionResult);
+                }
+                return TelegramCommandExecutionResult.Freeze();
+            }
+            
             var stateMachine = StateMachineInternal;
             if (sessionObject.CurrentStateId == null)
                 return await DefaultExecute(query, sessionObject);
@@ -101,6 +114,17 @@ namespace Telegram.Commands.Core.Fluent
             return await DefaultExecute(query, sessionObject);
         }
 
+        protected virtual InterceptResult<TQuery, TObject> TryIntercept<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, TQuery query, 
+            TObject sessionObject)
+        {
+            return new InterceptResult<TQuery, TObject>
+            {
+                IsTerminalResult = false,
+                MustIntercept = false,
+                ResultCallback = null
+            };
+        }
+
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(
             ISessionTelegramCommand<TQuery, FluentObject<TObject, TStates>> currentCommand, TQuery query,
             FluentObject<TObject, TStates> sessionObject)
@@ -111,5 +135,12 @@ namespace Telegram.Commands.Core.Fluent
         protected abstract Task<(TObject, TStates)> Entry<TQuery>(TQuery query, TObject currentObject);
 
         protected abstract IStateMachine<TStates> StateMachine(IStateMachineBuilder<TObject, TStates> builder);
+    }
+
+    public class InterceptResult<TQuery, TObject>
+    {
+        public bool MustIntercept { get; set; }
+        public bool IsTerminalResult { get; set; }
+        public Func<TQuery, TObject, ITelegramCommandExecutionResult, Task> ResultCallback { get; set; }
     }
 }

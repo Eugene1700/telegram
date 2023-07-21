@@ -89,6 +89,8 @@ namespace Telegram.Commands.Core
             if (attr == null)
                 throw new InvalidOperationException("unknown command");
             var data = query.GetData();
+            if (data == null)
+                return null;
             var com = "/" + TelegramQueryExtensions.ExtractCommand(data);
             return data.Replace(com, "").Trim();
         }

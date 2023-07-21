@@ -87,9 +87,17 @@ namespace Telegram.Commands.Core.Services
                     case MessageType.ChatMembersAdded:
                         type = FindEventByType(EventType.ChatMemberAdded);
                         break;
+                    case MessageType.ChatMemberLeft:
+                        type = FindEventByType(EventType.ChatMemberLeft);
+                        break;
                     default:
                         return null;
                 }
+            }
+
+            if (type == null)
+            {
+                return null;
             }
 
             return CommandDescriptorComposition.CreateQueryResult(new FullCommandDescriptor(type));
@@ -235,6 +243,7 @@ namespace Telegram.Commands.Core.Services
                         case MessageType.MigratedToSupergroup:
                         case MessageType.MigratedFromGroup:
                         case MessageType.ChatMembersAdded:
+                        case MessageType.ChatMemberLeft:
                             return true;
                         default:
                             return false;

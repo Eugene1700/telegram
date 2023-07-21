@@ -26,7 +26,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             CallbackDataWithCommand NewProvider(TObj o)
             {
                 var callbackData = provider(o);
-                return 
+                return
                     new CallbackDataWithCommand
                     {
                         CallbackMode = callbackData.CallbackMode,
@@ -43,17 +43,17 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _forceNext = force;
         }
 
-        public CallbackDataContainer(Func<TObj, CallbackData> provider, 
+        public CallbackDataContainer(Func<TObj, CallbackData> provider,
             ITelegramCommandDescriptor telegramCommandDescriptor)
         {
             CallbackDataWithCommand NewProvider(TObj o)
             {
                 var callbackData = provider(o);
                 return new CallbackDataWithCommand
-                    {
-                        CallbackMode = callbackData.CallbackMode, CallbackText = callbackData.CallbackText,
-                        Text = callbackData.Text, CommandDescriptor = telegramCommandDescriptor
-                    };
+                {
+                    CallbackMode = callbackData.CallbackMode, CallbackText = callbackData.CallbackText,
+                    Text = callbackData.Text, CommandDescriptor = telegramCommandDescriptor
+                };
             }
 
             CallbackKey = default;
@@ -87,7 +87,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public static bool IsCallback<TQuery>(TQuery query)
         {
             var data = query.GetData();
-            return data.Split("&").Any(x => x.StartsWith(_fcbidKey));
+            return !string.IsNullOrWhiteSpace(data) && data.Split("&").Any(x => x.StartsWith(_fcbidKey));
         }
 
         public static (string, string) ExtractData<TQuery>(TQuery query)
@@ -100,6 +100,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
                 {
                     throw new InvalidOperationException();
                 }
+
                 return new KeyValuePair<string, string>(parts[0], parts[1]);
             }).ToArray();
             var callbackId = parametrs.SingleOrDefault(x => x.Key == _fcbidKey).Value;

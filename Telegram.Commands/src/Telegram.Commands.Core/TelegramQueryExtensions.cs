@@ -30,7 +30,7 @@ namespace Telegram.Commands.Core
         {
             return query switch
             {
-                Message message => message.Text,
+                Message message => message.Type == MessageType.Text ? message.Text : null,
                 CallbackQuery callbackQuery => callbackQuery.Data,
                 PreCheckoutQuery preCheckoutQuery => preCheckoutQuery.InvoicePayload,
                 _ => throw new ArgumentOutOfRangeException()

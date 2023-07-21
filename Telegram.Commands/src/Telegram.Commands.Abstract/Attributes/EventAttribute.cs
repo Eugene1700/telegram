@@ -10,6 +10,7 @@
     {
         BotMemberAddedToChat,
         MigrateToSuperGroup,
-        ChatMemberAdded
+        ChatMemberAdded,
+        ChatMemberLeft
     }
 }
