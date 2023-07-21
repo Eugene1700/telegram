@@ -100,8 +100,28 @@ namespace SimpleHandlers.Services.Commands
 
         private Task OtherMessages(MyObject arg1, IStateBuilderBase<MyObject, States> builder)
         {
-            builder.WithMessage("Next message", SendSubMessage);
+            builder.WithMessage("Next message", SendSubMessage)
+                .WithCallbacks().Row().NextFromCallback(GetCallback, States.Name, true)
+                .NextFromCallback(GetCallback2, States.Surname, true);
             return Task.CompletedTask;
+        }
+
+        private CallbackData GetCallback(MyObject arg)
+        {
+            return new CallbackData
+            {
+                Text = "Some callbackData",
+                CallbackText = "text"
+            };
+        }
+        
+        private CallbackData GetCallback2(MyObject arg)
+        {
+            return new CallbackData
+            {
+                Text = "Some callbackData2",
+                CallbackText = "text"
+            };
         }
 
         private Task SendSubMessage(object currentQuery, MyObject obj, ITelegramMessage message)

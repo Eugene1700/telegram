@@ -23,7 +23,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         {
         }
 
-        internal MessageContainer(Func<TObj, Task<string>> messageProvider, 
+        private MessageContainer(Func<TObj, Task<string>> messageProvider, 
             Func<object, TObj, ITelegramMessage, Task>  sendMessageProvider,
             CallbackBuilder<TObj, TStates> callbackBuilder)
         {
