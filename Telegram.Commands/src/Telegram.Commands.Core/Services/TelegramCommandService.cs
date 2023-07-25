@@ -75,7 +75,7 @@ namespace Telegram.Commands.Core.Services
             {
                 type = FindEventByType(EventType.BotMemberAddedToChat);
             }
-
+            
             if (query is Message mes)
             {
                 switch (mes.Type)
@@ -192,6 +192,11 @@ namespace Telegram.Commands.Core.Services
 
         private CommandDescriptorComposition GetCommand<T>(T query, bool stopCurrentExtracting)
         {
+            if (IsEvent(query))
+            {
+                return GetEvent(query);
+            }
+            
             var chatId = query.GetChatId();
             if (TryGetSessionCommandStr(query, out var commandStr))
             {
@@ -202,11 +207,6 @@ namespace Telegram.Commands.Core.Services
                     return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
                 var queryCommandDesc = FindCommand(currentCommandStr, chatId);
                 return CommandDescriptorComposition.CreateBehaviorResult(comDesc, queryCommandDesc);
-            }
-
-            if (IsEvent(query))
-            {
-                return GetEvent(query);
             }
 
             if (!TryGetQueryCommandStr(query, out commandStr))
