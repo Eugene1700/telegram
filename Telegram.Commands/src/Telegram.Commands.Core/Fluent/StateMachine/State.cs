@@ -60,6 +60,12 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         {
             if (CallbackDataContainer<TObj, TStates>.IsCallback(query))
             {
+                var (callbackId, _) = CallbackDataContainer<TObj, TStates>.ExtractData(query);
+                if (!callbackId.StartsWith(_messagesBuilder.GetPrefix()))
+                {
+                    return (await _handler(query, obj), _forceNext);
+                }
+                
                 var messageContainers = await _messagesBuilder.Build(obj);
                 foreach (var messageContainer in messageContainers)
                 {

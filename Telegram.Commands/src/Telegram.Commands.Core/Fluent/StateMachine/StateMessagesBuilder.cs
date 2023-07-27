@@ -158,5 +158,10 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _currentMessageContainer.CallbackBuilder.AddExitFromCallback(callbackProvider, telegramCommandDescriptor);
             return this;
         }
+
+        public string GetPrefix()
+        {
+            return _prefix;
+        }
     }
 }

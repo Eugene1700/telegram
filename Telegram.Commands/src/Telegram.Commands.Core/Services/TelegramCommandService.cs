@@ -206,6 +206,8 @@ namespace Telegram.Commands.Core.Services
                 if (!TryGetQueryCommandStr(query, out var currentCommandStr) || stopCurrentExtracting)
                     return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
                 var queryCommandDesc = FindCommand(currentCommandStr, chatId);
+                if (queryCommandDesc.IsBehaviorTelegramCommand)
+                    return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
                 return CommandDescriptorComposition.CreateBehaviorResult(comDesc, queryCommandDesc);
             }
 
