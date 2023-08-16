@@ -74,6 +74,8 @@ namespace SimpleHandlers.Services.Commands
                 .KeyBoard(SameCallbackKey)
                 .KeyboardWithPagination(Paginator)
                 .WithMessages(OtherMessages)
+                // .WithMessage(GetMessageWithParseMode, SendWithParseMode)
+                .WithMessage(GetMessageWithParseMode2, SendWithParseMode)
                 .Next(FirstNameMessageHandler, true)
                 .State(States.Surname)
                 .WithMessage((state, obj) => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), Send)
@@ -90,6 +92,29 @@ namespace SimpleHandlers.Services.Commands
                 .Exit<object>(States.Exit, Finalize);
 
             return a.Build();
+        }
+        private Task SendWithParseMode(object currentQuery, States arg2, MyObject obj, ITelegramMessageTyped<TelegramParseMode> message)
+        {
+            if (currentQuery is CallbackQuery callbackQuery)
+            {
+                return _telegramBotClient.EditMessageTextAsync(obj.ChatId, callbackQuery.Message.MessageId, message.Text,
+                    message.ParseMode.ToParseMode(),
+                    replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
+            }
+
+            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
+                message.ParseMode.ToParseMode(),
+                replyMarkup: message.ReplyMarkup);
+        }
+
+        private Task<IMessageTextTyped<TelegramParseMode>> GetMessageWithParseMode(States arg1, MyObject arg2)
+        {
+            throw new NotImplementedException();
+        }
+        
+        private Task<(string, TelegramParseMode)> GetMessageWithParseMode2(States arg1, MyObject arg2)
+        {
+            return Task.FromResult(("*MarkDownText*", TelegramParseMode.MarkDownV2));
         }
 
         private Task BackHandler<TQuery>(TQuery arg1, MyObject arg2, string arg3) where TQuery : class
@@ -125,7 +150,7 @@ namespace SimpleHandlers.Services.Commands
 
         private Task SendSubMessage(object currentQuery, States state, MyObject obj, ITelegramMessage message)
         {
-            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Message,
+            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 
@@ -230,7 +255,7 @@ namespace SimpleHandlers.Services.Commands
             return States.Exit;
         }
 
-        private async Task<ITelegramCommandExecutionResult> Finalize(object currentQuery, MyObject obj)
+        private async Task<ITelegramCommandExecutionResult> Finalize(object currentQuery, States  state, MyObject obj)
         {
             long chatId = 0;
             if (currentQuery is Message message)
@@ -251,11 +276,11 @@ namespace SimpleHandlers.Services.Commands
         {
             if (currentQuery is CallbackQuery callbackQuery)
             {
-                return _telegramBotClient.EditMessageTextAsync(obj.ChatId, callbackQuery.Message.MessageId, message.Message,
+                return _telegramBotClient.EditMessageTextAsync(obj.ChatId, callbackQuery.Message.MessageId, message.Text,
                     replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
             }
 
-            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Message,
+            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 

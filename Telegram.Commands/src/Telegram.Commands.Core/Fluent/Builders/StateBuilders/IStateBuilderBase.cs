@@ -6,7 +6,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
 
     public interface IStateBuilderBase<TObj, TStates>
     {
-        IMessageBuilderBase<TObj, TStates> WithMessage(Func<TStates, TObj, Task<string>> messageProvider,
+        IMessageBuilderBase<TObj, TStates> WithMessage(Func<TStates, TObj, Task<IMessageText>> messageProvider,
             Func<object, TStates, TObj, ITelegramMessage, Task> sender = null);
     }
 }

@@ -9,6 +9,6 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
     {
         IStateMachine<TStates> Build();
         IStateMachineBuilder<TObj, TStates> Exit<TQuery>(TStates stateId,
-            Func<TQuery, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery: class;
+            Func<TQuery, TStates, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery: class;
     }
 }

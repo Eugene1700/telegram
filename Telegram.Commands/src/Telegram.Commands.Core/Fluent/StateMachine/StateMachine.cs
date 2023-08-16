@@ -14,7 +14,9 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _states = new Dictionary<TStates, IState<TObj, TStates>>();
         }
 
-        public State<TObj, TStates> AddState(TStates stateId, StateType stateType, Func<object, TObj, ITelegramMessage[], Task> sender, uint? durationInSec, Func<object, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
+        public State<TObj, TStates> AddState(TStates stateId, StateType stateType,
+            Func<object, TStates, TObj, ITelegramMessage[], Task> sender, uint? durationInSec,
+            Func<object, TStates, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
         {
             var newState = stateType switch
             {
@@ -28,9 +30,9 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         public State<TObj, TStates> AddExit<TQuery>(TStates stateId,
-            Func<TQuery, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery : class
+            Func<TQuery, TStates, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery : class
         {
-            Task<ITelegramCommandExecutionResult> FinalizerObj(object q, TObj o) => finalizer(q as TQuery, o);
+            Task<ITelegramCommandExecutionResult> FinalizerObj(object q, TStates s, TObj o) => finalizer(q as TQuery, s, o);
             return AddState(stateId, StateType.Finish, null, null, FinalizerObj);
         }
 
@@ -43,6 +45,5 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         {
             return _states[currentStateId];
         }
-        
     }
 }

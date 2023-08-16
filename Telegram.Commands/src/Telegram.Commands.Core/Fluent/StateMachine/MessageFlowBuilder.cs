@@ -19,7 +19,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _container = null;
         }
 
-        internal MessageFlowBuilder(string prefix, Func<TStates, TObj, Task<string>> messageProvider,
+        internal MessageFlowBuilder(string prefix, Func<TStates, TObj, Task<IMessageText>> messageProvider,
             Func<object, TStates, TObj, ITelegramMessage, Task> sendMessageProvider, IState<TObj, TStates> currentState)
         {
             _provider = null;

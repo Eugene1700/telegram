@@ -96,7 +96,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             return this;
         }
 
-        public IMessageBuilder<TObj, TStates> WithMessage(Func<TStates, TObj, Task<string>> messageProvider,
+        public IMessageBuilder<TObj, TStates> WithMessage(Func<TStates, TObj, Task<IMessageText>> messageProvider,
             Func<object, TStates, TObj, ITelegramMessage, Task> sender)
         {
             _state.AddMessage(messageProvider, sender);

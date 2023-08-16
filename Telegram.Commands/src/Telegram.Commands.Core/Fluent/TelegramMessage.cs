@@ -1,17 +1,19 @@
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
 namespace Telegram.Commands.Core.Fluent
 {
     internal class TelegramMessage : ITelegramMessage
     {
-        public TelegramMessage(string message, IReplyMarkup replyMarkup)
+        public TelegramMessage(IMessageText message, IReplyMarkup replyMarkup)
         {
-            Message = message;
+            Text = message.Text;
+            ParseMode = message.ParseMode;
             ReplyMarkup = replyMarkup;
         }
 
-        public string Message { get; }
-
+        public string Text { get; }
+        public object ParseMode { get; }
         public IReplyMarkup ReplyMarkup { get; }
     }
 }

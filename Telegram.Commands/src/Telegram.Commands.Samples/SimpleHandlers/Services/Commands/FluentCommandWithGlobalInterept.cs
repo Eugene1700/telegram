@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Fluent;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
+using Telegram.Commands.Core.Fluent.Builders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
@@ -48,7 +47,7 @@ namespace SimpleHandlers.Services.Commands
                 .Exit<object>(FluentCommandWithGlobalInterceptStates.Stop, Stop).Build();
         }
 
-        private async Task<ITelegramCommandExecutionResult> Stop(object arg1,
+        private async Task<ITelegramCommandExecutionResult> Stop(object arg1, FluentCommandWithGlobalInterceptStates state, 
             FluentCommandWithGlobalInterceptObject arg2)
         {
             return TelegramCommandExecutionResult.Break();
@@ -71,7 +70,7 @@ namespace SimpleHandlers.Services.Commands
                 _ => throw new InvalidOperationException()
             };
 
-            return _telegramBotClient.SendTextMessageAsync(chatId, message.Message,
+            return _telegramBotClient.SendTextMessageAsync(chatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 
