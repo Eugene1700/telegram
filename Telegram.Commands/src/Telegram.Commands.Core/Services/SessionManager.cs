@@ -4,6 +4,7 @@ using Telegram.Commands.Abstract;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Exceptions;
+using Telegram.Commands.Core.Fluent;
 using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Services
@@ -150,6 +151,33 @@ namespace Telegram.Commands.Core.Services
         {
             return await OpenSession(TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>(), chatId, telegramUserId,
                 sessionData, sessionTimeInSec);
+        }
+
+        public async Task<ISessionInfoWithData> OpenBehaviorSession<TCommand, TData>(long chatId, long telegramUserId, TData sessionData, uint? sessionTimeInSec) where TCommand : IBehaviorTelegramCommand<TData>
+        {
+            return await OpenSession(TelegramCommandExtensions.GetBehaviorCommandInfo<TCommand, TData>(), chatId, telegramUserId,
+                sessionData, sessionTimeInSec);
+        }
+    }
+    
+    public static class SessionManagerExtensions 
+    {
+        public static Task<ISessionInfoWithData> OpenFluentSession<TCommand, TData, TStates>(this ISessionManager sessionManager, 
+            long chatId,
+            long telegramUserId,
+            TData sessionData,
+            uint? sessionTimeInSec = 600) where TCommand : FluentCommand<TData, TStates>
+        {
+            return sessionManager.OpenBehaviorSession<TCommand, FluentObject<TData, TStates>>(chatId, telegramUserId,
+                new FluentObject<TData, TStates>(sessionData, FireType.HandleCurrent), sessionTimeInSec);
+        }
+        
+        public static (ISessionInfo, TData) GetFluentSession<TCommand, TData, TStates>(this ISessionManager sessionManager, 
+            long chatId,
+            long telegramUserId) where TCommand : FluentCommand<TData, TStates>
+        {
+            var session = sessionManager.GetSession<TCommand, FluentObject<TData, TStates>>(chatId, telegramUserId);
+            return (session, session.Data.Object);
         }
     }
 }

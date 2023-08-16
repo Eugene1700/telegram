@@ -29,7 +29,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _containersMessages = new List<MessageContainer<TObj, TStates>>();
         }
 
-        public async Task<MessageContainer<TObj, TStates>[]> Build(TObj obj, bool force = true)
+        public async Task<MessageContainer<TObj, TStates>[]> Build(TStates state, TObj obj, bool force = true)
         {
             if (force)
             {
@@ -41,7 +41,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             {
                 foreach (var messageFlowBuilder in _messageFlowBuilders)
                 {
-                    if (!await messageFlowBuilder.TryBuild(obj, this))
+                    if (!await messageFlowBuilder.TryBuild(state, obj, this))
                     {
                         if (messageFlowBuilder.TryGetContainer(out var cont))
                         {
@@ -56,14 +56,14 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             return _containersMessages.ToArray();
         }
 
-        public void AddProvider(Func<TObj, IStateBuilderBase<TObj, TStates>, Task> messageFlowProvider)
+        public void AddProvider(Func<TStates, TObj, IStateBuilderBase<TObj, TStates>, Task> messageFlowProvider)
         {
             var newBuilder = new MessageFlowBuilder<TObj, TStates>(messageFlowProvider);
             _messageFlowBuilders.Add(newBuilder);
         }
 
-        public void AddMessage(Func<TObj, Task<string>> messageProvider,
-            Func<object, TObj, ITelegramMessage, Task> sender)
+        public void AddMessage(Func<TStates, TObj, Task<string>> messageProvider,
+            Func<object, TStates, TObj, ITelegramMessage, Task> sender)
         {
             var newBuilder =
                 new MessageFlowBuilder<TObj, TStates>($"{_prefix}mfb{_messageFlowBuilders.Count}", messageProvider,
@@ -77,31 +77,31 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _currMessageFlowBuilder.AddRow();
         }
 
-        public void AddOnCallback<TQuery>(Func<TObj, CallbackData> callbackProvider,
-            Func<TQuery, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
+        public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
+            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
         {
             _currMessageFlowBuilder.AddOnCallback(callbackProvider, handler, force);
         }
 
-        public void AddKeyBoardProvider(Func<TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
+        public void AddKeyBoardProvider(Func<TStates, TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
         {
             _currMessageFlowBuilder.AddProvider(provider);
         }
 
-        public void AddExitFromCallback(Func<TObj, CallbackData> callbackProvider,
+        public void AddExitFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,
             ITelegramCommandDescriptor telegramCommandDescriptor)
         {
             _currMessageFlowBuilder.AddExitFromCallback(callbackProvider, telegramCommandDescriptor);
         }
 
-        public void AddNextFromCallback(Func<TObj, CallbackData> callbackProvider,
+        public void AddNextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,
             TStates stateId, bool force)
         {
             _currMessageFlowBuilder.AddNextFromCallback(callbackProvider, stateId, force);
         }
 
-        public IMessageBuilderBase<TObj, TStates> WithMessage(Func<TObj, Task<string>> messageProvider,
-            Func<object, TObj, ITelegramMessage, Task> sender)
+        public IMessageBuilderBase<TObj, TStates> WithMessage(Func<TStates, TObj, Task<string>> messageProvider,
+            Func<object, TStates, TObj, ITelegramMessage, Task> sender)
         {
             var newContainer =
                 new MessageContainer<TObj, TStates>($"{_prefix}mc{_containersMessages.Count}", messageProvider, sender,
@@ -123,20 +123,20 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         public ICallbacksBuilderForMessage<TObj, TStates> KeyBoard(
-            Func<TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
+            Func<TStates, TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
         {
             _currentMessageContainer.CallbackBuilder.AddProvider(provider);
             return this;
         }
 
-        public ICallbackRowBuilderForMessage<TObj, TStates> OnCallback<TQuery>(Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<TStates>> handler, bool force)
+        public ICallbackRowBuilderForMessage<TObj, TStates> OnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool force)
             where TQuery : class
         {
             _currentMessageContainer.CallbackBuilder.AddOnCallback(callbackProvider, handler, force);
             return this;
         }
 
-        public ICallbackRowBuilderForMessage<TObj, TStates> NextFromCallback(Func<TObj, CallbackData> callbackProvider, 
+        public ICallbackRowBuilderForMessage<TObj, TStates> NextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, 
             TStates stateId,
             bool force)
         {
@@ -147,12 +147,12 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public ICallbackRowBuilderForMessage<TObj, TStates> ExitFromCallback(
             CallbackDataWithCommand callbackDataWithCommand)
         {
-            _currentMessageContainer.CallbackBuilder.AddExitFromCallback((_)=>callbackDataWithCommand, callbackDataWithCommand.CommandDescriptor);
+            _currentMessageContainer.CallbackBuilder.AddExitFromCallback((s, o)=>callbackDataWithCommand, callbackDataWithCommand.CommandDescriptor);
             return this;
         }
 
         public ICallbackRowBuilderForMessage<TObj, TStates> ExitFromCallback(
-            Func<TObj, CallbackData> callbackProvider,
+            Func<TStates, TObj, CallbackData> callbackProvider,
             ITelegramCommandDescriptor telegramCommandDescriptor)
         {
             _currentMessageContainer.CallbackBuilder.AddExitFromCallback(callbackProvider, telegramCommandDescriptor);

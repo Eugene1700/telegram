@@ -12,20 +12,20 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 {
     internal class CallbackDataContainer<TObj, TStates>
     {
-        private readonly Func<TObj, CallbackDataWithCommand> _builder;
+        private readonly Func<TStates, TObj, CallbackDataWithCommand> _builder;
         private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
-        private readonly Func<object, TObj, string, Task<TStates>> _handler;
+        private readonly Func<object, TStates, TObj, string, Task<TStates>> _handler;
         private readonly bool _forceNext;
         private const string _fcudKey = "fud";
         private const string _fcbidKey = "fid";
         public string CallbackKey { get; }
 
-        public CallbackDataContainer(string callbackId, Func<TObj, CallbackData> provider,
-            Func<object, TObj, string, Task<TStates>> handler = null, bool force = false)
+        public CallbackDataContainer(string callbackId, Func<TStates, TObj, CallbackData> provider,
+            Func<object, TStates, TObj, string, Task<TStates>> handler = null, bool force = false)
         {
-            CallbackDataWithCommand NewProvider(TObj o)
+            CallbackDataWithCommand NewProvider(TStates s, TObj o)
             {
-                var callbackData = provider(o);
+                var callbackData = provider(s, o);
                 return
                     new CallbackDataWithCommand
                     {
@@ -43,12 +43,12 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _forceNext = force;
         }
 
-        public CallbackDataContainer(Func<TObj, CallbackData> provider,
+        public CallbackDataContainer(Func<TStates, TObj, CallbackData> provider,
             ITelegramCommandDescriptor telegramCommandDescriptor)
         {
-            CallbackDataWithCommand NewProvider(TObj o)
+            CallbackDataWithCommand NewProvider(TStates s, TObj o)
             {
-                var callbackData = provider(o);
+                var callbackData = provider(s, o);
                 return new CallbackDataWithCommand
                 {
                     CallbackMode = callbackData.CallbackMode, CallbackText = callbackData.CallbackText,
@@ -63,20 +63,20 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _forceNext = false;
         }
 
-        public CallbackDataWithCommand Build(TObj obj)
+        public CallbackDataWithCommand Build(TStates state, TObj obj)
         {
             if (_builder != null)
             {
-                var c = _builder(obj);
+                var c = _builder(state, obj);
                 return c;
             }
 
             throw new InvalidOperationException();
         }
 
-        public async Task<(TStates, bool)> Handle<TQuery>(TQuery query, TObj obj, string callbackUserData)
+        public async Task<(TStates, bool)> Handle<TQuery>(TQuery query, TStates state, TObj obj, string callbackUserData)
         {
-            return (await _handler?.Invoke(query, obj, callbackUserData), _forceNext);
+            return (await _handler?.Invoke(query, state, obj, callbackUserData), _forceNext);
         }
 
         public bool HasCommand(ITelegramCommandDescriptor descriptor)

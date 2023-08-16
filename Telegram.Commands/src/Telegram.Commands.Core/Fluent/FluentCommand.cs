@@ -10,8 +10,9 @@ namespace Telegram.Commands.Core.Fluent
 {
     public abstract class FluentCommand<TObject, TStates> : IBehaviorTelegramCommand<FluentObject<TObject, TStates>>
     {
-        private StateMachine<TObject,TStates> _stateMachine;
+        private StateMachine<TObject, TStates> _stateMachine;
         private StateMachine<TObject, TStates> StateMachineInternal => _stateMachine ??= GetStateMachine();
+
         public async Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query,
             FluentObject<TObject, TStates> sessionObject)
         {
@@ -26,9 +27,13 @@ namespace Telegram.Commands.Core.Fluent
                         Data = nextState,
                         IsInit = true
                     },
-                    ParentStateId = new Initiable<TStates>()
                 };
+
                 var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
+                var resGlobalIntercept1 = await GlobalIntercept(query, sessionObject.Object);
+                if (resGlobalIntercept1 == GlobalInterceptResult.Freeze)
+                    return  TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
+                
                 await entryState.SendMessages(query, sessionObject.Object);
                 return entryState.NeedAnswer
                     ? TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec)
@@ -41,26 +46,27 @@ namespace Telegram.Commands.Core.Fluent
                 sessionObject.Object = obj;
                 sessionObject.CurrentStateId.Data = nextState;
                 sessionObject.CurrentStateId.IsInit = true;
-                sessionObject.ParentStateId = new Initiable<TStates>();
+                var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
+                var resGlobalIntercept2 = await GlobalIntercept(query, sessionObject.Object);
+                if (resGlobalIntercept2 == GlobalInterceptResult.Freeze)
+                    return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
                 if (sessionObject.FireType == FireType.Entry)
                 {
-                    var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
                     await entryState.SendMessages(query, sessionObject.Object);
-                    return entryState.NeedAnswer ? TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec) : TelegramCommandExecutionResult.Break();
+                    return entryState.NeedAnswer
+                        ? TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec)
+                        : TelegramCommandExecutionResult.Break();
                 }
             }
 
             var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
-            if (sessionObject.ParentStateId.IsInit)
-                currentState.SetParentState(sessionObject.ParentStateId.Data);
-            var (nextStateId, force) = await currentState.HandleQuery(query, sessionObject.Object);
+            var resGlobalIntercept = await GlobalIntercept(query, sessionObject.Object);
+            if (resGlobalIntercept == GlobalInterceptResult.Freeze)
+                return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, currentState.DurationInSec);
             
+            var (nextStateId, force) = await currentState.HandleQuery(query, sessionObject.Object);
+
             var next = stateMachine.GetStateInternal(nextStateId);
-            if (next.Id.ToString() != currentState.Id.ToString())
-            {
-                sessionObject.ParentStateId.Data = currentState.Id;
-                sessionObject.ParentStateId.IsInit = true;
-            }
 
             if (next.GetStateType() == StateType.Finish)
             {
@@ -88,24 +94,33 @@ namespace Telegram.Commands.Core.Fluent
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand,
             TQuery query, FluentObject<TObject, TStates> sessionObject)
         {
-            var interceptResult = TryIntercept(currentCommand, query, sessionObject.Object);
-            if (interceptResult.MustIntercept)
-            {
-                var executionResult = await currentCommand.Execute(query);
-                if (interceptResult.IsTerminalResult)
-                    return executionResult;
-                if (interceptResult.ResultCallback != null)
-                {
-                    await interceptResult.ResultCallback(query, sessionObject.Object, executionResult);
-                }
-                return TelegramCommandExecutionResult.Freeze();
-            }
-            
             var stateMachine = StateMachineInternal;
             if (sessionObject.CurrentStateId == null)
                 return await DefaultExecute(query, sessionObject);
-
             var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
+            
+            var resGlobalIntercept = await GlobalIntercept(query, sessionObject.Object);
+            if (resGlobalIntercept == GlobalInterceptResult.Freeze)
+                return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, currentState.DurationInSec);
+            
+            var interceptResult = TryQueryCommandIntercept(sessionObject.CurrentStateId.Data, currentCommand, query,
+                sessionObject.Object);
+            if (interceptResult.MustIntercept || interceptResult.MustInterceptWithoutExecute)
+            {
+                if (!interceptResult.MustInterceptWithoutExecute)
+                {
+                    var executionResult = await currentCommand.Execute(query);
+                    if (interceptResult.IsTerminalResult)
+                        return executionResult;
+                    if (interceptResult.ResultCallback != null)
+                    {
+                        await interceptResult.ResultCallback(query, sessionObject.Object, executionResult);
+                    }
+                }
+
+                return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, currentState.DurationInSec);
+            }
+            
             if (await currentState.IsCommandHandle(sessionObject.Object, currentCommand))
             {
                 return await currentCommand.Execute(query);
@@ -114,15 +129,23 @@ namespace Telegram.Commands.Core.Fluent
             return await DefaultExecute(query, sessionObject);
         }
 
-        protected virtual InterceptResult<TQuery, TObject> TryIntercept<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, TQuery query, 
+        protected virtual InterceptResult<TQuery, TObject> TryQueryCommandIntercept<TQuery>(TStates state,
+            IQueryTelegramCommand<TQuery> currentCommand, TQuery query,
             TObject sessionObject)
         {
             return new InterceptResult<TQuery, TObject>
             {
                 IsTerminalResult = false,
                 MustIntercept = false,
-                ResultCallback = null
+                ResultCallback = null,
+                MustInterceptWithoutExecute = false
             };
+        }
+
+        protected virtual Task<GlobalInterceptResult> GlobalIntercept<TQuery>(TQuery query,
+            TObject sessionObject)
+        {
+            return Task.FromResult(GlobalInterceptResult.Next);
         }
 
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(
@@ -137,9 +160,16 @@ namespace Telegram.Commands.Core.Fluent
         protected abstract IStateMachine<TStates> StateMachine(IStateMachineBuilder<TObject, TStates> builder);
     }
 
+    public enum GlobalInterceptResult
+    {
+        Freeze,
+        Next
+    }
+
     public class InterceptResult<TQuery, TObject>
     {
         public bool MustIntercept { get; set; }
+        public bool MustInterceptWithoutExecute { get; set; }
         public bool IsTerminalResult { get; set; }
         public Func<TQuery, TObject, ITelegramCommandExecutionResult, Task> ResultCallback { get; set; }
     }

@@ -58,7 +58,7 @@ namespace SimpleHandlers.Services.Commands
             IStateMachineBuilder<MyObject, States> builder)
         {
             var a = builder.State(States.Name)
-                .WithMessage(_ => Task.FromResult("Hi! What's your name?"), Send)
+                .WithMessage((s,o) => Task.FromResult("Hi! What's your name?"), Send)
                 .WithCallbacks()
                 .Row().OnCallback("Default Name (Jack)", "Jack", FirstNameCallbackHandler,
                     true)
@@ -76,9 +76,8 @@ namespace SimpleHandlers.Services.Commands
                 .WithMessages(OtherMessages)
                 .Next(FirstNameMessageHandler, true)
                 .State(States.Surname)
-                .WithMessage(obj => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), Send)
+                .WithMessage((state, obj) => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), Send)
                 .WithCallbacks().KeyBoard(GetSurnameKeyboard)
-                .Row().Back("Back", "", BackHandler, true)
                 .Next(SecondNameHandler, true)
                 .State(States.Validate)
                 .WithMessage("Your name is too short! Please, send me again", Send)
@@ -98,7 +97,7 @@ namespace SimpleHandlers.Services.Commands
             return Task.CompletedTask;
         }
 
-        private Task OtherMessages(MyObject arg1, IStateBuilderBase<MyObject, States> builder)
+        private Task OtherMessages(States state, MyObject arg1, IStateBuilderBase<MyObject, States> builder)
         {
             builder.WithMessage("Next message", SendSubMessage)
                 .WithCallbacks().Row().NextFromCallback(GetCallback, States.Name, true)
@@ -106,7 +105,7 @@ namespace SimpleHandlers.Services.Commands
             return Task.CompletedTask;
         }
 
-        private CallbackData GetCallback(MyObject arg)
+        private CallbackData GetCallback(States state, MyObject arg)
         {
             return new CallbackData
             {
@@ -115,7 +114,7 @@ namespace SimpleHandlers.Services.Commands
             };
         }
         
-        private CallbackData GetCallback2(MyObject arg)
+        private CallbackData GetCallback2(States states, MyObject arg)
         {
             return new CallbackData
             {
@@ -124,7 +123,7 @@ namespace SimpleHandlers.Services.Commands
             };
         }
 
-        private Task SendSubMessage(object currentQuery, MyObject obj, ITelegramMessage message)
+        private Task SendSubMessage(object currentQuery, States state, MyObject obj, ITelegramMessage message)
         {
             return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Message,
                 replyMarkup: message.ReplyMarkup);
@@ -145,7 +144,7 @@ namespace SimpleHandlers.Services.Commands
             return Task.FromResult<IFluentPaginationMenu>(arg1);
         }
 
-        private Task SameCallbackKey(MyObject arg1, ICallbacksBuilderBase<MyObject, States> arg2)
+        private Task SameCallbackKey(States state, MyObject arg1, ICallbacksBuilderBase<MyObject, States> arg2)
         {
             var b = arg2.Row();
             foreach (var num in Enumerable.Range(0, 5))
@@ -157,13 +156,12 @@ namespace SimpleHandlers.Services.Commands
         }
 
 
-        private Task GetSurnameKeyboard(MyObject arg1, ICallbacksBuilderBase<MyObject, States> arg2)
+        private Task GetSurnameKeyboard(States state, MyObject arg1, ICallbacksBuilderBase<MyObject, States> arg2)
         {
-            arg2.Row().NextFromCallback("Skip", arg1.FirstName, States.Exit, true)
+            arg2.Row().NextFromCallback($"Skip for {state}", arg1.FirstName, States.Exit, true)
                 .NextFromCallback("Back", arg1.FirstName, States.Name, true)
                 .OnCallback("Default SecondName Smith", "Smith",
                     SecondNameCallbackHandler, true)
-                .Row().Back("Back", arg1.FirstName,  true)
                 .Row().NextFromCallback("Finish", arg1.FirstName, States.Exit, true);
             return Task.CompletedTask;
         }
@@ -178,7 +176,7 @@ namespace SimpleHandlers.Services.Commands
             };
         }
 
-        private static CallbackData KeyBoardBuild(MyObject obj)
+        private static CallbackData KeyBoardBuild(States state, MyObject obj)
         {
             return new CallbackDataWithCommand
             {
@@ -188,23 +186,23 @@ namespace SimpleHandlers.Services.Commands
             };
         }
 
-        private async Task<States> SendUserDataHandler(CallbackQuery arg1, MyObject arg2, string userData)
+        private async Task<States> SendUserDataHandler(CallbackQuery arg1, States states, MyObject arg2, string userData)
         {
             await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, userData);
             return States.Name;
         }
 
-        private static async Task<States> FirstNameCallbackHandler(CallbackQuery query, MyObject obj, string userData)
+        private static async Task<States> FirstNameCallbackHandler(CallbackQuery query, States state, MyObject obj, string userData)
         {
             return await FirstNameHandler(userData, obj);
         }
 
-        private async Task<States> SecondNameCallbackHandler(CallbackQuery query, MyObject obj, string userData)
+        private async Task<States> SecondNameCallbackHandler(CallbackQuery query, States state, MyObject obj, string userData)
         {
             return await SecondNameHandler(userData, obj);
         }
 
-        private static async Task<States> FirstNameMessageHandler(Message query, MyObject obj)
+        private static async Task<States> FirstNameMessageHandler(Message query, States state, MyObject obj)
         {
             return await FirstNameHandler(query.Text, obj);
         }
@@ -221,7 +219,7 @@ namespace SimpleHandlers.Services.Commands
         }
 
 
-        public async Task<States> SecondNameHandler(Message message, MyObject obj)
+        public async Task<States> SecondNameHandler(Message message, States states, MyObject obj)
         {
             return await SecondNameHandler(message.Text, obj);
         }
@@ -249,7 +247,7 @@ namespace SimpleHandlers.Services.Commands
             return TelegramCommandExecutionResult.Break();
         }
 
-        public Task Send<TQuery>(TQuery currentQuery, MyObject obj, ITelegramMessage message)
+        public Task Send<TQuery>(TQuery currentQuery, States state, MyObject obj, ITelegramMessage message)
         {
             if (currentQuery is CallbackQuery callbackQuery)
             {

@@ -12,7 +12,5 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         StateType GetStateType();
         Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery query, TObj sessionObjectObject);
         bool NeedAnswer { get;}
-        TStates GetParentState();
-        void SetParentState(TStates state);
     }
 }

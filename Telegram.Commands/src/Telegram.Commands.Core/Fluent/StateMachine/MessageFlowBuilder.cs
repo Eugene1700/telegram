@@ -10,17 +10,17 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
     internal class MessageFlowBuilder<TObj, TStates>
     {
-        private readonly Func<TObj, IStateBuilderBase<TObj, TStates>, Task> _provider;
+        private readonly Func<TStates, TObj, IStateBuilderBase<TObj, TStates>, Task> _provider;
         private readonly MessageContainer<TObj, TStates> _container;
 
-        internal MessageFlowBuilder(Func<TObj, IStateBuilderBase<TObj, TStates>, Task> provider)
+        internal MessageFlowBuilder(Func<TStates, TObj, IStateBuilderBase<TObj, TStates>, Task> provider)
         {
             _provider = provider;
             _container = null;
         }
 
-        internal MessageFlowBuilder(string prefix, Func<TObj, Task<string>> messageProvider,
-            Func<object, TObj, ITelegramMessage, Task> sendMessageProvider, IState<TObj, TStates> currentState)
+        internal MessageFlowBuilder(string prefix, Func<TStates, TObj, Task<string>> messageProvider,
+            Func<object, TStates, TObj, ITelegramMessage, Task> sendMessageProvider, IState<TObj, TStates> currentState)
         {
             _provider = null;
             _container =
@@ -32,34 +32,34 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _container.CallbackBuilder.AddRow();
         }
 
-        public void AddOnCallback<TQuery>(Func<TObj, CallbackData> callbackProvider,
-            Func<TQuery, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
+        public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
+            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
         {
             _container.CallbackBuilder.AddOnCallback(callbackProvider, handler, force);
         }
 
-        public void AddProvider(Func<TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
+        public void AddProvider(Func<TStates, TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
         {
             _container.CallbackBuilder.AddProvider(provider);
         }
 
-        public void AddExitFromCallback(Func<TObj, CallbackData> callbackProvider,
+        public void AddExitFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,
             ITelegramCommandDescriptor telegramCommandDescriptor)
         {
             _container.CallbackBuilder.AddExitFromCallback(callbackProvider, telegramCommandDescriptor);
         }
 
-        public void AddNextFromCallback(Func<TObj, CallbackData> callbackProvider,
+        public void AddNextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,
             TStates stateId, bool force)
         {
             _container.CallbackBuilder.AddNextFromCallback(callbackProvider, stateId, force);
         }
 
-        public async Task<bool> TryBuild(TObj obj, StateMessagesBuilder<TObj, TStates> builder)
+        public async Task<bool> TryBuild(TStates state, TObj obj, StateMessagesBuilder<TObj, TStates> builder)
         {
             if (_provider == null)
                 return false;
-            await _provider(obj, builder);
+            await _provider(state, obj, builder);
             return true;
         }
 

@@ -13,15 +13,17 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
     {
         private readonly State<TObj, TStates> _state;
         private readonly StateMachineBuilder<TObj, TStates> _stateMachineBuilder;
+
         public StateBuilder(State<TObj, TStates> state, StateMachineBuilder<TObj, TStates> stateMachineBuilder)
         {
             _state = state;
             _stateMachineBuilder = stateMachineBuilder;
         }
-    
-        public IStateMachineBuilder<TObj, TStates> Next<TQuery>(Func<TQuery, TObj, Task<TStates>> handler, bool force) where TQuery : class
+
+        public IStateMachineBuilder<TObj, TStates> Next<TQuery>(Func<TQuery, TStates, TObj, Task<TStates>> handler,
+            bool force) where TQuery : class
         {
-            _state.SetHandler((q, o) => handler(q as TQuery,o), force);
+            _state.SetHandler((q, s, o) => handler(q as TQuery, s, o), force);
             return _stateMachineBuilder;
         }
 
@@ -36,7 +38,8 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             return this;
         }
 
-        public ICallbacksBuilder<TObj, TStates> KeyBoard(Func<TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
+        public ICallbacksBuilder<TObj, TStates> KeyBoard(
+            Func<TStates, TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
         {
             _state.AddKeyBoardProvider(provider);
             return this;
@@ -49,7 +52,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
 
         public IStateMachineBuilder<TObj, TStates> Next(TStates stateId, bool force)
         {
-            _state.SetHandler((q, o) => Task.FromResult(stateId), force);
+            _state.SetHandler((q, s, o) => Task.FromResult(stateId), force);
             return _stateMachineBuilder;
         }
 
@@ -64,15 +67,15 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             return _stateMachineBuilder;
         }
 
-        public ICallbackRowBuilder<TObj, TStates> OnCallback<TQuery>(Func<TObj, CallbackData> callbackProvider, 
-            Func<TQuery, TObj, string, Task<TStates>> handler,
+        public ICallbackRowBuilder<TObj, TStates> OnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
+            Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
             bool force) where TQuery : class
         {
             _state.AddOnCallback(callbackProvider, handler, force);
             return this;
         }
 
-        public ICallbackRowBuilder<TObj, TStates> NextFromCallback(Func<TObj, CallbackData> callbackProvider, 
+        public ICallbackRowBuilder<TObj, TStates> NextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,
             TStates stateId,
             bool force)
         {
@@ -82,34 +85,26 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
 
         public ICallbackRowBuilder<TObj, TStates> ExitFromCallback(CallbackDataWithCommand callbackDataWithCommand)
         {
-            CallbackData CallbackProvider(TObj _) => callbackDataWithCommand;
+            CallbackData CallbackProvider(TStates s, TObj _) => callbackDataWithCommand;
             return ExitFromCallback(CallbackProvider, callbackDataWithCommand.CommandDescriptor);
         }
 
-        public ICallbackRowBuilder<TObj, TStates> ExitFromCallback(Func<TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
+        public ICallbackRowBuilder<TObj, TStates> ExitFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,
+            ITelegramCommandDescriptor telegramCommandDescriptor)
         {
             _state.AddExitFromCallback(callbackProvider, telegramCommandDescriptor);
             return this;
         }
 
-        public ICallbackRowBuilder<TObj, TStates> Back<TQuery>(Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task> handler, bool force) where TQuery : class
-        {
-            async Task<TStates> HandlerSt(TQuery q, TObj o, string d)
-            {
-                await handler(q, o, d);
-                var parentState = _state.GetParentState();
-                return parentState ?? _state.Id;
-            }
-            return OnCallback<TQuery>(callbackProvider, HandlerSt, force);
-        }
-
-        public IMessageBuilder<TObj, TStates> WithMessage(Func<TObj, Task<string>> messageProvider, Func<object, TObj, ITelegramMessage, Task> sender)
+        public IMessageBuilder<TObj, TStates> WithMessage(Func<TStates, TObj, Task<string>> messageProvider,
+            Func<object, TStates, TObj, ITelegramMessage, Task> sender)
         {
             _state.AddMessage(messageProvider, sender);
             return this;
         }
 
-        public IStateBuilder<TObj, TStates> WithMessages(Func<TObj, IStateBuilderBase<TObj, TStates>, Task> messageFlowProvider)
+        public IStateBuilder<TObj, TStates> WithMessages(
+            Func<TStates, TObj, IStateBuilderBase<TObj, TStates>, Task> messageFlowProvider)
         {
             _state.AddMessagesProvider(messageFlowProvider);
             return this;

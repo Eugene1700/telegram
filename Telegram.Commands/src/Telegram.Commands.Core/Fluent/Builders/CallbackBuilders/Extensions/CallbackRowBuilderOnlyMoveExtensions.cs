@@ -10,7 +10,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
             TStates nextStateId,
             bool force)
         {
-            return builder.NextFromCallback(_ => callback, nextStateId, force);
+            return builder.NextFromCallback((s,o) => callback, nextStateId, force);
         }
     
         public static ICallbackRowBuilderBase<TObj, TStates> NextFromCallback<TObj, TStates>(this ICallbackRowBuilderBase<TObj, TStates> builder, 
@@ -18,7 +18,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
             TStates nextStateId,
             bool force)
         {
-            return builder.NextFromCallback(_ => callback, nextStateId, force);
+            return builder.NextFromCallback((s,o) => callback, nextStateId, force);
         }
 
         public static ICallbackRowBuilder<TObj, TStates> NextFromCallback<TObj, TStates>(this ICallbackRowBuilder<TObj, TStates> builder, 

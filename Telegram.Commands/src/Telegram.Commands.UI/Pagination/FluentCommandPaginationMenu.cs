@@ -12,9 +12,7 @@ namespace Telegram.Commands.UI.Pagination
             this ICallbacksBuilder<TObj, TStates> builder,
             Func<TObj, uint, ICallbacksBuilderBase<TObj, TStates>, Task<IFluentPaginationMenu>> paginator) where TObj: IFluentPagination
         {
-            var state = builder.GetState();
-
-            async Task Func(TObj o, ICallbacksBuilderBase<TObj, TStates> b)
+            async Task Func(TStates state, TObj o, ICallbacksBuilderBase<TObj, TStates> b)
             {
                 if (o.PageNumber == 0)
                 {
@@ -25,7 +23,7 @@ namespace Telegram.Commands.UI.Pagination
                 var fluentPaginator = new FluentPaginator(pagination, currentPage);
                 if (fluentPaginator.PagesCount() > 1)
                 {
-                    Paginate(state.Id, b, fluentPaginator);
+                    Paginate(state, b, fluentPaginator);
                 }
             }
 
@@ -38,7 +36,7 @@ namespace Telegram.Commands.UI.Pagination
         {
             var rowBuilder = arg2.Row();
 
-            Task<TStates> Mover(CallbackQuery _, TObj o, string cd)
+            Task<TStates> Mover(CallbackQuery _, TStates state, TObj o, string cd)
             {
                 var pageNum = uint.Parse(cd);
                 o.PageNumber = pageNum;

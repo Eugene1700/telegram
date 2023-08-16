@@ -24,12 +24,12 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             return _containers.Any(x => x.HasCommand(curComDesc));
         }
 
-        public CallbackDataContainer<TObj, TStates> AddContainer<TQuery>(Func<TObj, CallbackData> callbackProvider, 
-            Func<TQuery, TObj, string, Task<TStates>> handler,
+        public CallbackDataContainer<TObj, TStates> AddContainer<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, 
+            Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
             bool force)
             where TQuery : class
         {
-            Task<TStates> Handle(object q, TObj o, string d) => handler(q as TQuery, o, d);
+            Task<TStates> Handle(object q, TStates s, TObj o, string d) => handler(q as TQuery, s, o, d);
 
             var callbackId = $"{_prefix}c{_containers.Count}";
             var newContainer = new CallbackDataContainer<TObj, TStates>(callbackId, callbackProvider, Handle, force);
@@ -42,7 +42,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             return _containers.AsReadOnly();
         }
 
-        public CallbackDataContainer<TObj, TStates> AddContainer(Func<TObj, CallbackData> callbackProvider,
+        public CallbackDataContainer<TObj, TStates> AddContainer(Func<TStates, TObj, CallbackData> callbackProvider,
             ITelegramCommandDescriptor telegramCommandDescriptor)
         {
             var newContainer =
