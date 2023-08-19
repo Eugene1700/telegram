@@ -31,6 +31,18 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
                 return textMessage;
             }, sender);
         }
+        
+        public static IMessageBuilder<TObj, TStates> WithMessage<TObj, TStates>(
+            this IStateBuilder<TObj, TStates> stateBuilder, string message,
+            Func<object, TStates, TObj, ITelegramMessageTyped<TelegramParseMode>, Task> sender)
+        {
+            return stateBuilder.WithMessage((s, o) =>
+            {
+                IMessageTextTyped<TelegramParseMode> textMessage =
+                    new TextMessageTyped<TelegramParseMode>(new TextMessage(message, TelegramParseMode.Plain));
+                return Task.FromResult(textMessage);
+            }, sender);
+        }
 
         public static IMessageBuilderBase<TObj, TStates> WithMessage<TObj, TStates>(
             this IStateBuilderBase<TObj, TStates> stateBuilder, string message,
@@ -54,6 +66,18 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
                 IMessageText
                     textMessage = new TextMessage(m, TelegramParseMode.Plain);
                 return textMessage;
+            }, sender);
+        }
+        
+        public static IMessageBuilderBase<TObj, TStates> WithMessage<TObj, TStates>(
+            this IStateBuilderBase<TObj, TStates> stateBuilder, string message,
+            Func<object, TStates, TObj, ITelegramMessageTyped<TelegramParseMode>, Task> sender)
+        {
+            return stateBuilder.WithMessage((s, o) =>
+            {
+                IMessageTextTyped<TelegramParseMode> textMessage =
+                    new TextMessageTyped<TelegramParseMode>(new TextMessage(message, TelegramParseMode.Plain));
+                return Task.FromResult(textMessage);
             }, sender);
         }
     }

@@ -14,4 +14,18 @@ namespace Telegram.Commands.Core.Fluent
         public string Text { get; }
         public object ParseMode { get; }
     }
+    
+    internal class TextMessageTyped<TParseMode>: IMessageTextTyped<TParseMode>
+    {
+        public TextMessageTyped(IMessageText messageText)
+        {
+            Text = messageText.Text;
+            ParseMode = (TParseMode)messageText.ParseMode;
+        }
+
+        public string Text { get; }
+        object IMessageText.ParseMode => ParseMode;
+
+        public TParseMode ParseMode { get; }
+    }
 }
