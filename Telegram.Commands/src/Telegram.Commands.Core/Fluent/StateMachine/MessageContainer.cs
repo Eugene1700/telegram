@@ -35,6 +35,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
         public async Task<TelegramMessage> SendMessage<TQuery>(TQuery currentQuery, TStates state, TObj obj, bool useOwnSender)
         {
+            var messageText = await _message(state, obj);
             IReplyMarkup replyMarkup = null;
             var callbacks = await CallbackBuilder?.Build(state, obj);
             if (callbacks != null && callbacks.Any())
@@ -49,8 +50,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
                 replyMarkup = builder.GetResult();
             }
-
-            var messageText = await _message(state, obj);
+            
             var mes = new TelegramMessage(messageText, replyMarkup);
             if (useOwnSender)
                 await _sendMessageProvider(currentQuery, state, obj, mes);

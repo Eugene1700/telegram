@@ -177,6 +177,11 @@ namespace Telegram.Commands.Core.Services
             long telegramUserId) where TCommand : FluentCommand<TData, TStates>
         {
             var session = sessionManager.GetSession<TCommand, FluentObject<TData, TStates>>(chatId, telegramUserId);
+            if (session == null)
+            {
+                return (null, default);
+            }
+
             return (session, session.Data.Object);
         }
     }
