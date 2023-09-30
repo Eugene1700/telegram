@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
@@ -48,17 +49,27 @@ namespace Telegram.Commands.Core.Fluent
 
     public class TelegramMessageTyped<TParseMode>: ITelegramMessageTyped<TParseMode>
     {
+        public TelegramMessageTyped()
+        {
+            
+        }
         public TelegramMessageTyped(ITelegramMessage telegramMessage)
         {
             Text = telegramMessage.Text;
             ParseMode = (TParseMode)telegramMessage.ParseMode;
             ReplyMarkup = telegramMessage.ReplyMarkup;
         }
-        public string Text { get; }
+        
+        public string Text { get; set; }
         object ITelegramMessage.ParseMode => ParseMode;
 
-        public TParseMode ParseMode { get; }
+        public TParseMode ParseMode { get; set; }
 
-        public IReplyMarkup ReplyMarkup { get; }
+        public IReplyMarkup ReplyMarkup { get; set; }
+        
+        public InlineKeyboardMarkup InlineKeyboardMarkup => (InlineKeyboardMarkup) ReplyMarkup;
+
+        public byte[] Photo { get; set; }
+        public bool IsPhotoMessage => Photo != null && Photo.Any();
     }
 }

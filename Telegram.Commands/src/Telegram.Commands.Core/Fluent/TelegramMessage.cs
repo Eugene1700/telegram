@@ -1,3 +1,4 @@
+using System.Linq;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
@@ -15,5 +16,8 @@ namespace Telegram.Commands.Core.Fluent
         public string Text { get; }
         public object ParseMode { get; }
         public IReplyMarkup ReplyMarkup { get; }
+        public InlineKeyboardMarkup InlineKeyboardMarkup => (InlineKeyboardMarkup) ReplyMarkup;
+        public byte[] Photo { get; set; }
+        public bool IsPhotoMessage => Photo != null && Photo.Any();
     }
 }
