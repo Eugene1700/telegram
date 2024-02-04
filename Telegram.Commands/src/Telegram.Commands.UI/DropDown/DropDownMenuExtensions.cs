@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text;
 using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.UI.DropDown

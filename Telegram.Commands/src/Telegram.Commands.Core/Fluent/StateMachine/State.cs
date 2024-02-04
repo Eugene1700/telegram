@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
+using Telegram.Commands.Core.Messages;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
@@ -74,7 +76,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
                     }
                 }
 
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Could not handle query");
             }
 
             return (await _handler(query, Id, obj), _forceNext);
@@ -112,7 +114,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
         public bool NeedAnswer => !_withoutAnswer;
 
-        public void AddMessage(Func<TStates, TObj, Task<IMessageText>> messageProvider,
+        public void AddMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
             Func<object, TStates, TObj, ITelegramMessage, Task> sender)
         {
             _messagesBuilder.AddMessage(messageProvider, sender);

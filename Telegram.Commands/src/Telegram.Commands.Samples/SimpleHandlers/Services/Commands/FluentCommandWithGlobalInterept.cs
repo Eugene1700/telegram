@@ -4,6 +4,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Fluent;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
@@ -11,6 +12,7 @@ using Telegram.Commands.Core.Fluent.Builders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
+using Telegram.Commands.Core.Messages;
 using Telegram.Commands.Core.Models;
 
 namespace SimpleHandlers.Services.Commands

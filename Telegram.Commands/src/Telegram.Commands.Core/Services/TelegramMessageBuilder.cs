@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent;
+using Telegram.Commands.Core.Messages;
 
 namespace Telegram.Commands.Core.Services
 {
@@ -66,8 +68,14 @@ namespace Telegram.Commands.Core.Services
 
         public (string, TelegramParseMode) GetTextMessage()
         {
+            return GetTextMessages(null).First();
+        }
+        
+        public (string, TelegramParseMode)[] GetTextMessages(int? messageLenghtConstraint = 4096)
+        {
             var parseMode = DetectParseMode();
 
+            var res = new List<(string, TelegramParseMode)>();
             var sb = new StringBuilder();
             foreach (var (text, itemParseMode, endItemType) in _items)
             {
@@ -76,6 +84,12 @@ namespace Telegram.Commands.Core.Services
                     parseMode == TelegramParseMode.MarkDownV2)
                 {
                     textNew = text.ReplaceMarkDownEscapeSymbols(parseMode);
+                }
+
+                if (messageLenghtConstraint.HasValue && sb.Length + textNew.Length > messageLenghtConstraint.Value)
+                {
+                    res.Add((sb.ToString(), parseMode));
+                    sb.Clear();
                 }
                 switch (endItemType)
                 {
@@ -92,8 +106,9 @@ namespace Telegram.Commands.Core.Services
                         throw new ArgumentOutOfRangeException();
                 }
             }
+            res.Add((sb.ToString(), parseMode));
 
-            return (sb.ToString(), parseMode);
+            return res.ToArray();
         }
 
         private TelegramParseMode DetectParseMode()
@@ -208,6 +223,21 @@ namespace Telegram.Commands.Core.Services
         {
             AppendUnderline(plainContent);
             AppendEmptyLine();
+            return this;
+        }
+        
+        public TelegramMessageBuilder AppendLinkLine(string link, string title)
+        {
+            AppendLink(link, title);
+            AppendEmptyLine();
+            return this;
+        }
+        
+        public TelegramMessageBuilder AppendLink(string link, string title)
+        {
+            AppendMarkdownV2($"[");
+            AppendPlain(title);
+            AppendMarkdownV2($"]({link})");
             return this;
         }
     }

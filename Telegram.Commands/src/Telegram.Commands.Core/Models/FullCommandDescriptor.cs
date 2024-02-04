@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Services;
 

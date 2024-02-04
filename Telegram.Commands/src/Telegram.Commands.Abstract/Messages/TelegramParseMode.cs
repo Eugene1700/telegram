@@ -1,6 +1,5 @@
-namespace Telegram.Commands.Core.Fluent
+namespace Telegram.Commands.Abstract.Messages
 {
-
     public enum TelegramParseMode
     {
         Plain,

@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {

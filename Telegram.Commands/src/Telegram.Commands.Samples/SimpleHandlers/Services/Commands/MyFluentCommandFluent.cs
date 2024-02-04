@@ -6,6 +6,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Fluent;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
@@ -15,6 +16,7 @@ using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
+using Telegram.Commands.Core.Messages;
 using Telegram.Commands.Core.Models;
 using Telegram.Commands.Core.Services;
 using Telegram.Commands.UI.Pagination;
@@ -107,7 +109,7 @@ namespace SimpleHandlers.Services.Commands
                 replyMarkup: message.ReplyMarkup);
         }
 
-        private Task<IMessageTextTyped<TelegramParseMode>> GetMessageWithParseMode(States arg1, MyObject arg2)
+        private Task<ITextMessageTyped<TelegramParseMode>> GetMessageWithParseMode(States arg1, MyObject arg2)
         {
             throw new NotImplementedException();
         }

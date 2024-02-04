@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
+using Telegram.Commands.Core.Messages;
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders.Extensions
 {
@@ -28,8 +30,8 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders.Extensions
         {
             Func<object, TStates, TObj, ITelegramMessage[], Task> newSender = (q, s, o, mes) =>
             {
-                var mm = mes.Select(x => x as ITelegramMessageTyped<TelegramParseMode>);
-                return sender(q, s, o, mm.ToArray());
+                var mm = mes.Select(x => new TelegramMessageTyped<TelegramParseMode>(x));
+                return sender(q, s, o, mm.Cast<ITelegramMessageTyped<TelegramParseMode>>().ToArray());
             };
             return builder.State(stateId, newSender);
         }

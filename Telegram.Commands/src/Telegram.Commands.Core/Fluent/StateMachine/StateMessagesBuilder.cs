@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
+using Telegram.Commands.Core.Messages;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
@@ -62,7 +64,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _messageFlowBuilders.Add(newBuilder);
         }
 
-        public void AddMessage(Func<TStates, TObj, Task<IMessageText>> messageProvider,
+        public void AddMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
             Func<object, TStates, TObj, ITelegramMessage, Task> sender)
         {
             var newBuilder = new MessageFlowBuilder<TObj, TStates>($"{_prefix}mfb{_messageFlowBuilders.Count}",
@@ -100,7 +102,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _currMessageFlowBuilder.AddNextFromCallback(callbackProvider, stateId, force);
         }
 
-        public IMessageBuilderBase<TObj, TStates> WithMessage(Func<TStates, TObj, Task<IMessageText>> messageProvider,
+        public IMessageBuilderBase<TObj, TStates> WithMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
             Func<object, TStates, TObj, ITelegramMessage, Task> sender)
         {
             var newContainer =

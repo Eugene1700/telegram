@@ -52,6 +52,9 @@ namespace Telegram.Commands.Core.Services
                     case UpdateType.MyChatMember:
                         await QueryHandler(update.MyChatMember);
                         break;
+                    case UpdateType.ChatJoinRequest:
+                        await QueryHandler(update.ChatJoinRequest);
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -76,6 +79,11 @@ namespace Telegram.Commands.Core.Services
                 type = FindEventByType(EventType.BotMemberAddedToChat);
             }
             
+            if (query is ChatJoinRequest)
+            {
+                type = FindEventByType(EventType.ChatJoinRequest);
+            }
+
             if (query is Message mes)
             {
                 switch (mes.Type)
@@ -89,6 +97,9 @@ namespace Telegram.Commands.Core.Services
                         break;
                     case MessageType.ChatMemberLeft:
                         type = FindEventByType(EventType.ChatMemberLeft);
+                        break;
+                    case MessageType.SuccessfulPayment:
+                        type = FindEventByType(EventType.SuccessfulPayment);
                         break;
                     default:
                         return null;
@@ -238,6 +249,8 @@ namespace Telegram.Commands.Core.Services
             switch (query)
             {
                 case ChatMemberUpdated _:
+                    return true;
+                case ChatJoinRequest _:
                     return true;
                 case Message mes:
                     switch (mes.Type)

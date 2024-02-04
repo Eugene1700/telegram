@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Fluent;
 using Telegram.Commands.Core.Models;

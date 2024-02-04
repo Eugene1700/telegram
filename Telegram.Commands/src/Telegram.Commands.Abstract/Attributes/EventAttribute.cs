@@ -11,6 +11,8 @@
         BotMemberAddedToChat,
         MigrateToSuperGroup,
         ChatMemberAdded,
-        ChatMemberLeft
+        ChatMemberLeft,
+        SuccessfulPayment,
+        ChatJoinRequest
     }
 }

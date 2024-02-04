@@ -2,9 +2,11 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Abstract.Commands;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
+using Telegram.Commands.Core.Messages;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
@@ -12,19 +14,19 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
     internal class MessageContainer<TObj, TStates>
     {
-        private readonly Func<TStates, TObj, Task<IMessageText>> _message;
+        private readonly Func<TStates, TObj, Task<ITextMessage>> _message;
         private readonly Func<object, TStates, TObj, ITelegramMessage, Task>  _sendMessageProvider;
         internal CallbackBuilder<TObj, TStates> CallbackBuilder { get; }
 
         public MessageContainer(string prefix, 
-            Func<TStates, TObj, Task<IMessageText>> messageProvider, 
+            Func<TStates, TObj, Task<ITextMessage>> messageProvider, 
             Func<object, TStates, TObj, ITelegramMessage, Task>  sendMessageProvider,
             IState<TObj, TStates> currentState) :
             this(messageProvider, sendMessageProvider, new CallbackBuilder<TObj, TStates>($"{prefix}mc", currentState))
         {
         }
 
-        private MessageContainer(Func<TStates, TObj, Task<IMessageText>> messageProvider, 
+        private MessageContainer(Func<TStates, TObj, Task<ITextMessage>> messageProvider, 
             Func<object, TStates, TObj, ITelegramMessage, Task>  sendMessageProvider,
             CallbackBuilder<TObj, TStates> callbackBuilder)
         {

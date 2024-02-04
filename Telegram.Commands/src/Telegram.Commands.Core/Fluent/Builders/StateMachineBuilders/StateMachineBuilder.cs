@@ -1,8 +1,10 @@
 using System;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
+using Telegram.Commands.Core.Messages;
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders
 {

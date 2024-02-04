@@ -41,7 +41,8 @@ namespace Telegram.Commands.Core
         {
             return query.Switch(m => m.From.Id, cb => cb.From.Id,
                 prq => prq.From.Id,
-                cm => cm.From.Id);
+                cm => cm.From.Id,
+                cr => cr.From.Id);
         }
         
         public static long GetChatId<T>(this T query)
@@ -49,14 +50,16 @@ namespace Telegram.Commands.Core
             return query.Switch(m => m.Chat.Id, 
                 cb => cb.Message.Chat.Id,
                 prq => prq.From.Id,
-                cm => cm.Chat.Id);
+                cm => cm.Chat.Id,
+                cr => cr.Chat.Id);
         }
         
         public static ChatType GetChatType<T>(this T query)
         {
             return query.Switch(m => m.Chat.Type, cb => cb.Message.Chat.Type,
                 prq => ChatType.Private,
-                cm => cm.Chat.Type);
+                cm => cm.Chat.Type,
+                cr => cr.Chat.Type);
         }
         
         public static bool IsGroupMessage<T>(this T query)
@@ -76,6 +79,8 @@ namespace Telegram.Commands.Core
                     return update.PreCheckoutQuery.GetChatId();
                 case UpdateType.MyChatMember:
                     return update.MyChatMember.GetChatId();
+                case UpdateType.ChatJoinRequest:
+                    return update.ChatJoinRequest.GetChatId();
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -84,7 +89,8 @@ namespace Telegram.Commands.Core
         private static TResult Switch<T, TResult>(this T query, Func<Message, TResult> messageFunc,
             Func<CallbackQuery, TResult> callbackQueryFunc, 
             Func<PreCheckoutQuery, TResult> preCheckoutQueryFunc,
-                Func<ChatMemberUpdated, TResult> chatMemberUpdatedFunc)
+                Func<ChatMemberUpdated, TResult> chatMemberUpdatedFunc,
+            Func<ChatJoinRequest, TResult> chatJoinRequestFunc)
         {
             return query switch
             {
@@ -92,6 +98,7 @@ namespace Telegram.Commands.Core
                 CallbackQuery callbackQuery => callbackQueryFunc(callbackQuery),
                 PreCheckoutQuery preCheckoutQuery => preCheckoutQueryFunc(preCheckoutQuery),
                 ChatMemberUpdated chatMemberUpdatedQuery => chatMemberUpdatedFunc(chatMemberUpdatedQuery),
+                ChatJoinRequest chatJoinRequest => chatJoinRequestFunc(chatJoinRequest),
                 _ => throw new ArgumentOutOfRangeException(),
             };
         }

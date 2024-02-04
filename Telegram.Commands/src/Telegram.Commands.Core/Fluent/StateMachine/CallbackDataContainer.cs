@@ -71,7 +71,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
                 return c;
             }
 
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Callback builder was not set");
         }
 
         public async Task<(TStates, bool)> Handle<TQuery>(TQuery query, TStates state, TObj obj, string callbackUserData)
@@ -98,7 +98,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
                 var parts = x.Split("=");
                 if (parts.Length < 2)
                 {
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("Callback data format is incorrect");
                 }
 
                 return new KeyValuePair<string, string>(parts[0], parts[1]);

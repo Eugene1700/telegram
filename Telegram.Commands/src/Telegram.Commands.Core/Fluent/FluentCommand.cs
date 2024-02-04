@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
 using Telegram.Commands.Core.Models;
@@ -33,6 +33,11 @@ namespace Telegram.Commands.Core.Fluent
                 var resGlobalIntercept1 = await GlobalIntercept(query, sessionObject.Object);
                 if (resGlobalIntercept1 == GlobalInterceptResult.Freeze)
                     return  TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
+
+                if (entryState.GetStateType() == StateType.Finish)
+                {
+                    return await entryState.Finalize(query, sessionObject.Object);
+                }
                 
                 await entryState.SendMessages(query, sessionObject.Object);
                 return entryState.NeedAnswer
@@ -52,6 +57,11 @@ namespace Telegram.Commands.Core.Fluent
                     return TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
                 if (sessionObject.FireType == FireType.Entry)
                 {
+                    if (entryState.GetStateType() == StateType.Finish)
+                    {
+                        return await entryState.Finalize(query, sessionObject.Object);
+                    }
+                    
                     await entryState.SendMessages(query, sessionObject.Object);
                     return entryState.NeedAnswer
                         ? TelegramCommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec)

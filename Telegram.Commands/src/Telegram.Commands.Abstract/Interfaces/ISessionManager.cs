@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Abstract.Commands;
 
 namespace Telegram.Commands.Abstract.Interfaces
 {

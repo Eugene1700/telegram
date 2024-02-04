@@ -1,6 +1,6 @@
 ﻿using System;
 using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
