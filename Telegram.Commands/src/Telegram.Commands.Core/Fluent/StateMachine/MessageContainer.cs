@@ -35,10 +35,10 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             CallbackBuilder = callbackBuilder;
         }
 
-        public async Task<TelegramMessage> SendMessage<TQuery>(TQuery currentQuery, TStates state, TObj obj, bool useOwnSender)
+        public async Task<(TelegramMessage, Func<object, TStates, TObj, ITelegramMessage, Task>)> BuildMessage(TStates state, TObj obj)
         {
             var messageText = await _message(state, obj);
-            IReplyMarkup replyMarkup = null;
+            InlineKeyboardMarkup replyMarkup = null;
             var callbacks = await CallbackBuilder?.Build(state, obj);
             if (callbacks != null && callbacks.Any())
             {
@@ -50,13 +50,10 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
                     builder.InlineKeyboardButtonsRow(row);
                 }
 
-                replyMarkup = builder.GetResult();
+                replyMarkup = builder.GetInlineKeyboardMarkup();
             }
             
-            var mes = new TelegramMessage(messageText, replyMarkup);
-            if (useOwnSender)
-                await _sendMessageProvider(currentQuery, state, obj, mes);
-            return mes;
+            return (new TelegramMessage(messageText, replyMarkup), _sendMessageProvider);
         }
 
         public async Task<(bool, (TStates, bool))> TryHandleCallback<TQuery>(TQuery query, TStates state, TObj obj)

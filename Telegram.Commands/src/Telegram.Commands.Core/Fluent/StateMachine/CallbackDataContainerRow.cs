@@ -26,13 +26,13 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
         public CallbackDataContainer<TObj, TStates> AddContainer<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, 
             Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
-            bool force)
+            bool forceRerender = true)
             where TQuery : class
         {
             Task<TStates> Handle(object q, TStates s, TObj o, string d) => handler(q as TQuery, s, o, d);
 
             var callbackId = $"{_prefix}c{_containers.Count}";
-            var newContainer = new CallbackDataContainer<TObj, TStates>(callbackId, callbackProvider, Handle, force);
+            var newContainer = new CallbackDataContainer<TObj, TStates>(callbackId, callbackProvider, Handle, forceRerender);
             _containers.Add(newContainer);
             return newContainer;
         }

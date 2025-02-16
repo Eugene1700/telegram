@@ -30,15 +30,15 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
             _rowBuilders.Add(newRowBuilder);
         }
 
-        public async Task<CallbackDataContainerRow<TObj, TStates>[]> Build(TStates state, TObj obj, bool force = true)
+        public async Task<CallbackDataContainerRow<TObj, TStates>[]> Build(TStates state, TObj obj, bool forceRerender = true)
         {
-            if (force)
+            if (forceRerender)
             {
                 _containerRows.Clear();
                 _currentRow = null;
             }
 
-            if (!_buildOnce || force)
+            if (!_buildOnce || forceRerender)
             {
                 foreach (var rowBuilder in _rowBuilders)
                 {
@@ -72,16 +72,16 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
 
         public ICallbackRowBuilderBase<TObj, TStates> OnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, 
             Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
-            bool force) where TQuery : class
+            bool forceRerender = true) where TQuery : class
         {
-            _currentRow.AddContainer(callbackProvider, handler, force);
+            _currentRow.AddContainer(callbackProvider, handler, forceRerender);
             return this;
         }
 
-        public ICallbackRowBuilderBase<TObj, TStates> NextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool force)
+        public ICallbackRowBuilderBase<TObj, TStates> NextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool forceRerender = true)
         {
             Task<TStates> CommitExpr(object x, TStates s, TObj y, string z) => Task.FromResult(stateId);
-            _currentRow.AddContainer(callbackProvider, (Func<object, TStates, TObj, string, Task<TStates>>)CommitExpr, force);
+            _currentRow.AddContainer(callbackProvider, (Func<object, TStates, TObj, string, Task<TStates>>)CommitExpr, forceRerender);
             return this;
         }
 
@@ -106,20 +106,20 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
             _currentRowBuilder = newRowBuilder;
         }
 
-        public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, Func<TQuery, TStates, TObj,string,Task<TStates>> handler, bool force) where TQuery : class
+        public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, Func<TQuery, TStates, TObj,string,Task<TStates>> handler, bool forceRerender = true) where TQuery : class
         {
-            _currentRowBuilder.AddOnCallback(callbackProvider, handler, force);
+            _currentRowBuilder.AddOnCallback(callbackProvider, handler, forceRerender);
         }
         public void AddExitFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, ITelegramCommandDescriptor telegramCommandDescriptor)
         {
             _currentRowBuilder.ExitFromCallback(callbackProvider, telegramCommandDescriptor);
         }
 
-        public void AddNextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool force)
+        public void AddNextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool forceRerender = true)
         {
             Task<TStates> Handle(object q, TStates state, TObj obj, string s) => Task.FromResult(stateId);
             _currentRowBuilder.AddOnCallback(callbackProvider,
-                (Func<object, TStates, TObj, string, Task<TStates>>)Handle, force);
+                (Func<object, TStates, TObj, string, Task<TStates>>)Handle, forceRerender);
         }
     }
 }

@@ -7,6 +7,11 @@ namespace Telegram.Commands.Abstract.Attributes
     {
         public string Name { get; set; }
         public bool Authorized { get; set; }
+        
+        /// <summary>
+        /// Call behavior command without session
+        /// </summary>
+        public bool DirectCallAllowed { get; set; }
         public ChatArea Area { get; set; }
         public string[] Swarms { get; set; }
 
@@ -14,6 +19,7 @@ namespace Telegram.Commands.Abstract.Attributes
         {
             Authorized = true;
             Area = ChatArea.Private;
+            DirectCallAllowed = false;
         }
     }
 

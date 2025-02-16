@@ -4,7 +4,7 @@ using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {
-    internal interface IState<TObj, TStates> : IStateBase<TStates>
+    internal interface IState<in TObj, TStates> : IStateBase<TStates>
     {
         Task SendMessages<TQuery>(TQuery currentQuery, TObj obj);
         Task<(TStates, bool)> HandleQuery<TQuery>(TQuery query, TObj obj);

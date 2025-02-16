@@ -41,9 +41,9 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
 
         internal void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
             Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
-            bool force) where TQuery : class
+            bool forceRerender = true) where TQuery : class
         {
-            _container.AddContainer(callbackProvider, handler, force);
+            _container.AddContainer(callbackProvider, handler, forceRerender);
         }
 
         public void ExitFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,

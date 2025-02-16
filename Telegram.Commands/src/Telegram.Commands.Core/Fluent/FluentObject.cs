@@ -1,8 +1,8 @@
 ﻿namespace Telegram.Commands.Core.Fluent
 {
-    public class FluentObject<TObject, TStates>
+    public class FluentObject<TProps, TStates>
     {
-        public FluentObject(TObject o, FireType? fireType)
+        public FluentObject(TProps o, FireType? fireType)
         {
             Object = o;
             CurrentStateId = new Initiable<TStates>();
@@ -10,7 +10,7 @@
         }
 
         public Initiable<TStates> CurrentStateId { get; set; }
-        public TObject Object { get; set; }
+        public TProps Object { get; set; }
         public FireType? FireType { get; set; }
         public Initiable<TStates> ParentStateId { get; set; }
     }

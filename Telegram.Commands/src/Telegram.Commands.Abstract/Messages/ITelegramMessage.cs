@@ -6,7 +6,7 @@ namespace Telegram.Commands.Abstract.Messages
     {
         string Text { get; }
         object ParseMode { get; }
-        IReplyMarkup ReplyMarkup { get; }
+        InlineKeyboardMarkup ReplyMarkup { get; }
         public byte[] Photo { get; set; }
     }
 }

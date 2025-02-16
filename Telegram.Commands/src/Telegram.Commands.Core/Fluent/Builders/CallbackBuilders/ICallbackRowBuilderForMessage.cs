@@ -10,10 +10,10 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders
     {
         ICallbackRowBuilderForMessage<TObj, TStates> OnCallback<TQuery>(
             Func<TStates, TObj, CallbackData> callbackProvider,
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class;
+            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool forceRerender) where TQuery : class;
 
         ICallbackRowBuilderForMessage<TObj, TStates> NextFromCallback(
-            Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool force);
+            Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool forceRerender = true);
 
         ICallbackRowBuilderForMessage<TObj, TStates> ExitFromCallback(CallbackDataWithCommand callbackDataWithCommand);
 

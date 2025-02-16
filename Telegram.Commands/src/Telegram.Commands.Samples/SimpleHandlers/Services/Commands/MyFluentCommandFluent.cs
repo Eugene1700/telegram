@@ -42,7 +42,7 @@ namespace SimpleHandlers.Services.Commands
             _telegramBotClient = telegramBotClient;
         }
 
-        protected override Task<(MyObject, States)> Entry<TQuery>(TQuery query, MyObject myObject)
+        protected override Task<(MyObject, States)> DidMount<TQuery>(TQuery query, MyObject myObject)
         {
             var chatId = query switch
             {
@@ -56,8 +56,8 @@ namespace SimpleHandlers.Services.Commands
             return Task.FromResult((o, States.Name));
         }
 
-        protected override IStateMachine<States> StateMachine(
-            IStateMachineBuilder<MyObject, States> builder)
+        protected override IActivity<States> Render(
+            IActivityBuilder<MyObject, States> builder)
         {
             var a = builder.State(States.Name)
                 .WithMessage((s,o) => Task.FromResult("Hi! What's your name?"), Send)

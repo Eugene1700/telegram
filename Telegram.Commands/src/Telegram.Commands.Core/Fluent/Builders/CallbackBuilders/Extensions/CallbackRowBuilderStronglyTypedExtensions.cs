@@ -12,13 +12,13 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
             string text,
             string data,
             Func<CallbackQuery, TStates, TObj, string, Task<TStates>> handler,
-            bool force)
+            bool forceRerender = true)
         {
             return builder.OnCallback(new CallbackDataWithCommand
             {
                 Text = text,
                 CallbackText = data
-            }, handler, force);
+            }, handler, forceRerender);
         }
 
         public static ICallbackRowBuilderBase<TObj, TStates> OnCallback<TObj, TStates>(
@@ -26,13 +26,13 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
             string text,
             string data,
             Func<CallbackQuery, TStates, TObj, string, Task<TStates>> handler,
-            bool force)
+            bool forceRerender = true)
         {
             return builder.OnCallback(new CallbackDataWithCommand
             {
                 Text = text,
                 CallbackText = data
-            }, handler, force);
+            }, handler, forceRerender);
         }
     }
 }

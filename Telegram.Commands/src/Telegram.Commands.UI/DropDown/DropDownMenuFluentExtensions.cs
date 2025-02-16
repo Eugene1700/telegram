@@ -11,7 +11,7 @@ namespace Telegram.Commands.UI.DropDown
     public static class DropDownMenuFluentExtensions
     {
         public static void AddDropDown<TItem, TObj, TStates>(this ICallbacksBuilderBase<TObj, TStates> builder,
-            DropDown<TItem> dropDown, Func<CallbackQuery, TStates, TObj, string, Task<TStates>> selectHandler = null,
+            DropDown<TItem> dropDown, Func<CallbackQuery, TStates, TObj, string, DropDownMenuItem<TItem>, Task<TStates>> selectHandler = null,
             Func<CallbackQuery, TStates, TObj, string, Task<TStates>> showHandler = null)
         {
             var devPrefix = dropDown.GetDropDownPrefix();
@@ -35,7 +35,7 @@ namespace Telegram.Commands.UI.DropDown
         }
 
         public static void AddDropDownItems<TItem, TStates, TObj>(this ICallbacksBuilderBase<TObj, TStates> builder,
-            DropDown<TItem> dropDown, Func<CallbackQuery, TStates, TObj, string, Task<TStates>> selectHandler = null)
+            DropDown<TItem> dropDown, Func<CallbackQuery, TStates, TObj, string, DropDownMenuItem<TItem>, Task<TStates>> selectHandler = null)
         {
             if (!dropDown.Show) return;
             foreach (var item in dropDown.Items)
@@ -48,7 +48,7 @@ namespace Telegram.Commands.UI.DropDown
                         dropDown.SelectItem(d);
                         if (selectHandler != null)
                         {
-                            return await selectHandler(q, s, o, d);
+                            return await selectHandler(q, s, o, d, item);
                         }
                         return s;
                     }, true);

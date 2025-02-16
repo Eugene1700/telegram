@@ -13,7 +13,7 @@ namespace Telegram.Commands.Core.Services
     {
         private List<(string, TelegramParseMode, EndItemType)> _items;
         private byte[] _photo;
-        private IReplyMarkup _replyMarkUp;
+        private InlineKeyboardMarkup _replyMarkUp;
 
         public TelegramMessageBuilder()
         {
@@ -36,8 +36,8 @@ namespace Telegram.Commands.Core.Services
             _photo = photo;
             return this;
         }
-        
-        public TelegramMessageBuilder AddReplyMarkUp(IReplyMarkup replyMarkup)
+
+        public TelegramMessageBuilder AddReplyMarkUp(InlineKeyboardMarkup replyMarkup)
         {
             _replyMarkUp = replyMarkup;
             return this;

@@ -11,7 +11,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders.Extensions
     public static class StateMachineBuilderExtension
     {
         public static IStateBuilder<TObj, TStates> State<TObj, TStates, TParseMode>(
-            this IStateMachineBuilder<TObj, TStates> builder, TStates stateId,
+            this IActivityBuilder<TObj, TStates> builder, TStates stateId,
             Func<object, TStates, TObj, ITelegramMessageTyped<TParseMode>[], Task> sender,
             uint? durationInSec = null)
         {
@@ -24,7 +24,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders.Extensions
         }
 
         public static IStateBuilder<TObj, TStates> State<TObj, TStates>(
-            this IStateMachineBuilder<TObj, TStates> builder, TStates stateId,
+            this IActivityBuilder<TObj, TStates> builder, TStates stateId,
             Func<object, TStates, TObj, ITelegramMessageTyped<TelegramParseMode>[], Task> sender,
             uint? durationInSec = null)
         {

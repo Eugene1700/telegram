@@ -8,42 +8,42 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
         public static ICallbackRowBuilder<TObj, TStates> NextFromCallback<TObj, TStates>(this ICallbackRowBuilder<TObj, TStates> builder, 
             CallbackData callback, 
             TStates nextStateId,
-            bool force)
+            bool forceRerender = true)
         {
-            return builder.NextFromCallback((s,o) => callback, nextStateId, force);
+            return builder.NextFromCallback((s,o) => callback, nextStateId, forceRerender);
         }
     
         public static ICallbackRowBuilderBase<TObj, TStates> NextFromCallback<TObj, TStates>(this ICallbackRowBuilderBase<TObj, TStates> builder, 
             CallbackData callback, 
             TStates nextStateId,
-            bool force)
+            bool forceRerender = true)
         {
-            return builder.NextFromCallback((s,o) => callback, nextStateId, force);
+            return builder.NextFromCallback((s,o) => callback, nextStateId, forceRerender);
         }
 
         public static ICallbackRowBuilder<TObj, TStates> NextFromCallback<TObj, TStates>(this ICallbackRowBuilder<TObj, TStates> builder, 
             string text, 
             string data, 
             TStates nextStateId,
-            bool force)
+            bool forceRerender = true)
         {
             return builder.NextFromCallback(new CallbackData
             {
                 Text = text,
                 CallbackText = data
-            }, nextStateId, force);
+            }, nextStateId, forceRerender);
         }
     
         public static ICallbackRowBuilderBase<TObj, TStates> NextFromCallback<TObj, TStates>(this ICallbackRowBuilderBase<TObj, TStates> builder, 
             string text, 
             string data, 
-            TStates nextStateId, bool force)
+            TStates nextStateId, bool forceRerender = true)
         {
             return builder.NextFromCallback(new CallbackData
             {
                 Text = text,
                 CallbackText = data
-            }, nextStateId, force);
+            }, nextStateId, forceRerender);
         }
     }
 }

@@ -14,19 +14,19 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
     internal class StateBuilder<TObj, TStates> : IMessageBuilder<TObj, TStates>, ICallbackRowBuilder<TObj, TStates>
     {
         private readonly State<TObj, TStates> _state;
-        private readonly StateMachineBuilder<TObj, TStates> _stateMachineBuilder;
+        private readonly ActivityBuilder<TObj, TStates> _activityBuilder;
 
-        public StateBuilder(State<TObj, TStates> state, StateMachineBuilder<TObj, TStates> stateMachineBuilder)
+        public StateBuilder(State<TObj, TStates> state, ActivityBuilder<TObj, TStates> activityBuilder)
         {
             _state = state;
-            _stateMachineBuilder = stateMachineBuilder;
+            _activityBuilder = activityBuilder;
         }
 
-        public IStateMachineBuilder<TObj, TStates> Next<TQuery>(Func<TQuery, TStates, TObj, Task<TStates>> handler,
-            bool force) where TQuery : class
+        public IActivityBuilder<TObj, TStates> Next<TQuery>(Func<TQuery, TStates, TObj, Task<TStates>> handler,
+            bool forceRerender = true) where TQuery : class
         {
-            _state.SetHandler((q, s, o) => handler(q as TQuery, s, o), force);
-            return _stateMachineBuilder;
+            _state.SetHandler((q, s, o) => handler(q as TQuery, s, o), forceRerender);
+            return _activityBuilder;
         }
 
         public ICallbacksBuilder<TObj, TStates> WithCallbacks()
@@ -52,36 +52,36 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             return _state;
         }
 
-        public IStateMachineBuilder<TObj, TStates> Next(TStates stateId, bool force)
+        public IActivityBuilder<TObj, TStates> Next(TStates stateId, bool forceRerender = true)
         {
-            _state.SetHandler((q, s, o) => Task.FromResult(stateId), force);
-            return _stateMachineBuilder;
+            _state.SetHandler((q, s, o) => Task.FromResult(stateId), forceRerender);
+            return _activityBuilder;
         }
 
-        public IStateMachineBuilder<TObj, TStates> Loop(bool force)
+        public IActivityBuilder<TObj, TStates> Loop(bool forceRerender)
         {
-            return Next(_state.Id, force);
+            return Next(_state.Id, forceRerender);
         }
 
-        public IStateMachineBuilder<TObj, TStates> FireAndForget()
+        public IActivityBuilder<TObj, TStates> FireAndForget()
         {
             _state.ThisStateWithoutAnswer();
-            return _stateMachineBuilder;
+            return _activityBuilder;
         }
 
         public ICallbackRowBuilder<TObj, TStates> OnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
             Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
-            bool force) where TQuery : class
+            bool forceRerender = true) where TQuery : class
         {
-            _state.AddOnCallback(callbackProvider, handler, force);
+            _state.AddOnCallback(callbackProvider, handler, forceRerender);
             return this;
         }
 
         public ICallbackRowBuilder<TObj, TStates> NextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,
             TStates stateId,
-            bool force)
+            bool forceRerender = true)
         {
-            _state.AddNextFromCallback(callbackProvider, stateId, force);
+            _state.AddNextFromCallback(callbackProvider, stateId, forceRerender);
             return this;
         }
 

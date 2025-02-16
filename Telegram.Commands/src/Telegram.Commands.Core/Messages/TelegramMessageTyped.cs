@@ -23,7 +23,7 @@ namespace Telegram.Commands.Core.Messages
 
         public TParseMode ParseMode { get; set; }
 
-        public IReplyMarkup ReplyMarkup { get; set; }
+        public InlineKeyboardMarkup ReplyMarkup { get; set; }
 
         public byte[] Photo { get; set; }
     }

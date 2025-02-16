@@ -5,7 +5,7 @@ namespace Telegram.Commands.Core.Messages
 {
     internal class TelegramMessage : ITelegramMessage
     {
-        public TelegramMessage(ITextMessage textMessage, IReplyMarkup replyMarkup)
+        public TelegramMessage(ITextMessage textMessage, InlineKeyboardMarkup replyMarkup)
         {
             Text = textMessage.Text;
             ParseMode = textMessage.ParseMode;
@@ -14,7 +14,7 @@ namespace Telegram.Commands.Core.Messages
 
         public string Text { get; }
         public object ParseMode { get; }
-        public IReplyMarkup ReplyMarkup { get; }
+        public InlineKeyboardMarkup ReplyMarkup { get; }
         public byte[] Photo { get; set; }
     }
 }

@@ -137,7 +137,7 @@ namespace Telegram.Commands.Core.Services
         {
             var sessionObjectType = fullCommandDescriptor.SessionCommand.GetSessionObjectType();
             var sessionObject = _sessionManager.GetCurrentSession(chatId, fromId,
-                fullCommandDescriptor.SessionCommand.Descriptor.GetCommandQuery(), sessionObjectType).Data;
+                fullCommandDescriptor.SessionCommand.Descriptor.GetCommandQuery(), sessionObjectType)?.Data;
             return sessionObject;
         }
 

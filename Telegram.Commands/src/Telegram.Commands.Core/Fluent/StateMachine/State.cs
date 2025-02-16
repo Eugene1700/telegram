@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
-using Telegram.Commands.Core.Messages;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
@@ -14,7 +12,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
     internal class State<TObj, TStates> : IState<TObj, TStates>
     {
         private Func<object, TStates, TObj, Task<TStates>> _handler;
-        private bool _forceNext = false;
+        private bool _forceRerender = false;
 
         private readonly Func<object, TStates, TObj, Task<ITelegramCommandExecutionResult>> _finalizer;
         private readonly StateType _stateType;
@@ -22,12 +20,12 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public uint? DurationInSec { get; }
 
         private readonly StateMessagesBuilder<TObj, TStates> _messagesBuilder;
-        private readonly Func<object, TStates, TObj, ITelegramMessage[], Task> _sender;
+        private readonly Func<object, TStates, TObj, ITelegramMessage, Task> _sender;
         private bool _withoutAnswer;
 
         public State(TStates id,
             StateType stateType,
-            Func<object, TStates, TObj, ITelegramMessage[], Task> sender,
+            Func<object, TStates, TObj, ITelegramMessage, Task> sender,
             uint? durationInSec,
             Func<object, TStates, TObj, Task<ITelegramCommandExecutionResult>> finalizer = null)
         {
@@ -43,16 +41,21 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         public async Task SendMessages<TQuery>(TQuery currentQuery, TObj obj)
         {
             var messageContainers = await _messagesBuilder.Build(Id, obj);
-            var groupSending = _sender != null;
-            var messages = new List<ITelegramMessage>();
             foreach (var messageContainer in messageContainers)
             {
-                messages.Add(await messageContainer.SendMessage(currentQuery, Id, obj, !groupSending));
-            }
-
-            if (groupSending)
-            {
-                await _sender(currentQuery, Id, obj, messages.ToArray());
+                var (mes, sender) = await messageContainer.BuildMessage(Id, obj);
+                if (sender != null)
+                {
+                    await sender(currentQuery, Id, obj, mes);
+                }
+                else if (_sender != null)
+                {
+                    await _sender(currentQuery, Id, obj, mes);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Does not have any sender provider");
+                }
             }
         }
 
@@ -63,7 +66,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
                 var (callbackId, _) = CallbackDataContainer<TObj, TStates>.ExtractData(query);
                 if (!callbackId.StartsWith(_messagesBuilder.GetPrefix()))
                 {
-                    return (await _handler(query, Id, obj), _forceNext);
+                    return (await _handler(query, Id, obj), _forceRerender);
                 }
 
                 var messageContainers = await _messagesBuilder.Build(Id, obj);
@@ -79,7 +82,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
                 throw new InvalidOperationException("Could not handle query");
             }
 
-            return (await _handler(query, Id, obj), _forceNext);
+            return (await _handler(query, Id, obj), _forceRerender);
         }
 
         public async Task<bool> IsCommandHandle<TQuery>(TObj obj, IQueryTelegramCommand<TQuery> currentCommand)
@@ -96,10 +99,10 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             return false;
         }
 
-        public void SetHandler(Func<object, TStates, TObj, Task<TStates>> handler, bool force)
+        public void SetHandler(Func<object, TStates, TObj, Task<TStates>> handler, bool forceRerender = true)
         {
             _handler = handler;
-            _forceNext = force;
+            _forceRerender = forceRerender;
         }
 
         public StateType GetStateType()
@@ -132,9 +135,9 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
+            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool forceRerender = true) where TQuery : class
         {
-            _messagesBuilder.AddOnCallback(callbackProvider, handler, force);
+            _messagesBuilder.AddOnCallback(callbackProvider, handler, forceRerender);
         }
 
         public void AddKeyBoardProvider(Func<TStates, TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
@@ -148,9 +151,9 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _messagesBuilder.AddExitFromCallback(callbackProvider, telegramCommandDescriptor);
         }
 
-        public void AddNextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool force)
+        public void AddNextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool forceRerender)
         {
-            _messagesBuilder.AddNextFromCallback(callbackProvider, stateId, force);
+            _messagesBuilder.AddNextFromCallback(callbackProvider, stateId, forceRerender);
         }
 
         public void ThisStateWithoutAnswer()

@@ -29,7 +29,7 @@ namespace SimpleHandlers.Services.Commands
         }
 
         protected override Task<(FluentCommandWithGlobalInterceptObject, FluentCommandWithGlobalInterceptStates)>
-            Entry<TQuery>(TQuery query, FluentCommandWithGlobalInterceptObject currentObject)
+            DidMount<TQuery>(TQuery query, FluentCommandWithGlobalInterceptObject currentObject)
         {
             return Task.FromResult((new FluentCommandWithGlobalInterceptObject
             {
@@ -37,15 +37,15 @@ namespace SimpleHandlers.Services.Commands
             }, FluentCommandWithGlobalInterceptStates.Entry));
         }
 
-        protected override IStateMachine<FluentCommandWithGlobalInterceptStates> StateMachine(
-            IStateMachineBuilder<FluentCommandWithGlobalInterceptObject, FluentCommandWithGlobalInterceptStates>
+        protected override IActivity<FluentCommandWithGlobalInterceptStates> Render(
+            IActivityBuilder<FluentCommandWithGlobalInterceptObject, FluentCommandWithGlobalInterceptStates>
                 builder)
         {
             return builder.State(FluentCommandWithGlobalInterceptStates.Entry)
                 .WithMessage(GetEntryMessage, Send)
                 .WithCallbacks()
                 .Row().NextFromCallback("Stop", "", FluentCommandWithGlobalInterceptStates.Stop, true)
-                .Next(HandleMessage, true)
+                .Next(HandleMessage)
                 .Exit<object>(FluentCommandWithGlobalInterceptStates.Stop, Stop).Build();
         }
 
@@ -82,7 +82,7 @@ namespace SimpleHandlers.Services.Commands
             return Task.FromResult("General message");
         }
 
-        protected override async Task<GlobalInterceptResult> GlobalIntercept<TQuery>(TQuery query, FluentCommandWithGlobalInterceptObject sessionObject)
+        protected override async Task<UseEffectResult> UseEffect<TQuery>(TQuery query, FluentCommandWithGlobalInterceptObject sessionObject)
         {
             var chatId = query switch
             {
@@ -94,10 +94,10 @@ namespace SimpleHandlers.Services.Commands
             {
                 await _telegramBotClient.SendTextMessageAsync(chatId, "Intercepted message");
                 sessionObject.IsIntercept = !sessionObject.IsIntercept;
-                return GlobalInterceptResult.Freeze;
+                return UseEffectResult.Freeze;
             }
 
-            return GlobalInterceptResult.Next;
+            return UseEffectResult.Next;
         }
     }
 

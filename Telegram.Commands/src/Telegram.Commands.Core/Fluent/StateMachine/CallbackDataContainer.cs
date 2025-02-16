@@ -15,13 +15,13 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         private readonly Func<TStates, TObj, CallbackDataWithCommand> _builder;
         private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
         private readonly Func<object, TStates, TObj, string, Task<TStates>> _handler;
-        private readonly bool _forceNext;
+        private readonly bool _forceRerender;
         private const string _fcudKey = "fud";
         private const string _fcbidKey = "fid";
         public string CallbackKey { get; }
 
         public CallbackDataContainer(string callbackId, Func<TStates, TObj, CallbackData> provider,
-            Func<object, TStates, TObj, string, Task<TStates>> handler = null, bool force = false)
+            Func<object, TStates, TObj, string, Task<TStates>> handler = null, bool forceRerender = false)
         {
             CallbackDataWithCommand NewProvider(TStates s, TObj o)
             {
@@ -40,7 +40,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _builder = NewProvider;
             _telegramCommandDescriptor = null;
             _handler = handler;
-            _forceNext = force;
+            _forceRerender = forceRerender;
         }
 
         public CallbackDataContainer(Func<TStates, TObj, CallbackData> provider,
@@ -60,7 +60,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _builder = NewProvider;
             _telegramCommandDescriptor = telegramCommandDescriptor;
             _handler = null;
-            _forceNext = false;
+            _forceRerender = false;
         }
 
         public CallbackDataWithCommand Build(TStates state, TObj obj)
@@ -76,7 +76,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
         public async Task<(TStates, bool)> Handle<TQuery>(TQuery query, TStates state, TObj obj, string callbackUserData)
         {
-            return (await _handler?.Invoke(query, state, obj, callbackUserData), _forceNext);
+            return (await _handler?.Invoke(query, state, obj, callbackUserData), _forceRerender);
         }
 
         public bool HasCommand(ITelegramCommandDescriptor descriptor)

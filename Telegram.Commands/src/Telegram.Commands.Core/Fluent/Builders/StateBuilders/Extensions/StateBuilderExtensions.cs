@@ -7,11 +7,11 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions
 {
     public static class StateBuilderExtensions {
     
-        public static IStateMachineBuilder<TObj, TStates>  Next<TObj, TStates>(this IStateBuilder<TObj, TStates> builder, 
+        public static IActivityBuilder<TObj, TStates>  Next<TObj, TStates>(this IStateBuilder<TObj, TStates> builder, 
             Func<Message, TStates, TObj, Task<TStates>> handler, 
-            bool force)
+            bool forceRerender = true)
         {
-            return builder.Next(handler, force);
+            return builder.Next(handler, forceRerender);
         }
     }
 }

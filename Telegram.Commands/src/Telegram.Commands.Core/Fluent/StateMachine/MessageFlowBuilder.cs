@@ -35,9 +35,9 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
+            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool forceRerender = true) where TQuery : class
         {
-            _container.CallbackBuilder.AddOnCallback(callbackProvider, handler, force);
+            _container.CallbackBuilder.AddOnCallback(callbackProvider, handler, forceRerender);
         }
 
         public void AddProvider(Func<TStates, TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider)
@@ -52,9 +52,9 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         public void AddNextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider,
-            TStates stateId, bool force)
+            TStates stateId, bool forceRerender = true)
         {
-            _container.CallbackBuilder.AddNextFromCallback(callbackProvider, stateId, force);
+            _container.CallbackBuilder.AddNextFromCallback(callbackProvider, stateId, forceRerender);
         }
 
         public async Task<bool> TryBuild(TStates state, TObj obj, StateMessagesBuilder<TObj, TStates> builder)
