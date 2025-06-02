@@ -40,7 +40,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             async Task<ITextMessage> NewProvider(TStates s, TObj o)
             {
                 var (mes, parseMode) = await messageProvider(s, o);
-                return new TextMessage(mes, parseMode);
+                return new TextMessage(mes, parseMode, null);
             }
 
             return stateBuilder.WithMessage(NewProvider, NewSender);
@@ -79,7 +79,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             async Task<ITextMessage> NewProvider(TStates s, TObj o)
             {
                 var (mes, parseMode) = await messageProvider(s, o);
-                return new TextMessage(mes, parseMode);
+                return new TextMessage(mes, parseMode, null);
             }
 
             return stateBuilder.WithMessage(NewProvider, NewSender);

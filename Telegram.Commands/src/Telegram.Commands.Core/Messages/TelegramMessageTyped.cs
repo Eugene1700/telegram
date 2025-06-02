@@ -19,7 +19,7 @@ namespace Telegram.Commands.Core.Messages
         }
 
         public string Text { get; set; }
-        object ITelegramMessage.ParseMode => ParseMode;
+        object ITextMessage.ParseMode => ParseMode;
 
         public TParseMode ParseMode { get; set; }
 

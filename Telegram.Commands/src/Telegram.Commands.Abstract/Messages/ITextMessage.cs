@@ -5,5 +5,6 @@ namespace Telegram.Commands.Abstract.Messages
     {
         string Text { get; }
         object ParseMode { get; }
+        public byte[] Photo { get; }
     }
 }

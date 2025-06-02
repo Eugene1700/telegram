@@ -10,10 +10,12 @@ namespace Telegram.Commands.Core.Messages
         {
             Text = textMessage.Text;
             ParseMode = (TParseMode)textMessage.ParseMode;
+            Photo = textMessage.Photo;
         }
 
         public string Text { get; }
         object ITextMessage.ParseMode => ParseMode;
+        public byte[] Photo { get; set; }
 
         public TParseMode ParseMode { get; }
     }

@@ -16,7 +16,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             return stateBuilder.WithMessage((s, o) =>
             {
                 ITextMessage textMessage =
-                    new TextMessage(message, TelegramParseMode.Plain);
+                    new TextMessage(message, TelegramParseMode.Plain, null);
                 return Task.FromResult(textMessage);
             }, sender);
         }
@@ -29,7 +29,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             {
                 var m = await message(s, o);
                 ITextMessage
-                    textMessage = new TextMessage(m, TelegramParseMode.Plain);
+                    textMessage = new TextMessage(m, TelegramParseMode.Plain, null);
                 return textMessage;
             }, sender);
         }
@@ -41,7 +41,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             return stateBuilder.WithMessage((s, o) =>
             {
                 ITextMessageTyped<TelegramParseMode> textMessage =
-                    new TextMessageTyped<TelegramParseMode>(new TextMessage(message, TelegramParseMode.Plain));
+                    new TextMessageTyped<TelegramParseMode>(new TextMessage(message, TelegramParseMode.Plain, null));
                 return Task.FromResult(textMessage);
             }, sender);
         }
@@ -53,7 +53,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             return stateBuilder.WithMessage((s, o) =>
             {
                 ITextMessage textMessage =
-                    new TextMessage(message, TelegramParseMode.Plain);
+                    new TextMessage(message, TelegramParseMode.Plain, null);
                 return Task.FromResult(textMessage);
             }, sender);
         }
@@ -66,7 +66,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             {
                 var m = await message(s, o);
                 ITextMessage
-                    textMessage = new TextMessage(m, TelegramParseMode.Plain);
+                    textMessage = new TextMessage(m, TelegramParseMode.Plain, null);
                 return textMessage;
             }, sender);
         }
@@ -78,7 +78,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             return stateBuilder.WithMessage((s, o) =>
             {
                 ITextMessageTyped<TelegramParseMode> textMessage =
-                    new TextMessageTyped<TelegramParseMode>(new TextMessage(message, TelegramParseMode.Plain));
+                    new TextMessageTyped<TelegramParseMode>(new TextMessage(message, TelegramParseMode.Plain, null));
                 return Task.FromResult(textMessage);
             }, sender);
         }

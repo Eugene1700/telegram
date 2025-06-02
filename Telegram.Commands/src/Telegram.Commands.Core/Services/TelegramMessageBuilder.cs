@@ -5,19 +5,21 @@ using System.Text;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Messages;
 
 namespace Telegram.Commands.Core.Services
 {
     public class TelegramMessageBuilder
     {
-        private List<(string, TelegramParseMode, EndItemType)> _items;
+        private readonly List<(string, TelegramParseMode, EndItemType)> _items;
+        private readonly InlineMarkupQueryBuilder _inlineMarkupQueryBuilder;
         private byte[] _photo;
-        private IReplyMarkup _replyMarkUp;
 
         public TelegramMessageBuilder()
         {
             _items = new List<(string, TelegramParseMode, EndItemType)>();
+            _inlineMarkupQueryBuilder = new InlineMarkupQueryBuilder();
         }
 
         public TelegramMessageBuilder Append(string text, TelegramParseMode telegramParseMode)
@@ -37,10 +39,9 @@ namespace Telegram.Commands.Core.Services
             return this;
         }
         
-        public TelegramMessageBuilder AddReplyMarkUp(IReplyMarkup replyMarkup)
+        public InlineMarkupQueryBuilder GetMarkupBuilder()
         {
-            _replyMarkUp = replyMarkup;
-            return this;
+            return _inlineMarkupQueryBuilder;
         }
         
         public TelegramMessageBuilder AppendLine(string text, TelegramParseMode telegramParseMode)
@@ -100,7 +101,7 @@ namespace Telegram.Commands.Core.Services
                         sb.Append($"{textNew} ");
                         break;
                     case EndItemType.AppEnd:
-                        sb.Append($"{textNew} ");
+                        sb.Append($"{textNew}");
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -148,7 +149,7 @@ namespace Telegram.Commands.Core.Services
             {
                 Text = text,
                 ParseMode = parseMode,
-                ReplyMarkup = _replyMarkUp,
+                ReplyMarkup = _inlineMarkupQueryBuilder.GetResult(),
                 Photo = _photo
             };
         }

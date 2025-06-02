@@ -10,6 +10,7 @@ namespace Telegram.Commands.Core.Messages
             Text = textMessage.Text;
             ParseMode = textMessage.ParseMode;
             ReplyMarkup = replyMarkup;
+            Photo = textMessage.Photo;
         }
 
         public string Text { get; }
