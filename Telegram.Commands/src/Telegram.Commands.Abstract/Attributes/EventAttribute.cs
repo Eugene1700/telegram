@@ -9,10 +9,10 @@
     public enum EventType
     {
         BotMemberAddedToChat,
-        MigrateToSuperGroup,
         ChatMemberAdded,
         ChatMemberLeft,
         SuccessfulPayment,
-        ChatJoinRequest
+        ChatJoinRequest,
+        MigrateChatId
     }
 }

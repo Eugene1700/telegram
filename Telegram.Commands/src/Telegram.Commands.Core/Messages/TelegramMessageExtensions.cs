@@ -30,11 +30,11 @@ namespace Telegram.Commands.Core.Messages{
             return parseMode == null ? null : ToParseMode(parseMode.Value);
         }
         
-        public static ParseMode? ToParseMode(this TelegramParseMode parseMode)
+        public static ParseMode ToParseMode(this TelegramParseMode parseMode)
         {
             switch (parseMode)
             {
-                case TelegramParseMode.Plain: return null;
+                case TelegramParseMode.Plain: return ParseMode.None;
                 case TelegramParseMode.MarkDownV2:
                     return ParseMode.MarkdownV2;
                 case TelegramParseMode.MarkDown:

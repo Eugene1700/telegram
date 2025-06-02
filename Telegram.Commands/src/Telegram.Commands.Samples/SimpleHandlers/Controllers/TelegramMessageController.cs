@@ -44,17 +44,17 @@ namespace SimpleHandlers.Controllers
             }
             catch (TelegramExtractionCommandException e)
             {
-                await _telegramBotClient.SendTextMessageAsync(e.ChatId,
+                await _telegramBotClient.SendMessage(e.ChatId,
                     $"This is {nameof(TelegramExtractionCommandException)}");
             }
             catch (TelegramCommandsPermissionException e)
             {
-                await _telegramBotClient.SendTextMessageAsync(e.ChatId,
+                await _telegramBotClient.SendMessage(e.ChatId,
                     $"This is {nameof(TelegramCommandsPermissionException)}");
             }
             catch (TelegramCommandsChatAreaException e)
             {
-                await _telegramBotClient.SendTextMessageAsync(e.ChatId,
+                await _telegramBotClient.SendMessage(e.ChatId,
                     $"This is {nameof(TelegramCommandsChatAreaException)}");
             }
             catch (Exception ex)

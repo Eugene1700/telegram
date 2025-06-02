@@ -99,12 +99,12 @@ namespace SimpleHandlers.Services.Commands
         {
             if (currentQuery is CallbackQuery callbackQuery)
             {
-                return _telegramBotClient.EditMessageTextAsync(obj.ChatId, callbackQuery.Message.MessageId, message.Text,
+                return _telegramBotClient.EditMessageText(obj.ChatId, callbackQuery.Message!.MessageId, message.Text,
                     message.ParseMode.ToParseMode(),
                     replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
             }
 
-            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
+            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
                 message.ParseMode.ToParseMode(),
                 replyMarkup: message.ReplyMarkup);
         }
@@ -152,7 +152,7 @@ namespace SimpleHandlers.Services.Commands
 
         private Task SendSubMessage(object currentQuery, States state, MyObject obj, ITelegramMessage message)
         {
-            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
+            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 
@@ -215,7 +215,7 @@ namespace SimpleHandlers.Services.Commands
 
         private async Task<States> SendUserDataHandler(CallbackQuery arg1, States states, MyObject arg2, string userData)
         {
-            await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, userData);
+            await _telegramBotClient.SendMessage(arg2.ChatId, userData);
             return States.Name;
         }
 
@@ -234,15 +234,15 @@ namespace SimpleHandlers.Services.Commands
             return await FirstNameHandler(query.Text, obj);
         }
 
-        private static async Task<States> FirstNameHandler(string text, MyObject obj)
+        private static Task<States> FirstNameHandler(string text, MyObject obj)
         {
             if (text.Length < 2)
             {
-                return States.Validate;
+                return Task.FromResult(States.Validate);
             }
 
             obj.FirstName = text;
-            return States.Surname;
+            return Task.FromResult(States.Surname);
         }
 
 
@@ -251,10 +251,10 @@ namespace SimpleHandlers.Services.Commands
             return await SecondNameHandler(message.Text, obj);
         }
 
-        public async Task<States> SecondNameHandler(string text, MyObject obj)
+        public Task<States> SecondNameHandler(string text, MyObject obj)
         {
             obj.SecondName = text;
-            return States.Exit;
+            return Task.FromResult(States.Exit);
         }
 
         private async Task<ITelegramCommandExecutionResult> Finalize(object currentQuery, States  state, MyObject obj)
@@ -270,7 +270,7 @@ namespace SimpleHandlers.Services.Commands
                 chatId = callbackQuery.GetChatId();
             }
 
-            await _telegramBotClient.SendTextMessageAsync(chatId, $"Your data: {obj.FirstName} {obj.SecondName}");
+            await _telegramBotClient.SendMessage(chatId, $"Your data: {obj.FirstName} {obj.SecondName}");
             return TelegramCommandExecutionResult.Break();
         }
 
@@ -278,11 +278,11 @@ namespace SimpleHandlers.Services.Commands
         {
             if (currentQuery is CallbackQuery callbackQuery)
             {
-                return _telegramBotClient.EditMessageTextAsync(obj.ChatId, callbackQuery.Message.MessageId, message.Text,
+                return _telegramBotClient.EditMessageText(obj.ChatId, callbackQuery.Message.MessageId, message.Text,
                     replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
             }
 
-            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
+            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 

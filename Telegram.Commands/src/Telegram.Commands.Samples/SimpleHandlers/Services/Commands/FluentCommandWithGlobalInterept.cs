@@ -49,17 +49,17 @@ namespace SimpleHandlers.Services.Commands
                 .Exit<object>(FluentCommandWithGlobalInterceptStates.Stop, Stop).Build();
         }
 
-        private async Task<ITelegramCommandExecutionResult> Stop(object arg1, FluentCommandWithGlobalInterceptStates state, 
+        private Task<ITelegramCommandExecutionResult> Stop(object arg1, FluentCommandWithGlobalInterceptStates state, 
             FluentCommandWithGlobalInterceptObject arg2)
         {
-            return TelegramCommandExecutionResult.Break();
+            return Task.FromResult<ITelegramCommandExecutionResult>(TelegramCommandExecutionResult.Break());
         }
 
-        public async Task<FluentCommandWithGlobalInterceptStates> HandleMessage(object query,
+        public Task<FluentCommandWithGlobalInterceptStates> HandleMessage(object query,
             FluentCommandWithGlobalInterceptStates state, FluentCommandWithGlobalInterceptObject obj)
         {
             obj.IsIntercept = !obj.IsIntercept;
-            return FluentCommandWithGlobalInterceptStates.Entry;
+            return Task.FromResult(FluentCommandWithGlobalInterceptStates.Entry);
         }
 
         public Task Send<TQuery>(TQuery query, FluentCommandWithGlobalInterceptStates state,
@@ -72,7 +72,7 @@ namespace SimpleHandlers.Services.Commands
                 _ => throw new InvalidOperationException()
             };
 
-            return _telegramBotClient.SendTextMessageAsync(chatId, message.Text,
+            return _telegramBotClient.SendMessage(chatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 
@@ -92,7 +92,7 @@ namespace SimpleHandlers.Services.Commands
             };
             if (sessionObject.IsIntercept)
             {
-                await _telegramBotClient.SendTextMessageAsync(chatId, "Intercepted message");
+                await _telegramBotClient.SendMessage(chatId, "Intercepted message");
                 sessionObject.IsIntercept = !sessionObject.IsIntercept;
                 return GlobalInterceptResult.Freeze;
             }

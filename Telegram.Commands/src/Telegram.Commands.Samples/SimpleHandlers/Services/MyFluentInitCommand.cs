@@ -21,7 +21,7 @@ namespace SimpleHandlers.Services
         }
         public async Task<ITelegramCommandExecutionResult> Execute(Message query)
         {
-            await _telegramBotClient.SendTextMessageAsync(query.GetChatId(),"Hi! Tell me your name, please");
+            await _telegramBotClient.SendMessage(query.GetChatId(),"Hi! Tell me your name, please");
             return TelegramCommandExecutionResult.AheadFluent<MyFluentCommandFluent, MyObject, States>(new MyObject
             {
                 ChatId = query.GetChatId()

@@ -30,7 +30,7 @@ namespace SimpleHandlers.Services
             var botProfile = scope.ServiceProvider.GetRequiredService<ITelegramBotProfile>();
             
             _logger.LogInformation("Setting webhook: {webhookAddress}", botProfile.GetFullUrl());
-            await botClient.SetWebhookAsync(
+            await botClient.SetWebhook(
                 url: botProfile.GetFullUrl(),
                 allowedUpdates: Array.Empty<UpdateType>(),
                 cancellationToken: cancellationToken);
@@ -42,7 +42,7 @@ namespace SimpleHandlers.Services
             var botClient = scope.ServiceProvider.GetRequiredService<ITelegramBotClient>();
             
             _logger.LogInformation("Removing webhook");
-            await botClient.DeleteWebhookAsync(cancellationToken: cancellationToken);
+            await botClient.DeleteWebhook(cancellationToken: cancellationToken);
         }
     }
 }

@@ -41,19 +41,19 @@ namespace Telegram.Commands.Core.Services
                 switch (update.Type)
                 {
                     case UpdateType.Message:
-                        await QueryHandler(update.Message);
+                        await QueryHandler(update.Message, true);
                         break;
                     case UpdateType.CallbackQuery:
-                        await QueryHandler(update.CallbackQuery);
+                        await QueryHandler(update.CallbackQuery, false);
                         break;
                     case UpdateType.PreCheckoutQuery:
-                        await QueryHandler(update.PreCheckoutQuery);
+                        await QueryHandler(update.PreCheckoutQuery, false);
                         break;
                     case UpdateType.MyChatMember:
-                        await QueryHandler(update.MyChatMember);
+                        await QueryHandler(update.MyChatMember, false);
                         break;
                     case UpdateType.ChatJoinRequest:
-                        await QueryHandler(update.ChatJoinRequest);
+                        await QueryHandler(update.ChatJoinRequest, false);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -63,7 +63,7 @@ namespace Telegram.Commands.Core.Services
             }
             catch (NotImplementedException ex)
             {
-                await _telegramClient.SendTextMessageAsync(update.GetChatId(), ex.Message);
+                await _telegramClient.SendMessage(update.GetChatId(), ex.Message);
                 return new TelegramResult(false);
             }
         }
@@ -88,14 +88,14 @@ namespace Telegram.Commands.Core.Services
             {
                 switch (mes.Type)
                 {
-                    case MessageType.MigratedToSupergroup:
-                    case MessageType.MigratedFromGroup:
-                        type = FindEventByType(EventType.MigrateToSuperGroup);
+                    case MessageType.MigrateToChatId:
+                    case MessageType.MigrateFromChatId:
+                        type = FindEventByType(EventType.MigrateChatId);
                         break;
-                    case MessageType.ChatMembersAdded:
+                    case MessageType.NewChatMembers:
                         type = FindEventByType(EventType.ChatMemberAdded);
                         break;
-                    case MessageType.ChatMemberLeft:
+                    case MessageType.LeftChatMember:
                         type = FindEventByType(EventType.ChatMemberLeft);
                         break;
                     case MessageType.SuccessfulPayment:
@@ -114,11 +114,11 @@ namespace Telegram.Commands.Core.Services
             return CommandDescriptorComposition.CreateQueryResult(new FullCommandDescriptor(type));
         }
 
-        private async Task QueryHandler<T>(T query, bool stopCurrentExtracting = false)
+        private async Task QueryHandler<T>(T query, bool isChatCommand, bool stopCurrentExtracting = false)
         {
             try
             {
-                var commandDesc = GetCommand(query, stopCurrentExtracting);
+                var commandDesc = GetCommand(query, isChatCommand, stopCurrentExtracting);
                 if (commandDesc == null)
                     return;
 
@@ -134,8 +134,8 @@ namespace Telegram.Commands.Core.Services
             catch (TelegramDomainException ex)
             {
                 var message = query.AsMessage();
-                await _telegramClient.SendTextMessageAsync(message.Chat.Id, ex.Message,
-                    replyToMessageId: message.MessageId);
+                await _telegramClient.SendMessage(message.Chat.Id, ex.Message, replyParameters
+                    : new ReplyParameters{ MessageId = message.MessageId} );
             }
         }
 
@@ -201,7 +201,7 @@ namespace Telegram.Commands.Core.Services
             }
         }
 
-        private CommandDescriptorComposition GetCommand<T>(T query, bool stopCurrentExtracting)
+        private CommandDescriptorComposition GetCommand<T>(T query, bool isChatCommand, bool stopCurrentExtracting)
         {
             if (IsEvent(query))
             {
@@ -214,7 +214,7 @@ namespace Telegram.Commands.Core.Services
                 var comDesc = FindCommand(commandStr, chatId);
                 if (!comDesc.IsBehaviorTelegramCommand)
                     return CommandDescriptorComposition.CreateSessionResult(comDesc);
-                if (!TryGetQueryCommandStr(query, out var currentCommandStr) || stopCurrentExtracting)
+                if (!TryGetQueryCommandStr(query, isChatCommand, out var currentCommandStr) || stopCurrentExtracting)
                     return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
                 var queryCommandDesc = FindCommand(currentCommandStr, chatId);
                 if (queryCommandDesc.IsBehaviorTelegramCommand)
@@ -222,7 +222,7 @@ namespace Telegram.Commands.Core.Services
                 return CommandDescriptorComposition.CreateBehaviorResult(comDesc, queryCommandDesc);
             }
 
-            if (!TryGetQueryCommandStr(query, out commandStr))
+            if (!TryGetQueryCommandStr(query, isChatCommand, out commandStr))
                 if (query.IsGroupMessage())
                     return null;
                 else
@@ -255,10 +255,10 @@ namespace Telegram.Commands.Core.Services
                 case Message mes:
                     switch (mes.Type)
                     {
-                        case MessageType.MigratedToSupergroup:
-                        case MessageType.MigratedFromGroup:
-                        case MessageType.ChatMembersAdded:
-                        case MessageType.ChatMemberLeft:
+                        case MessageType.MigrateFromChatId:
+                        case MessageType.MigrateToChatId:
+                        case MessageType.NewChatMembers:
+                        case MessageType.LeftChatMember:
                             return true;
                         default:
                             return false;
@@ -328,13 +328,13 @@ namespace Telegram.Commands.Core.Services
             return true;
         }
 
-        private bool TryGetQueryCommandStr<T>(T query, out string commandStr)
+        private bool TryGetQueryCommandStr<T>(T query, bool isChatCommand, out string commandStr)
         {
             commandStr = query.GetData();
             var isCommand = !string.IsNullOrWhiteSpace(commandStr) && commandStr[0] == '/';
             if (!isCommand)
                 return false;
-            if (!query.IsGroupMessage()) return true;
+            if (!query.IsGroupMessage() || !isChatCommand) return true;
             var botName = _telegramBotProfile.BotName;
             return commandStr.EndsWith($"@{botName}");
         }

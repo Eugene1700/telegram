@@ -33,7 +33,7 @@ namespace SimpleHandlers.Services.Commands
 
             var builder = new InlineMarkupQueryBuilder();
             builder.AddMenu();
-            await _telegramBotClient.SendTextMessageAsync(query.GetChatId(), sb.ToString(),
+            await _telegramBotClient.SendMessage(query.GetChatId(), sb.ToString(),
                 replyMarkup: builder.GetResult());
             return TelegramCommandExecutionResult.Ahead<GetPhotoMenuBehavior, List<PhotoSessionObject>>(sessionObject, null);
         }

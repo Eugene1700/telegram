@@ -20,7 +20,7 @@ namespace SimpleHandlers.Services.Commands
         }
         public async Task<ITelegramCommandExecutionResult> Execute(Message query)
         {
-            await _telegramBotClient.SendTextMessageAsync(query.GetChatId(),
+            await _telegramBotClient.SendMessage(query.GetChatId(),
                 $"Hello, {query.From?.Username ?? "User"}! We are ready to start");
             return TelegramCommandExecutionResult.Break();
         }

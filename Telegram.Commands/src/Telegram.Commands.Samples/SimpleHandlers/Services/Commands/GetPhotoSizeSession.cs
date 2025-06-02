@@ -38,7 +38,7 @@ namespace SimpleHandlers.Services.Commands
 
             var builder = new InlineMarkupQueryBuilder();
             builder.AddMenu();
-            await _telegramBotClient.SendTextMessageAsync(query.GetChatId(),
+            await _telegramBotClient.SendMessage(query.GetChatId(),
                 $"Your photo size=[{maxSize}]. What I should do next (only from menu)?",
                 replyMarkup: builder.GetResult());
 
