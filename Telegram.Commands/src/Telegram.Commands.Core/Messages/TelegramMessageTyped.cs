@@ -16,6 +16,7 @@ namespace Telegram.Commands.Core.Messages
             Text = telegramMessage.Text;
             ParseMode = (TParseMode)telegramMessage.ParseMode;
             ReplyMarkup = telegramMessage.ReplyMarkup;
+            Photo = telegramMessage.Photo;
         }
 
         public string Text { get; set; }
