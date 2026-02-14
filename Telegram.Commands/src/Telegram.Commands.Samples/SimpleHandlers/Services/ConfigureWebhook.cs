@@ -27,7 +27,7 @@ namespace SimpleHandlers.Services
         {
             using var scope = _services.CreateScope();
             var botClient = scope.ServiceProvider.GetRequiredService<ITelegramBotClient>();
-            var botProfile = scope.ServiceProvider.GetRequiredService<ITelegramBotProfile>();
+            var botProfile = scope.ServiceProvider.GetRequiredService<IBotProfile>();
             
             _logger.LogInformation("Setting webhook: {webhookAddress}", botProfile.GetFullUrl());
             await botClient.SetWebhookAsync(

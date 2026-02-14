@@ -33,7 +33,7 @@ public class TelegramMessageQueryContext(Message query) : QueryContext<Message>(
     {
         return Query.Type switch
         {
-            MessageType.MigratedToSupergroup or MessageType.MigratedFromGroup or MessageType.ChatMembersAdded => true,
+            MessageType.NewChatMembers => true,
             _ => false
         };
     }
@@ -42,8 +42,7 @@ public class TelegramMessageQueryContext(Message query) : QueryContext<Message>(
     {
         return Query.Type switch
         {
-            MessageType.MigratedToSupergroup or MessageType.MigratedFromGroup => EventType.MigrateToSuperGroup,
-            MessageType.ChatMembersAdded => EventType.ChatMemberAdded,
+            MessageType.NewChatMembers => EventType.ChatMemberAdded,
             _ => null
         };
     }
@@ -53,8 +52,8 @@ public class TelegramMessageQueryContext(Message query) : QueryContext<Message>(
         return Query.Chat.Type.ToChatArea();
     }
 
-    public override int? GetMessageId()
+    public override string? GetMessageId()
     {
-        return Query.MessageId;
+        return Query.MessageId.ToString();
     }
 }

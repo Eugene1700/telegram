@@ -39,7 +39,7 @@ namespace SimpleHandlers
             services.AddScoped<EntityStorage.IClock>(sp => sp.GetService<SystemClockService>());
 
             var botSettings = Configuration.GetSection("BotProfile");
-            services.AddScoped<ITelegramBotProfile>(sp => new TelegramBotProfile
+            services.AddScoped<IBotProfile>(sp => new BotProfile
             {
                 BaseUrl = botSettings["BaseUrl"],
                 Key = botSettings["Token"],

@@ -3,7 +3,7 @@ using Telegram.Commands.Abstract.Interfaces;
 
 namespace SimpleHandlers.Services
 {
-    public class TelegramBotProfile: ITelegramBotProfile
+    public class BotProfile: IBotProfile
     {
         public string Key { get; set; }
         public string BaseUrl { get; set; }

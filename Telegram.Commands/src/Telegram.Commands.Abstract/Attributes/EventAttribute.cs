@@ -1,4 +1,6 @@
-﻿namespace Telegram.Commands.Abstract.Attributes
+﻿using System;
+
+namespace Telegram.Commands.Abstract.Attributes
 {
     public class EventAttribute : CommandAttribute
     {
@@ -9,6 +11,7 @@
     public enum EventType
     {
         BotMemberAddedToChat,
+        [Obsolete]
         MigrateToSuperGroup,
         ChatMemberAdded,
         ChatMemberLeft,

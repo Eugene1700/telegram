@@ -1,6 +1,6 @@
 ﻿namespace Telegram.Commands.Abstract.Interfaces
 {
-    public interface ITelegramBotProfile
+    public interface IBotProfile
     {
         string Key { get; }
         string BaseUrl { get; }

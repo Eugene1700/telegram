@@ -39,8 +39,7 @@ public class MessageCreatedQueryContext(Chat chat, Message query) : QueryContext
 
     public override ChatArea GetChatType()
     {
-        //todo
-        return chat.Type;
+        throw new NotImplementedException();
     }
 
     public override string? GetMessageId()

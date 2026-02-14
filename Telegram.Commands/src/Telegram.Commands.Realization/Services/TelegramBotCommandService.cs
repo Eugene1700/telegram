@@ -17,8 +17,9 @@ namespace Telegram.Commands.Realization.Services
         public TelegramBotCommandService(ITelegramBotClient telegramClient,
             IAuthProvider authProvider,
             SessionManager sessionManager,
-            ITelegramBotProfile telegramBotProfile,
-            CommandExecutionService commandExecutionService): base(commandExecutionService,sessionManager, authProvider, telegramBotProfile)
+            IBotProfile botProfile,
+            CommandExecutionService commandExecutionService) : base(commandExecutionService, sessionManager,
+            authProvider, botProfile)
         {
             _telegramClient = telegramClient;
         }
@@ -59,16 +60,21 @@ namespace Telegram.Commands.Realization.Services
             catch (NotImplementedException ex)
             {
                 if (chatId.HasValue)
-                    await _telegramClient.SendTextMessageAsync(chatId, ex.Message);
+                    await _telegramClient.SendMessage(chatId, ex.Message);
                 return new TelegramResult(false);
             }
         }
-        
-        protected override async Task SendDomainException<TQuery>(QueryContext<TQuery> query, TelegramDomainException ex)
+
+        protected override async Task SendDomainException<TQuery>(QueryContext<TQuery> query,
+            TelegramDomainException ex)
         {
-            await _telegramClient.SendTextMessageAsync(query.GetChatId(), ex.Message,
-                replyToMessageId: query.GetMessageId());
+            await _telegramClient.SendMessage(query.GetChatId(), ex.Message,
+                replyParameters: int.TryParse(query.GetMessageId(), out var messageId)
+                    ? new ReplyParameters()
+                    {
+                        MessageId = messageId
+                    }
+                    : null);
         }
-        
     }
 }

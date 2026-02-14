@@ -46,7 +46,7 @@ namespace Telegram.Commands.DependencyInjection
         {
             services.AddScoped<ITelegramBotClient>(x =>
             {
-                var profile = x.GetService<ITelegramBotProfile>();
+                var profile = x.GetService<IBotProfile>();
                 if (profile != null) return new TelegramBotClient(profile.Key);
                 throw new TelegramCommandsInternalException("Cannot resolve telegrambotprofile");
             });

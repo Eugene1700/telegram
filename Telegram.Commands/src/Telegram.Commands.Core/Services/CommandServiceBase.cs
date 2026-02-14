@@ -15,15 +15,15 @@ public abstract class CommandServiceBase
     private readonly CommandExecutionService _commandExecutionService;
     private readonly SessionManager _sessionManager;
     private readonly IAuthProvider _authProvider;
-    private readonly ITelegramBotProfile _telegramBotProfile;
+    private readonly IBotProfile _botProfile;
 
     protected CommandServiceBase(CommandExecutionService commandExecutionService, SessionManager sessionManager,
-        IAuthProvider authProvider, ITelegramBotProfile telegramBotProfile)
+        IAuthProvider authProvider, IBotProfile botProfile)
     {
         _commandExecutionService = commandExecutionService;
         _sessionManager = sessionManager;
         _authProvider = authProvider;
-        _telegramBotProfile = telegramBotProfile;
+        _botProfile = botProfile;
     }
 
     protected async Task QueryHandler<TQuery>(QueryContext<TQuery> query)
@@ -231,7 +231,7 @@ public abstract class CommandServiceBase
         if (!isCommand)
             return false;
         if (!query.IsGroupMessage()) return true;
-        var botName = _telegramBotProfile.BotName;
+        var botName = _botProfile.BotName;
         return commandStr.EndsWith($"@{botName}"); //todo 
     }
     private static FullCommandDescriptor[] FindCommandByName(string queryString)
@@ -249,8 +249,8 @@ public abstract class CommandServiceBase
 
     private FullCommandDescriptor ApplySwarm(long chatId, FullCommandDescriptor[] suspectedCommands)
     {
-        var swarms = _telegramBotProfile.Swarms;
-        if (_telegramBotProfile.Swarms != null && (_telegramBotProfile?.Swarms.Any() ?? false))
+        var swarms = _botProfile.Swarms;
+        if (_botProfile.Swarms != null && (_botProfile?.Swarms.Any() ?? false))
         {
             var descs = suspectedCommands
                 .Where(x =>

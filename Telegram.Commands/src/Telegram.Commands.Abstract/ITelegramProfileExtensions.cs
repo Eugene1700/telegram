@@ -4,9 +4,9 @@ namespace Telegram.Commands.Abstract
 {
     public static class TelegramProfileExtensions
     {
-        public static string GetFullUrl(this ITelegramBotProfile telegramBotProfile)
+        public static string GetFullUrl(this IBotProfile botProfile)
         {
-            return $"{telegramBotProfile.BaseUrl}/{telegramBotProfile.UpdateRoute}";
+            return $"{botProfile.BaseUrl}/{botProfile.UpdateRoute}";
         } 
     }
 }
