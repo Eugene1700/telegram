@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Fluent;
@@ -7,7 +8,7 @@ using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Services
 {
-    internal sealed class SessionManager : ISessionManager
+    public sealed class SessionManager : ISessionManager
     {
         private readonly IClock _clock;
         private readonly ISessionsStore _sessionsStore;
@@ -96,7 +97,7 @@ namespace Telegram.Commands.Core.Services
             where TCommand : ISessionTelegramCommand<TQuery, TData>
         {
             var now = _clock.Now;
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>();
+            var commandInfo = BotCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>();
             var commandQuery = commandInfo.GetCommandQuery();
             var session = _sessionsStore.GetSessionInfoWithData<TData>(now, chatId, telegramUserId, commandQuery);
             if (session == null)
@@ -107,7 +108,7 @@ namespace Telegram.Commands.Core.Services
         public ISessionInfoWithData<TData> GetSession<TCommand, TData>(long chatId, long telegramUserId) where TCommand : IBehaviorTelegramCommand<TData>
         {
             var now = _clock.Now;
-            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TCommand, TData>();
+            var commandInfo = BotCommandExtensions.GetBehaviorCommandInfo<TCommand, TData>();
             var commandQuery = commandInfo.GetCommandQuery();
             var session = _sessionsStore.GetSessionInfoWithData<TData>(now, chatId, telegramUserId, commandQuery);
             if (session == null)
@@ -147,13 +148,13 @@ namespace Telegram.Commands.Core.Services
 
         public async Task<ISessionInfoWithData> OpenSession<TCommand, TQuery, TData>(long chatId, long telegramUserId, TData sessionData, uint? sessionTimeInSec) where TCommand : ISessionTelegramCommand<TQuery, TData>
         {
-            return await OpenSession(TelegramCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>(), chatId, telegramUserId,
+            return await OpenSession(BotCommandExtensions.GetCommandInfo<TCommand, TQuery, TData>(), chatId, telegramUserId,
                 sessionData, sessionTimeInSec);
         }
 
         public async Task<ISessionInfoWithData> OpenBehaviorSession<TCommand, TData>(long chatId, long telegramUserId, TData sessionData, uint? sessionTimeInSec) where TCommand : IBehaviorTelegramCommand<TData>
         {
-            return await OpenSession(TelegramCommandExtensions.GetBehaviorCommandInfo<TCommand, TData>(), chatId, telegramUserId,
+            return await OpenSession(BotCommandExtensions.GetBehaviorCommandInfo<TCommand, TData>(), chatId, telegramUserId,
                 sessionData, sessionTimeInSec);
         }
     }

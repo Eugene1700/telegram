@@ -15,14 +15,14 @@ namespace SimpleHandlers.Controllers
     public class TelegramMessageController: ControllerBase
     {
         private readonly ILogger<TelegramMessageController> _logger;
-        private readonly ITelegramCommandResolver _telegramCommandService;
+        private readonly IBotCommandResolver<> _botCommandService;
         private readonly ITelegramBotClient _telegramBotClient;
 
         public TelegramMessageController(ILogger<TelegramMessageController> logger, 
-            ITelegramCommandResolver telegramCommandService, ITelegramBotClient telegramBotClient)
+            IBotCommandResolver<> botCommandService, ITelegramBotClient telegramBotClient)
         {
             _logger = logger;
-            _telegramCommandService = telegramCommandService;
+            _botCommandService = botCommandService;
             _telegramBotClient = telegramBotClient;
         }
         
@@ -40,7 +40,7 @@ namespace SimpleHandlers.Controllers
         {
             try
             {
-                await _telegramCommandService.Handle(update);
+                await _botCommandService.Handle(update);
             }
             catch (TelegramExtractionCommandException e)
             {

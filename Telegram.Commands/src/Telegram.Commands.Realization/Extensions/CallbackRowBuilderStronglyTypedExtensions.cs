@@ -1,9 +1,11 @@
-﻿using System;
-using System.Threading.Tasks;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
+using Telegram.Commands.Abstract.Messages;
+using Telegram.Commands.Core.Fluent.Builders;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 using Telegram.Commands.Core.Services;
 
-namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
+namespace Telegram.Commands.Realization.Extensions
 {
     public static class CallbackRowBuilderStronglyTypedExtensions
     {

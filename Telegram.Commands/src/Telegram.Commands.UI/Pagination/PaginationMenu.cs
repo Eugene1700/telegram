@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Commands;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Services;
 
@@ -8,7 +8,7 @@ namespace Telegram.Commands.UI.Pagination
 {
     public static class PaginationMenu
     {
-        public static InlineMarkupQueryBuilder AddPaginationMenu<TMoveCommand, TSessionObject>(this InlineMarkupQueryBuilder builder, IPaginationMenu pagination) where TMoveCommand : ISessionTelegramCommand<CallbackQuery, TSessionObject>
+        public static InlineMarkupQueryBuilder AddPaginationMenu<TMoveCommand, TSessionObject, TQuery>(this InlineMarkupQueryBuilder builder, IPaginationMenu pagination) where TMoveCommand : ISessionTelegramCommand<TQuery, TSessionObject>
         {
             var lstPaginationComs = new List<CallbackDataWithCommand>();
             if (!pagination.IsFirstPage())
@@ -19,7 +19,7 @@ namespace Telegram.Commands.UI.Pagination
                     {
                         CallbackText = "1",
                         Text = "1 <<",
-                        CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<TMoveCommand, CallbackQuery, TSessionObject>()
+                        CommandDescriptor = BotCommandExtensions.GetCommandInfo<TMoveCommand, TQuery, TSessionObject>()
                     });
                 }
 
@@ -29,7 +29,7 @@ namespace Telegram.Commands.UI.Pagination
                     {
                         CallbackText = $"{pagination.PreviousPageNumber()}",
                         Text = $"{pagination.PreviousPageNumber()} <",
-                        CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<TMoveCommand, CallbackQuery, TSessionObject>()
+                        CommandDescriptor = BotCommandExtensions.GetCommandInfo<TMoveCommand, TQuery, TSessionObject>()
                     });
                 }
             }
@@ -38,7 +38,7 @@ namespace Telegram.Commands.UI.Pagination
             {
                 CallbackText = $"{pagination.PageNumber}",
                 Text = $"·{pagination.PageNumber}·",
-                CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<TMoveCommand, CallbackQuery, TSessionObject>()
+                CommandDescriptor = BotCommandExtensions.GetCommandInfo<TMoveCommand, TQuery, TSessionObject>()
             });
 
             if (!pagination.IsLastPage())
@@ -47,7 +47,7 @@ namespace Telegram.Commands.UI.Pagination
                 {
                     CallbackText = $"{pagination.NextPageNumber()}",
                     Text = $"> {pagination.NextPageNumber()}",
-                    CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<TMoveCommand, CallbackQuery, TSessionObject>()
+                    CommandDescriptor = BotCommandExtensions.GetCommandInfo<TMoveCommand, TQuery, TSessionObject>()
                 });
 
                 if (!pagination.IsPenultPage())
@@ -56,7 +56,7 @@ namespace Telegram.Commands.UI.Pagination
                     {
                         CallbackText = $"{pagination.PagesCount()}",
                         Text = $">> {pagination.PagesCount()}",
-                        CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<TMoveCommand, CallbackQuery, TSessionObject>()
+                        CommandDescriptor = BotCommandExtensions.GetCommandInfo<TMoveCommand, TQuery, TSessionObject>()
                     });
                 }
             }

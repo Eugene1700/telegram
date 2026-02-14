@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using SimpleHandlers.Services.Commands;
 using SimpleHandlers.Services.Commands.Models;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Services;
 
 namespace SimpleHandlers.Services

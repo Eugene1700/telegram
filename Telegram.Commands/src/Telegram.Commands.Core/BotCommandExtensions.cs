@@ -8,28 +8,18 @@ using Telegram.Commands.Core.Fluent;
 
 namespace Telegram.Commands.Core
 {
-    public static class TelegramCommandExtensions
+    public static class BotCommandExtensions
     {
-        public static string ExtractData<T>(this IQueryTelegramCommand<T> command, T query)
+        public static string ExtractData<TQuery>(this IQueryTelegramCommand<TQuery> command, QueryContext<TQuery> query)
         {
             var type = command.GetType();
             return ExtractData(query, type);
-        }
-
-        public static string ExtractData<TQuery, TSessionObject>(this ISessionTelegramCommand<TQuery, TSessionObject> command, TQuery query)
-        {
-            var type = command.GetType();
-            return ExtractData(query, type);
-        }
-
-        public static long GetChatId(this CallbackQuery callbackQuery)
-        {
-            return callbackQuery.GetChatId<CallbackQuery>();
         }
         
-        public static long GetChatId(this Message message)
+        public static string ExtractData<TQuery, TSessionObject>(this ISessionTelegramCommand<TQuery, TSessionObject> command, QueryContext<TQuery> query)
         {
-            return message.GetChatId<Message>();
+            var type = command.GetType();
+            return ExtractData(query, type);
         }
 
         public static ITelegramCommandDescriptor GetCommandInfo<TQuery>(this IQueryTelegramCommand<TQuery> command)
@@ -76,12 +66,7 @@ namespace Telegram.Commands.Core
             return $"/{commandInfo.Name}";
         }
         
-        public static string GetCommandQuery<TCommand>() where TCommand : IQueryTelegramCommand<Message>
-        {
-            return GetCommandInfo<TCommand, Message>().GetCommandQuery();
-        }
-        
-        public static string ExtractData<T>(T query, Type type)
+        public static string ExtractData<TQuery>(this QueryContext<TQuery> query, Type type)
         {
             var attr = type.GetCustomAttribute<CommandAttribute>();
             if (attr == null)
@@ -89,8 +74,33 @@ namespace Telegram.Commands.Core
             var data = query.GetData();
             if (data == null)
                 return null;
-            var com = "/" + TelegramQueryExtensions.ExtractCommand(data);
+            var com = "/" + ExtractCommand(data);
             return data.Replace(com, "").Trim();
+        }
+        
+        public static string ExtractCommand(string query)
+        {
+            var com = query;
+            if (query[0] == '/')
+            {
+                var botNameStart = query.IndexOf("@");
+                var len = botNameStart == -1 ? query.Length - 1 : botNameStart - 1;
+                com = query.Substring(1, len).Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries)[0];
+            }
+            return com;
+        }
+        
+        public static bool MatchCommand(this ITelegramCommandDescriptor descriptor, string query)
+        {
+            if (string.IsNullOrEmpty(query)) return false;
+
+            var com = ExtractCommand(query);
+            return com == descriptor.Name;
+        }
+        
+        public static bool MatchCommand(this ITelegramCommandDescriptor descriptor, ITelegramCommandDescriptor anotherDescriptor)
+        {
+            return descriptor.Name == anotherDescriptor.Name;
         }
     }
 }

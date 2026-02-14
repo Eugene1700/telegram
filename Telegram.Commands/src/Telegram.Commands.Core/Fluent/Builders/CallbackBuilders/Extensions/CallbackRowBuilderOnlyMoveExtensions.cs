@@ -1,4 +1,5 @@
 ﻿using System;
+using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions

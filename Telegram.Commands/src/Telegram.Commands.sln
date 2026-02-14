@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Core.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Realization", "Telegram.Commands.Realization\Telegram.Commands.Realization.csproj", "{67371E89-572C-41BE-BC8A-F9A1F3661579}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Commands.Max", "Bot.Commands.Max\Bot.Commands.Max.csproj", "{37826C9E-59E6-44A6-80FE-97A2316AA089}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{67371E89-572C-41BE-BC8A-F9A1F3661579}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{67371E89-572C-41BE-BC8A-F9A1F3661579}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{67371E89-572C-41BE-BC8A-F9A1F3661579}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37826C9E-59E6-44A6-80FE-97A2316AA089}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37826C9E-59E6-44A6-80FE-97A2316AA089}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37826C9E-59E6-44A6-80FE-97A2316AA089}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37826C9E-59E6-44A6-80FE-97A2316AA089}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{540F360A-B1A6-46B6-A11A-EF54D5455B60} = {105560B5-CFFC-4997-A4D9-66263A54C605}

@@ -1,9 +1,8 @@
 namespace Telegram.Commands.Abstract.Messages
 {
-    public enum TelegramParseMode
+    public enum BotMessageParseMode
     {
         Plain,
-        MarkDownV2,
         MarkDown,
         Html
     }

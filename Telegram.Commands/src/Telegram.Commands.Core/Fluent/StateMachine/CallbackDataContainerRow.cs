@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Services;
+using Telegram.Commands.Abstract.Messages;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {

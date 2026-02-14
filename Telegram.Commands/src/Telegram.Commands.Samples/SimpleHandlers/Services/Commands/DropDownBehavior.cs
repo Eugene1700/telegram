@@ -11,21 +11,21 @@ namespace SimpleHandlers.Services.Commands
     [Command(Name = "dropdown_behavior")]
     public class DropDownBehavior : IBehaviorTelegramCommand<DropDownSessionObject>
     {
-        public Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query, DropDownSessionObject sessionObject)
+        public Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, DropDownSessionObject sessionObject)
         {
             throw new TelegramDomainException("From menu, please");
         }
 
-        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, TQuery query, DropDownSessionObject sessionObject)
+        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)
         {
             return currentCommand switch
             {
-                CancelCallback cancelCallback => await cancelCallback.Execute(query as CallbackQuery),
+                CancelCallback cancelCallback => await cancelCallback.Execute(query as QueryContext<CallbackQuery>),
                 _ => await DefaultExecute(query, sessionObject)
             };
         }
 
-        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(ISessionTelegramCommand<TQuery, DropDownSessionObject> currentCommand, TQuery query, DropDownSessionObject sessionObject)
+        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(ISessionTelegramCommand<TQuery, DropDownSessionObject> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)
         {
             return currentCommand switch
             {

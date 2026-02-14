@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core.Messages;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {
@@ -17,7 +16,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         public State<TObj, TStates> AddState(TStates stateId, StateType stateType,
-            Func<object, TStates, TObj, ITelegramMessage[], Task> sender, uint? durationInSec,
+            Func<object, TStates, TObj, IBotMessage[], Task> sender, uint? durationInSec,
             Func<object, TStates, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
         {
             var newState = stateType switch

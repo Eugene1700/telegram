@@ -1,16 +1,17 @@
 ﻿using System;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Models
 {
-    internal class FullCommandDescriptor
+    public class FullCommandDescriptor
     {
         public FullCommandDescriptor(Type type)
         {
             Type = type;
-            Descriptor = TelegramCommandExtensions.GetCommandInfo(type);
+            Descriptor = BotCommandExtensions.GetCommandInfo(type);
         }
 
         public ITelegramCommandDescriptor Descriptor { get; }

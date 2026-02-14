@@ -13,7 +13,7 @@ namespace Telegram.Commands.Core.Fluent
         private StateMachine<TObject, TStates> _stateMachine;
         private StateMachine<TObject, TStates> StateMachineInternal => _stateMachine ??= GetStateMachine();
 
-        public async Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query,
+        public async Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query,
             FluentObject<TObject, TStates> sessionObject)
         {
             var stateMachine = StateMachineInternal;
@@ -102,7 +102,7 @@ namespace Telegram.Commands.Core.Fluent
 
 
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand,
-            TQuery query, FluentObject<TObject, TStates> sessionObject)
+            QueryContext<TQuery> query, FluentObject<TObject, TStates> sessionObject)
         {
             var stateMachine = StateMachineInternal;
             if (sessionObject.CurrentStateId == null)
@@ -140,7 +140,7 @@ namespace Telegram.Commands.Core.Fluent
         }
 
         protected virtual InterceptResult<TQuery, TObject> TryQueryCommandIntercept<TQuery>(TStates state,
-            IQueryTelegramCommand<TQuery> currentCommand, TQuery query,
+            IQueryTelegramCommand<TQuery> currentCommand, QueryContext<TQuery> query,
             TObject sessionObject)
         {
             return new InterceptResult<TQuery, TObject>
@@ -159,7 +159,7 @@ namespace Telegram.Commands.Core.Fluent
         }
 
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(
-            ISessionTelegramCommand<TQuery, FluentObject<TObject, TStates>> currentCommand, TQuery query,
+            ISessionTelegramCommand<TQuery, FluentObject<TObject, TStates>> currentCommand, QueryContext<TQuery> query,
             FluentObject<TObject, TStates> sessionObject)
         {
             return await DefaultExecute(query, sessionObject);
@@ -181,6 +181,6 @@ namespace Telegram.Commands.Core.Fluent
         public bool MustIntercept { get; set; }
         public bool MustInterceptWithoutExecute { get; set; }
         public bool IsTerminalResult { get; set; }
-        public Func<TQuery, TObject, ITelegramCommandExecutionResult, Task> ResultCallback { get; set; }
+        public Func<QueryContext<TQuery>, TObject, ITelegramCommandExecutionResult, Task> ResultCallback { get; set; }
     }
 }

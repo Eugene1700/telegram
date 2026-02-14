@@ -1,4 +1,6 @@
-﻿namespace Telegram.Commands.Core.Services
+﻿using Telegram.Commands.Abstract.Messages;
+
+namespace Telegram.Commands.Core.Services
 {
     internal static class CallbackDataExtensions
     {

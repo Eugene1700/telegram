@@ -1,33 +1,30 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
-using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
-using Telegram.Commands.Core.Messages;
+using Telegram.Commands.Core.Models;
 using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {
-
     internal class MessageContainer<TObj, TStates>
     {
         private readonly Func<TStates, TObj, Task<ITextMessage>> _message;
-        private readonly Func<object, TStates, TObj, ITelegramMessage, Task>  _sendMessageProvider;
+        private readonly Func<object, TStates, TObj, IBotMessage, Task>  _sendMessageProvider;
         internal CallbackBuilder<TObj, TStates> CallbackBuilder { get; }
 
         public MessageContainer(string prefix, 
             Func<TStates, TObj, Task<ITextMessage>> messageProvider, 
-            Func<object, TStates, TObj, ITelegramMessage, Task>  sendMessageProvider,
+            Func<object, TStates, TObj, IBotMessage, Task>  sendMessageProvider,
             IState<TObj, TStates> currentState) :
             this(messageProvider, sendMessageProvider, new CallbackBuilder<TObj, TStates>($"{prefix}mc", currentState))
         {
         }
 
         private MessageContainer(Func<TStates, TObj, Task<ITextMessage>> messageProvider, 
-            Func<object, TStates, TObj, ITelegramMessage, Task>  sendMessageProvider,
+            Func<object, TStates, TObj, IBotMessage, Task>  sendMessageProvider,
             CallbackBuilder<TObj, TStates> callbackBuilder)
         {
             _message = messageProvider;
@@ -35,31 +32,31 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             CallbackBuilder = callbackBuilder;
         }
 
-        public async Task<TelegramMessage> SendMessage<TQuery>(TQuery currentQuery, TStates state, TObj obj, bool useOwnSender)
+        public async Task<IBotMessage> SendMessage<TQuery>(TQuery currentQuery, TStates state, TObj obj, bool useOwnSender)
         {
-            var messageText = await _message(state, obj);
-            IReplyMarkup replyMarkup = null;
-            var callbacks = await CallbackBuilder?.Build(state, obj);
-            if (callbacks != null && callbacks.Any())
+            var textMessage = await _message(state, obj);
+            var callbackBuilder = new InlineMarkupQueryBuilder();
+            if (CallbackBuilder != null)
             {
-                var builder = new InlineMarkupQueryBuilder();
-                foreach (var callbacksContainerRowsProvider in callbacks)
+                var callbacks = await CallbackBuilder.Build(state, obj);
+                if (callbacks != null && callbacks.Any())
                 {
-                    var callbacksRow = callbacksContainerRowsProvider.GetContainers();
-                    var row = callbacksRow.Select(x => x.Build(state, obj)).ToArray();
-                    builder.InlineKeyboardButtonsRow(row);
+                    foreach (var callbacksContainerRowsProvider in callbacks)
+                    {
+                        var callbacksRow = callbacksContainerRowsProvider.GetContainers();
+                        var row = callbacksRow.Select(x => x.Build(state, obj)).ToArray();
+                        callbackBuilder.InlineKeyboardButtonsRow(row);
+                    }
                 }
-
-                replyMarkup = builder.GetResult();
             }
-            
-            var mes = new TelegramMessage(messageText, replyMarkup);
+            var mes = new BotMessage(textMessage.Text, textMessage.Photo, textMessage.ParseMode,
+                callbackBuilder.GetCallbacks());
             if (useOwnSender)
                 await _sendMessageProvider(currentQuery, state, obj, mes);
             return mes;
         }
 
-        public async Task<(bool, (TStates, bool))> TryHandleCallback<TQuery>(TQuery query, TStates state, TObj obj)
+        public async Task<(bool, (TStates, bool))> TryHandleCallback<TQuery>(QueryContext<TQuery> query, TStates state, TObj obj)
         {
             var callbacks = await CallbackBuilder.Build(state, obj);
             var (callbackKey, callbackUserData) =

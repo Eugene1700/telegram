@@ -4,8 +4,6 @@ using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
-using Telegram.Commands.Core.Messages;
-using Telegram.Commands.Core.Services;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {
@@ -22,7 +20,7 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
         }
 
         internal MessageFlowBuilder(string prefix, Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<object, TStates, TObj, ITelegramMessage, Task> sendMessageProvider, IState<TObj, TStates> currentState)
+            Func<object, TStates, TObj, IBotMessage, Task> sendMessageProvider, IState<TObj, TStates> currentState)
         {
             _provider = null;
             _container =

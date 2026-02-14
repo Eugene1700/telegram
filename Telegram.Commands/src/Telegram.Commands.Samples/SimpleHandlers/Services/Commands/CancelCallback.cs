@@ -6,6 +6,7 @@ using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Models;
+using Telegram.Commands.Realization.Extensions;
 
 namespace SimpleHandlers.Services.Commands
 {
@@ -18,7 +19,7 @@ namespace SimpleHandlers.Services.Commands
         {
             _telegramBotClient = telegramBotClient;
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(CallbackQuery query)
+        public async Task<ITelegramCommandExecutionResult> Execute(QueryContext<CallbackQuery> query)
         {
             await _telegramBotClient.SendTextMessageAsync(query.GetChatId(),
                 $"You press cancelation. Type {TelegramCommandExtensions.GetCommandQuery<SendPhotoCommand>()} or {TelegramCommandExtensions.GetCommandQuery<DropDownMenuCommand>()}");

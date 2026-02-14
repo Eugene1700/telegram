@@ -6,12 +6,12 @@ namespace Telegram.Commands.Core.Models
 
     internal class CommandExecutionContext<TQuery> : ICommandExecutionContext<TQuery>
     {
-        public CommandExecutionContext(TQuery query, FullCommandDescriptor fullCommandDescriptor)
+        public CommandExecutionContext(TQuery query, FullCommandDescriptor fullCommandDescriptor, long chatId)
         {
             Query = query;
             CommandDescriptor = fullCommandDescriptor.Descriptor;
             CommandType = fullCommandDescriptor.Type;
-            ChatId = query.GetChatId();
+            ChatId = chatId;
         }
 
         public TQuery Query { get; }

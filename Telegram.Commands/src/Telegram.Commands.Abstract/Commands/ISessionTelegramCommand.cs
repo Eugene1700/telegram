@@ -3,8 +3,8 @@ using Telegram.Commands.Abstract.Interfaces;
 
 namespace Telegram.Commands.Abstract.Commands
 {
-    public interface ISessionTelegramCommand<in TQuery, in TSessionObject>
+    public interface ISessionTelegramCommand<TQuery, in TSessionObject>
     {
-        Task<ITelegramCommandExecutionResult> Execute(TQuery query, TSessionObject sessionObject);
+        Task<ITelegramCommandExecutionResult> Execute(QueryContext<TQuery> query, TSessionObject sessionObject);
     }
 }

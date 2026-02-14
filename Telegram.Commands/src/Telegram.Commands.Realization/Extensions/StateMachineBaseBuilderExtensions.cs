@@ -1,10 +1,8 @@
-﻿using System;
-using System.Threading.Tasks;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 
-namespace Telegram.Commands.Core.Fluent.Builders.Extensions
+namespace Telegram.Commands.Realization.Extensions
 {
     public static class StateMachineBaseBuilderExtensions
     {

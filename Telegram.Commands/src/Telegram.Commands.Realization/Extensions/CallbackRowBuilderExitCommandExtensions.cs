@@ -1,9 +1,10 @@
-﻿using System;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Core.Services;
+using Telegram.Commands.Abstract.Messages;
+using Telegram.Commands.Core;
+using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 
-namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
+namespace Telegram.Commands.Realization.Extensions
 {
     public static class CallbackRowBuilderExitCommandExtensions
     {
@@ -20,7 +21,7 @@ namespace Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions
                     CallbackMode = callbackData.CallbackMode,
                     CallbackText = callbackData.CallbackText,
                 };
-            }, TelegramCommandExtensions.GetCommandInfo<TCommand, CallbackQuery>());
+            }, BotCommandExtensions.GetCommandInfo<TCommand, CallbackQuery>());
         }
 
         public static ICallbackRowBuilder<TObj, TStates> ExitFromCallback<TObj, TStates, TCommand>(this ICallbackRowBuilder<TObj, TStates> builder, 

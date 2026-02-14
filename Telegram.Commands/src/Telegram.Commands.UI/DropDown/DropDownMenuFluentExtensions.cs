@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Telegram.Bot.Types;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 
@@ -10,9 +9,9 @@ namespace Telegram.Commands.UI.DropDown
 {
     public static class DropDownMenuFluentExtensions
     {
-        public static void AddDropDown<TItem, TObj, TStates>(this ICallbacksBuilderBase<TObj, TStates> builder,
-            DropDown<TItem> dropDown, Func<CallbackQuery, TStates, TObj, string, Task<TStates>> selectHandler = null,
-            Func<CallbackQuery, TStates, TObj, string, Task<TStates>> showHandler = null)
+        public static void AddDropDown<TItem, TObj, TStates, TQuery>(this ICallbacksBuilderBase<TObj, TStates> builder,
+            DropDown<TItem> dropDown, Func<TQuery, TStates, TObj, string, Task<TStates>> selectHandler = null,
+            Func<TQuery, TStates, TObj, string, Task<TStates>> showHandler = null) where TQuery : class
         {
             var devPrefix = dropDown.GetDropDownPrefix();
             var allDevs = dropDown.IsAllSelected();
@@ -20,7 +19,7 @@ namespace Telegram.Commands.UI.DropDown
                 ? $"{devPrefix} {dropDown.Title}: Все"
                 : $"{devPrefix} {dropDown.Title}: {string.Join(", ", dropDown.GetSelected().Select(x => x.Title))}";
 
-            builder.Row().OnCallback(text, dropDown.CallbackData, async (q, s, o, d) =>
+            builder.Row().OnCallback<TObj, TStates, TQuery>(text, dropDown.CallbackData, async (q, s, o, d) =>
             {
                 dropDown.Show = !dropDown.Show;
                 if (showHandler != null)
@@ -34,14 +33,14 @@ namespace Telegram.Commands.UI.DropDown
             AddDropDownItems(builder, dropDown, selectHandler);
         }
 
-        public static void AddDropDownItems<TItem, TStates, TObj>(this ICallbacksBuilderBase<TObj, TStates> builder,
-            DropDown<TItem> dropDown, Func<CallbackQuery, TStates, TObj, string, Task<TStates>> selectHandler = null)
+        public static void AddDropDownItems<TItem, TStates, TObj, TQuery>(this ICallbacksBuilderBase<TObj, TStates> builder,
+            DropDown<TItem> dropDown, Func<TQuery, TStates, TObj, string, Task<TStates>> selectHandler = null) where TQuery : class
         {
             if (!dropDown.Show) return;
             foreach (var item in dropDown.Items)
             {
                 builder.Row()
-                    .OnCallback(item.Selected
+                    .OnCallback<TObj, TStates, TQuery>(item.Selected
                         ? $"{Emoji.CheckMarkButton} {item.Title}"
                         : item.Title, item.CallbackData, async (q, s, o, d) =>
                     {

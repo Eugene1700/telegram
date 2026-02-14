@@ -1,5 +1,4 @@
-﻿using System;
-using Telegram.Commands.Abstract.Commands;
+﻿using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Fluent;
 
@@ -10,7 +9,6 @@ namespace Telegram.Commands.Core.Models
         public object Data { get; private init; }
         public ITelegramCommandDescriptor NextCommandDescriptor { get; private init; }
         public ExecuteResult Result { get; private init; }
-        
         public long? WaitFromChatId { get; private init; }
         public uint? SessionDurationInSec { get; private init; }
 
@@ -21,7 +19,7 @@ namespace Telegram.Commands.Core.Models
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data, uint? sessionDurationInSec = 600)
             where TNextCommand : ISessionTelegramCommand<TQuery, TData>
         {
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery, TData>();
+            var commandInfo = BotCommandExtensions.GetCommandInfo<TNextCommand, TQuery, TData>();
             return new TelegramCommandExecutionResult
             {
                 Data = data,
@@ -35,7 +33,7 @@ namespace Telegram.Commands.Core.Models
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TData>(TData data, uint? sessionDurationInSec = 600)
             where TNextCommand : IBehaviorTelegramCommand<TData>
         {
-            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TNextCommand, TData>();
+            var commandInfo = BotCommandExtensions.GetBehaviorCommandInfo<TNextCommand, TData>();
             return new TelegramCommandExecutionResult
             {
                 Data = data,
@@ -49,7 +47,7 @@ namespace Telegram.Commands.Core.Models
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery>(uint? sessionDurationInSec = 600)
             where TNextCommand : ISessionTelegramCommand<TQuery, EmptyObject>
         {
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery, EmptyObject>();
+            var commandInfo = BotCommandExtensions.GetCommandInfo<TNextCommand, TQuery, EmptyObject>();
             return new TelegramCommandExecutionResult
             {
                 Data = new EmptyObject(),
@@ -63,7 +61,7 @@ namespace Telegram.Commands.Core.Models
         public static TelegramCommandExecutionResult Ahead<TNextCommand>(uint? sessionDurationInSec = 600)
             where TNextCommand : IBehaviorTelegramCommand<EmptyObject>
         {
-            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TNextCommand, EmptyObject>();
+            var commandInfo = BotCommandExtensions.GetBehaviorCommandInfo<TNextCommand, EmptyObject>();
             return new TelegramCommandExecutionResult
             {
                 Data = new EmptyObject(),
@@ -77,7 +75,7 @@ namespace Telegram.Commands.Core.Models
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery, TData>(TData data, long moveToChatId, uint? sessionDurationInSec = 600)
             where TNextCommand : ISessionTelegramCommand<TQuery, TData>
         {
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery, TData>();
+            var commandInfo = BotCommandExtensions.GetCommandInfo<TNextCommand, TQuery, TData>();
             return new TelegramCommandExecutionResult
             {
                 Data = data,
@@ -91,7 +89,7 @@ namespace Telegram.Commands.Core.Models
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TData>(TData data, long moveToChatId, uint? sessionDurationInSec = 600)
             where TNextCommand : IBehaviorTelegramCommand<TData>
         {
-            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TNextCommand, TData>();
+            var commandInfo = BotCommandExtensions.GetBehaviorCommandInfo<TNextCommand, TData>();
             return new TelegramCommandExecutionResult
             {
                 Data = data,
@@ -105,7 +103,7 @@ namespace Telegram.Commands.Core.Models
         public static TelegramCommandExecutionResult Ahead<TNextCommand, TQuery>( long moveToChatId, uint? sessionDurationInSec = 600)
             where TNextCommand : ISessionTelegramCommand<TQuery, EmptyObject>
         {
-            var commandInfo = TelegramCommandExtensions.GetCommandInfo<TNextCommand, TQuery, EmptyObject>();
+            var commandInfo = BotCommandExtensions.GetCommandInfo<TNextCommand, TQuery, EmptyObject>();
             return new TelegramCommandExecutionResult
             {
                 Data = new EmptyObject(),
@@ -116,10 +114,10 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
-        public static TelegramCommandExecutionResult Ahead<TNextCommand>( long moveToChatId, uint? sessionDurationInSec = 600)
+        public static TelegramCommandExecutionResult Ahead<TNextCommand>(long moveToChatId, uint? sessionDurationInSec = 600)
             where TNextCommand : IBehaviorTelegramCommand<EmptyObject>
         {
-            var commandInfo = TelegramCommandExtensions.GetBehaviorCommandInfo<TNextCommand, EmptyObject>();
+            var commandInfo = BotCommandExtensions.GetBehaviorCommandInfo<TNextCommand, EmptyObject>();
             return new TelegramCommandExecutionResult
             {
                 Data = new EmptyObject(),
@@ -133,7 +131,7 @@ namespace Telegram.Commands.Core.Models
         public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject, TStates>(TObject obj, bool fire, uint? sessionDurationInSec = 600)
             where TNextCommand : FluentCommand<TObject, TStates>
         {
-            var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject, TStates>();
+            var commandInfo = BotCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject, TStates>();
             return new TelegramCommandExecutionResult
             {
                 Data = new FluentObject<TObject, TStates>(obj, fire ? FireType.Entry : FireType.HandleCurrent),

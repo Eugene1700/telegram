@@ -1,9 +1,7 @@
-using Telegram.Bot.Types.ReplyMarkups;
-
 namespace Telegram.Commands.Abstract.Messages
 {
-    public interface ITelegramMessage: ITextMessage
+    public interface ICallbackMessage<out TReplyMarkup>: ITextMessage
     {
-        IReplyMarkup ReplyMarkup { get; }
+        TReplyMarkup ReplyMarkup { get; }
     }
 }

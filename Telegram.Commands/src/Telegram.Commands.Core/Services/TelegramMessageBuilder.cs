@@ -1,95 +1,92 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 using System.Text;
-using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core.Fluent;
-using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
-using Telegram.Commands.Core.Messages;
 
 namespace Telegram.Commands.Core.Services
 {
-    public class TelegramMessageBuilder
+
+    public abstract class MessageBuilderBase: IInlineMarkupQueryBuilder
     {
-        private readonly List<(string, TelegramParseMode, EndItemType)> _items;
-        private readonly InlineMarkupQueryBuilder _inlineMarkupQueryBuilder;
+        private readonly List<(string, EndItemType, bool)> _items;
         private byte[] _photo;
+        private readonly InlineMarkupQueryBuilder _inlineMarkupBuilder;
 
-        public TelegramMessageBuilder()
+        protected abstract BotMessageParseMode ParseMode { get; }
+        
+        protected MessageBuilderBase()
         {
-            _items = new List<(string, TelegramParseMode, EndItemType)>();
-            _inlineMarkupQueryBuilder = new InlineMarkupQueryBuilder();
+            _items = new List<(string, EndItemType, bool)>();
+            _inlineMarkupBuilder = new InlineMarkupQueryBuilder();
         }
-
-        public TelegramMessageBuilder Append(string text, TelegramParseMode telegramParseMode)
+        
+        public MessageBuilderBase AppendPlain(string text)
         {
-            _items.Add((text, telegramParseMode, EndItemType.AppEnd));
+            Append(text, false);
             return this;
         }
         
-        public TelegramMessageBuilder Append((string, TelegramParseMode) text)
+        protected void Append(string text, bool isMarking)
         {
-            return Append(text.Item1, text.Item2);
+            _items.Add((text, EndItemType.AppEnd, isMarking));
         }
-
-        public TelegramMessageBuilder AddPhoto(byte[] photo)
+        
+        public MessageBuilderBase AddPhoto(byte[] photo)
         {
             _photo = photo;
             return this;
         }
         
-        public InlineMarkupQueryBuilder GetMarkupBuilder()
+        public MessageBuilderBase AppendPlainLine(string text)
         {
-            return _inlineMarkupQueryBuilder;
-        }
-        
-        public TelegramMessageBuilder AppendLine(string text, TelegramParseMode telegramParseMode)
-        {
-            _items.Add((text, telegramParseMode, EndItemType.NewLine));
+            AppendLine(text, true);
             return this;
         }
         
-        public TelegramMessageBuilder AppendLine((string, TelegramParseMode) message)
+        protected void AppendLine(string text, bool isMarking)
         {
-            _items.Add((message.Item1, message.Item2, EndItemType.NewLine));
+            _items.Add((text, EndItemType.NewLine, isMarking));
+        }
+        
+        protected MessageBuilderBase AppendSpace(string text, bool isMarking)
+        {
+            _items.Add((text, EndItemType.Space, isMarking));
             return this;
         }
         
-        public TelegramMessageBuilder AppendSpace(string text, TelegramParseMode telegramParseMode)
+        public MessageBuilderBase AppendPlainSpace(string text)
         {
-            _items.Add((text, telegramParseMode, EndItemType.Space));
+            AppendSpace(text, false);
             return this;
         }
         
-        public TelegramMessageBuilder AppendSpacePlain(string text)
+        public MessageBuilderBase AppendEmptyLine()
         {
-            return AppendSpace(text, TelegramParseMode.Plain);
-        }
-
-        public (string, TelegramParseMode) GetTextMessage()
-        {
-            return GetTextMessages(null).First();
+            return AppendPlainLine(string.Empty);
         }
         
-        public (string, TelegramParseMode)[] GetTextMessages(int? messageLenghtConstraint = 4096)
+        public MessageBuilderBase AppendEmpty()
         {
-            var parseMode = DetectParseMode();
-
-            var res = new List<(string, TelegramParseMode)>();
+            return AppendPlain(string.Empty);
+        }
+        
+        public IBotMessage[] GetMessages(int? messageLenghtConstraint = 4096)
+        {
+            var res = new List<IBotMessage>();
             var sb = new StringBuilder();
-            foreach (var (text, itemParseMode, endItemType) in _items)
+            foreach (var (text, endItemType, isMarking) in _items)
             {
                 var textNew = text;
-                if (itemParseMode == TelegramParseMode.Plain && 
-                    parseMode == TelegramParseMode.MarkDownV2)
+                
+                if (isMarking)
                 {
-                    textNew = text.ReplaceMarkDownEscapeSymbols(parseMode);
+                    textNew = PrepareText(text);
                 }
 
                 if (messageLenghtConstraint.HasValue && sb.Length + textNew.Length > messageLenghtConstraint.Value)
                 {
-                    res.Add((sb.ToString(), parseMode));
+                    res.Add(new BotMessage(sb.ToString(), _photo, ParseMode, new ReadOnlyCollection<CallbackDataWithCommand>(Array.Empty<CallbackDataWithCommand>())));
                     sb.Clear();
                 }
                 switch (endItemType)
@@ -107,138 +104,95 @@ namespace Telegram.Commands.Core.Services
                         throw new ArgumentOutOfRangeException();
                 }
             }
-            res.Add((sb.ToString(), parseMode));
+            res.Add(new BotMessage(sb.ToString(), _photo, ParseMode, _inlineMarkupBuilder.GetCallbacks()));
 
             return res.ToArray();
         }
 
-        private TelegramParseMode DetectParseMode()
+        protected abstract string PrepareText(string text);
+        public IInlineMarkupQueryBuilder InlineKeyboardButtonsRow(CallbackDataWithCommand[] rows)
         {
-            if (_items.Any(x => x.Item2 == TelegramParseMode.MarkDownV2))
-            {
-                return TelegramParseMode.MarkDownV2;
-            }
-            
-            if (_items.Any(x => x.Item2 == TelegramParseMode.MarkDown))
-            {
-                return TelegramParseMode.MarkDown;
-            }
-            
-            if (_items.Any(x => x.Item2 == TelegramParseMode.Html))
-            {
-                return TelegramParseMode.Html;
-            }
-
-            return TelegramParseMode.Plain;
-        }
-
-        public TelegramMessageBuilder AppendPlain(string text)
-        {
-            return Append(text, TelegramParseMode.Plain);
-        }
-
-        public TelegramMessageBuilder AppendLinePlain(string s)
-        {
-            return AppendLine(s, TelegramParseMode.Plain);
-        }
-
-        public TelegramMessageTyped<TelegramParseMode> GetTelegramMessage()
-        {
-            var (text, parseMode) = GetTextMessage();
-            return new TelegramMessageTyped<TelegramParseMode>
-            {
-                Text = text,
-                ParseMode = parseMode,
-                ReplyMarkup = _inlineMarkupQueryBuilder.GetResult(),
-                Photo = _photo
-            };
-        }
-
-        public TelegramMessageBuilder AppendEmptyLine()
-        {
-            return AppendLinePlain(string.Empty);
-        }
-        
-        public TelegramMessageBuilder AppendEmpty()
-        {
-            return AppendPlain(string.Empty);
-        }
-
-        public TelegramMessageBuilder AppendMarkdownV2(string s)
-        {
-            return Append(s, TelegramParseMode.MarkDownV2);
-        }
-
-        public TelegramMessageBuilder AppendPlainIfMessageExist(string message)
-        {
-            if (string.IsNullOrWhiteSpace(message))
-            {
-                AppendEmpty();
-            }
-            else
-            {
-                AppendPlain(message);
-            }
-
+            _inlineMarkupBuilder.InlineKeyboardButtonsRow(rows);
             return this;
         }
 
-        public TelegramMessageBuilder AppendMarkdownV2CopyContent(string plainContent)
+        public ReadOnlyCollection<CallbackDataWithCommand> GetCallbacks()
         {
-            AppendMarkdownV2($"`");
+            return _inlineMarkupBuilder.GetCallbacks();
+        }
+    }
+    
+    
+    public class MarkupMessageBuilder: MessageBuilderBase
+    {
+        protected override BotMessageParseMode ParseMode => BotMessageParseMode.MarkDown;
+        protected override string PrepareText(string text)
+        {
+            return text.ReplaceMarkDownEscapeSymbols();
+        }
+
+        public MarkupMessageBuilder AppendMarkdown(string text)
+        {
+            Append(text, true);
+            return this;
+        }
+
+        public MarkupMessageBuilder AppendCopyContent(string plainContent)
+        {
+            AppendMarkdown($"`");
             AppendPlain(plainContent);
-            AppendMarkdownV2("`");
+            AppendMarkdown("`");
 
             return this;
         }
 
-        public TelegramMessageBuilder AppendMarkdownV2CopyContentLine(string plainContent)
+        public MarkupMessageBuilder AppendCopyContentLine(string plainContent)
         {
-            AppendMarkdownV2CopyContent(plainContent);
+            AppendCopyContent(plainContent);
             AppendEmptyLine();
             return this;
         }
 
-        public TelegramMessageBuilder AppendBold(string plainContent)
+        public MarkupMessageBuilder AppendBold(string plainContent)
         {
-            AppendMarkdownV2($"*");
+            AppendMarkdown($"*");
             AppendPlain(plainContent);
-            AppendMarkdownV2("*");
+            AppendMarkdown("*");
             return this;
         }
-        public TelegramMessageBuilder AppendBoldLine(string plainContent)
+        public MarkupMessageBuilder AppendBoldLine(string plainContent)
         {
             AppendBold(plainContent);
             AppendEmptyLine();
             return this;
         }
 
-        public TelegramMessageBuilder AppendUnderline(string plainContent)
+        public MarkupMessageBuilder AppendUnderline(string plainContent)
         {
-            AppendMarkdownV2("__");
+            AppendMarkdown("__");
             AppendPlain(plainContent);
-            AppendMarkdownV2("__");
+            AppendMarkdown("__");
             return this;
         }
-        public TelegramMessageBuilder AppendUnderlineLine(string plainContent)
+        public MarkupMessageBuilder AppendUnderlineLine(string plainContent)
         {
             AppendUnderline(plainContent);
             AppendEmptyLine();
             return this;
         }
         
-        public TelegramMessageBuilder AppendLinkLine(string link, string title)
+        public MarkupMessageBuilder AppendLinkLine(string link, string title)
         {
             AppendLink(link, title);
             AppendEmptyLine();
             return this;
         }
         
-        public TelegramMessageBuilder AppendLink(string link, string title)
+        public MarkupMessageBuilder AppendLink(string link, string title)
         {
-            AppendMarkdownV2($"[");
+            AppendMarkdown($"[");
             AppendPlain(title);
-            AppendMarkdownV2($"]({link})");
+            AppendMarkdown($"]({link})");
             return this;
         }
     }

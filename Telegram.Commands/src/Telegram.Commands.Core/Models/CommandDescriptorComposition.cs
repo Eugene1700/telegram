@@ -2,7 +2,7 @@
 
 namespace Telegram.Commands.Core.Models
 {
-    internal class CommandDescriptorComposition
+    public class CommandDescriptorComposition
     {
         private CommandDescriptorComposition()
         {

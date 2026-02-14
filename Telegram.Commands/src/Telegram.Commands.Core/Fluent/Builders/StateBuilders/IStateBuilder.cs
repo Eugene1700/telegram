@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
-using Telegram.Commands.Core.Messages;
 
 namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
 {
@@ -20,9 +18,11 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
         IStateMachineBuilder<TObj, TStates> FireAndForget();
 
         IMessageBuilder<TObj, TStates> WithMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<object, TStates, TObj, ITelegramMessage, Task> sender = null);
+            Func<object, TStates, TObj, IBotMessage, Task> sender = null);
 
         IStateBuilder<TObj, TStates> WithMessages(
             Func<TStates, TObj, IStateBuilderBase<TObj, TStates>, Task> messageFlowProvider);
     }
+    
+    
 }

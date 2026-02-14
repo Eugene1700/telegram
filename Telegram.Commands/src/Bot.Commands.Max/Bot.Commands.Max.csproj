@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Bot.Command.Max</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Telegram.Commands.Abstract\Telegram.Commands.Abstract.csproj" />
+      <ProjectReference Include="..\Telegram.Commands.Core\Telegram.Commands.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MaxMessenger.Bot" Version="0.4.1-alpha" />
+    </ItemGroup>
+
+</Project>

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Telegram.Bot.Types;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 
@@ -8,9 +7,9 @@ namespace Telegram.Commands.UI.Pagination
 {
     public static class FluentCommandPaginationMenu
     {
-        public static ICallbacksBuilder<TObj, TStates> KeyboardWithPagination<TObj, TStates>(
+        public static ICallbacksBuilder<TObj, TStates> KeyboardWithPagination<TObj, TStates, TQuery>(
             this ICallbacksBuilder<TObj, TStates> builder,
-            Func<TObj, uint, ICallbacksBuilderBase<TObj, TStates>, Task<IFluentPaginationMenu>> paginator) where TObj: IFluentPagination
+            Func<TObj, uint, ICallbacksBuilderBase<TObj, TStates>, Task<IFluentPaginationMenu>> paginator) where TObj: IFluentPagination where TQuery : class
         {
             async Task Func(TStates state, TObj o, ICallbacksBuilderBase<TObj, TStates> b)
             {
@@ -23,20 +22,20 @@ namespace Telegram.Commands.UI.Pagination
                 var fluentPaginator = new FluentPaginator(pagination, currentPage);
                 if (fluentPaginator.PagesCount() > 1)
                 {
-                    Paginate(state, b, fluentPaginator);
+                    Paginate<TObj, TStates, TQuery>(state, b, fluentPaginator);
                 }
             }
 
             return builder.KeyBoard(Func);
         }
 
-        private static void Paginate<TObj, TStates>(TStates stateId, 
+        private static void Paginate<TObj, TStates, TQuery>(TStates stateId, 
             ICallbacksBuilderBase<TObj, TStates> arg2, 
-            IPaginationMenu pagination) where TObj: IFluentPagination
+            IPaginationMenu pagination) where TObj: IFluentPagination where TQuery : class
         {
             var rowBuilder = arg2.Row();
 
-            Task<TStates> Mover(CallbackQuery _, TStates state, TObj o, string cd)
+            Task<TStates> Mover(TQuery _, TStates state, TObj o, string cd)
             {
                 var pageNum = uint.Parse(cd);
                 o.PageNumber = pageNum;
@@ -47,26 +46,26 @@ namespace Telegram.Commands.UI.Pagination
             {
                 if (pagination.IsThirdOrMorePage())
                 {
-                    rowBuilder.OnCallback("1 <<", "1", Mover, true);
+                    rowBuilder.OnCallback<TObj, TStates, TQuery>("1 <<", "1", Mover, true);
                 }
 
                 if (pagination.IsSecondOrMorePage())
                 {
-                    rowBuilder.OnCallback($"{pagination.PreviousPageNumber()} <",
+                    rowBuilder.OnCallback<TObj, TStates, TQuery>($"{pagination.PreviousPageNumber()} <",
                         $"{pagination.PreviousPageNumber()}", Mover, true);
                 }
             }
 
-            rowBuilder.OnCallback($"·{pagination.PageNumber}·", $"{pagination.PageNumber}", Mover, true);
+            rowBuilder.OnCallback<TObj, TStates, TQuery>($"·{pagination.PageNumber}·", $"{pagination.PageNumber}", Mover, true);
 
             if (!pagination.IsLastPage())
             {
-                rowBuilder.OnCallback($"> {pagination.NextPageNumber()}", $"{pagination.NextPageNumber()}",
+                rowBuilder.OnCallback<TObj, TStates, TQuery>($"> {pagination.NextPageNumber()}", $"{pagination.NextPageNumber()}",
                     Mover, true);
 
                 if (!pagination.IsPenultPage())
                 {
-                    rowBuilder.OnCallback($">> {pagination.PagesCount()}", $"{pagination.PagesCount()}", Mover,
+                    rowBuilder.OnCallback<TObj, TStates, TQuery>($">> {pagination.PagesCount()}", $"{pagination.PagesCount()}", Mover,
                         true);
                 }
             }

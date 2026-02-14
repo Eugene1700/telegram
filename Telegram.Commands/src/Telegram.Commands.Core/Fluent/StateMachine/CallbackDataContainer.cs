@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Services;
+using Telegram.Commands.Abstract.Messages;
+using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Fluent.StateMachine
 {
@@ -84,13 +83,13 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             return _telegramCommandDescriptor != null && _telegramCommandDescriptor.MatchCommand(descriptor);
         }
 
-        public static bool IsCallback<TQuery>(TQuery query)
+        public static bool IsCallback<TQuery>(QueryContext<TQuery> query)
         {
             var data = query.GetData();
             return !string.IsNullOrWhiteSpace(data) && data.Split("&").Any(x => x.StartsWith(_fcbidKey));
         }
 
-        public static (string, string) ExtractData<TQuery>(TQuery query)
+        public static (string, string) ExtractData<TQuery>(QueryContext<TQuery> query)
         {
             var data = query.GetData();
             var parametrs = data.Split("&").Select(x =>

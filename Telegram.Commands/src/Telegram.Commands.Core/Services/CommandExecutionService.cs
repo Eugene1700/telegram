@@ -2,13 +2,14 @@
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Services
 {
-    internal class CommandExecutionService
+    public class CommandExecutionService
     {
         private readonly ITelegramCommandFactory _telegramCommandFactory;
         private readonly SessionManager _sessionManager;
@@ -22,7 +23,7 @@ namespace Telegram.Commands.Core.Services
 
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(
             CommandDescriptorComposition fullCommandDescriptor,
-            TQuery query)
+            QueryContext<TQuery> query)
         {
             try
             {
@@ -38,10 +39,8 @@ namespace Telegram.Commands.Core.Services
 
         private async Task<ITelegramCommandExecutionResult> ExecuteInternal<TQuery>(
             CommandDescriptorComposition fullCommandDescriptor,
-            TQuery query)
+            QueryContext<TQuery> query)
         {
-            var chatId = query.GetChatId();
-            var fromId = query.GetFromId();
             if (fullCommandDescriptor.SessionCommand != null)
             {
                 var commandType = fullCommandDescriptor.SessionCommand.Type;
@@ -82,7 +81,7 @@ namespace Telegram.Commands.Core.Services
                             throw new InvalidOperationException("Is not a telegram command");
                         
                         var genericMethod = executeMethod.MakeGenericMethod(typeof(TQuery));
-                        var behaviorSessionObject = GetSessionObject(fullCommandDescriptor, chatId, fromId);
+                        var behaviorSessionObject = GetSessionObject(fullCommandDescriptor, query.GetChatId(), query.GetFromId());
                         // ReSharper disable once PossibleNullReferenceException
                         return await (Task<ITelegramCommandExecutionResult>) genericMethod.Invoke(sessionCommandInstance,
                             new[] {queryCommandInstance, query, behaviorSessionObject});
@@ -97,14 +96,14 @@ namespace Telegram.Commands.Core.Services
                         throw new InvalidOperationException("Is not a telegram command");
                     
                     var genericMethodWithoutQueryComInstance = executeMethod.MakeGenericMethod(typeof(TQuery));
-                    var behaviorSessionObjectWithoutQueryComInstance = GetSessionObject(fullCommandDescriptor, chatId, fromId);
+                    var behaviorSessionObjectWithoutQueryComInstance = GetSessionObject(fullCommandDescriptor, query.GetChatId(), query.GetFromId());
                     // ReSharper disable once PossibleNullReferenceException
                     return await (Task<ITelegramCommandExecutionResult>) genericMethodWithoutQueryComInstance.Invoke(sessionCommandInstance,
                         new[] {query, behaviorSessionObjectWithoutQueryComInstance});
                 }
 
                 var sessionCommandMethod = GetExecuteMethod(commandType);
-                var sessionObject = GetSessionObject(fullCommandDescriptor, chatId, fromId);
+                var sessionObject = GetSessionObject(fullCommandDescriptor, query.GetChatId(), query.GetFromId());
                 // ReSharper disable once PossibleNullReferenceException
                 return await (Task<ITelegramCommandExecutionResult>) sessionCommandMethod.Invoke(sessionCommandInstance,
                     new[] {query, sessionObject});
@@ -128,7 +127,7 @@ namespace Telegram.Commands.Core.Services
                 return await commandInstance.Execute(query);
             }
 
-            throw new TelegramExtractionCommandException("Cann't execute command", chatId);
+            throw new TelegramExtractionCommandException("Cann't execute command", query.GetChatId());
         }
 
         private object GetSessionObject(CommandDescriptorComposition fullCommandDescriptor, long chatId, long fromId)

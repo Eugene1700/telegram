@@ -1,17 +1,9 @@
-﻿using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core.Fluent;
-using Telegram.Commands.Core.Messages;
-
-namespace Telegram.Commands.Core.Services
+﻿namespace Telegram.Commands.Core.Services
 {
     public static class TelegramFormatsHelper
     {
-        public static string ReplaceMarkDownEscapeSymbols(this string input, TelegramParseMode telegramParseMode)
+        public static string ReplaceMarkDownEscapeSymbols(this string input)
         {
-            if (!telegramParseMode.IsMarkdown())
-            {
-                return input;
-            }
             if (string.IsNullOrWhiteSpace(input))
                 return string.Empty;
             var res = input.Replace("_", @"\_");

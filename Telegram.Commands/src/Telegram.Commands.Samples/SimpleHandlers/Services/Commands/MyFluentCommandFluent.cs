@@ -71,7 +71,7 @@ namespace SimpleHandlers.Services.Commands
                 .Row().ExitFromCallback<MyObject, States, CancelCallback>("Cancel", "someData")
                 .Row().ExitFromCallback<MyObject, States, CancelCallback>("Cancel", "someData")
                 .Row().ExitFromCallback(KeyBoardBuild,
-                    TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
+                    BotCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
                 .ExitFromCallback(CallbackDataWithCommand())
                 .KeyBoard(SameCallbackKey)
                 .KeyboardWithPagination(Paginator)
@@ -199,7 +199,7 @@ namespace SimpleHandlers.Services.Commands
             {
                 Text = "Another another cancel",
                 CallbackText = "data",
-                CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+                CommandDescriptor = BotCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
             };
         }
 
@@ -209,7 +209,7 @@ namespace SimpleHandlers.Services.Commands
             {
                 Text = "Another cancel",
                 CallbackText = "data",
-                CommandDescriptor = TelegramCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+                CommandDescriptor = BotCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
             };
         }
 

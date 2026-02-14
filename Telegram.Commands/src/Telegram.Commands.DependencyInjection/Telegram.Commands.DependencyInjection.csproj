@@ -7,7 +7,7 @@
         <PackageProjectUrl>https://github.com/Eugene1700/telegram</PackageProjectUrl>
         <PackageLicenseUrl>MIT</PackageLicenseUrl>
         <PackageTags>telegrambotapi telegram di</PackageTags>
-        <TargetFrameworks>net6.0;netcoreapp3.1</TargetFrameworks>
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
