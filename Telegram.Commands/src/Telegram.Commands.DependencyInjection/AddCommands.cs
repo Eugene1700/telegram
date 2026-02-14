@@ -4,8 +4,8 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
 using Telegram.Commands.Abstract.Attributes;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core;
 using Telegram.Commands.Core.Exceptions;
 

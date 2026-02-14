@@ -1,5 +1,6 @@
-﻿using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
+﻿using System;
+using Telegram.Commands.Abstract.Commands;
+using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Fluent;
 
 namespace Telegram.Commands.Core.Models
@@ -129,25 +130,22 @@ namespace Telegram.Commands.Core.Models
             };
         }
         
-        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject>(TObject obj, uint? sessionDurationInSec = 600)
-            where TNextCommand : FluentCommand<TObject>
+        public static TelegramCommandExecutionResult AheadFluent<TNextCommand, TObject, TStates>(TObject obj, bool fire, uint? sessionDurationInSec = 600)
+            where TNextCommand : FluentCommand<TObject, TStates>
         {
-            var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject>();
+            var commandInfo = TelegramCommandExtensions.GetFluentCommandInfo<TNextCommand, TObject, TStates>();
             return new TelegramCommandExecutionResult
             {
-                Data = new FluentObject<TObject>(obj)
-                {
-                    CurrentStateId = null
-                },
-                Result = ExecuteResult.Ahead,
+                Data = new FluentObject<TObject, TStates>(obj, fire ? FireType.Entry : FireType.HandleCurrent),
+                Result = fire ? ExecuteResult.Fire : ExecuteResult.Ahead,
                 NextCommandDescriptor = commandInfo,
                 WaitFromChatId = null,
-                SessionDurationInSec = sessionDurationInSec
+                SessionDurationInSec = sessionDurationInSec,
             };
         }
         
-        internal static TelegramCommandExecutionResult AheadFluent<TObj>(FluentCommand<TObj> command,
-            FluentObject<TObj> sessionObject, uint? sessionDurationInSec)
+        internal static TelegramCommandExecutionResult AheadFluent<TObj, TStates>(FluentCommand<TObj, TStates> command,
+            FluentObject<TObj, TStates> sessionObject, uint? sessionDurationInSec)
         {
             var commandInfo = command.GetCommandInfo();
             return new TelegramCommandExecutionResult

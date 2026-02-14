@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -55,6 +56,10 @@ namespace SimpleHandlers.Controllers
             {
                 await _telegramBotClient.SendTextMessageAsync(e.ChatId,
                     $"This is {nameof(TelegramCommandsChatAreaException)}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
             }
             return new TelegramResult(true);
         }

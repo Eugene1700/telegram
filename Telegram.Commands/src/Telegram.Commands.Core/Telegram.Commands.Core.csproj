@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
         <RootNamespace>Telegram.Commands.Core</RootNamespace>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageId>Telegram.Commands</PackageId>
@@ -10,6 +9,7 @@
         <PackageProjectUrl>https://github.com/Eugene1700/telegram</PackageProjectUrl>
         <PackageLicenseUrl>MIT</PackageLicenseUrl>
         <PackageTags>telegrambotapi telegram</PackageTags>
+        <TargetFrameworks>net6.0;net7.0;netcoreapp3.1</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>

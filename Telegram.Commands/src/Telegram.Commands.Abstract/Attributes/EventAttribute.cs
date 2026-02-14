@@ -10,6 +10,9 @@
     {
         BotMemberAddedToChat,
         MigrateToSuperGroup,
-        ChatMemberAdded
+        ChatMemberAdded,
+        ChatMemberLeft,
+        SuccessfulPayment,
+        ChatJoinRequest
     }
 }

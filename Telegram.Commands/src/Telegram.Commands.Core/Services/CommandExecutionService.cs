@@ -3,7 +3,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Models;
 

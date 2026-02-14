@@ -1,60 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Interfaces;
+using Telegram.Commands.Abstract.Messages;
+using Telegram.Commands.Core.Messages;
 
-namespace Telegram.Commands.Core.Fluent.StateMachine;
-
-internal class StateMachine<TObj> : IStateMachine<TObj>
+namespace Telegram.Commands.Core.Fluent.StateMachine
 {
-    private readonly Dictionary<string, IState<TObj>> _states;
-    private string _entryStateId;
-    private string _finishStateId;
-
-    public StateMachine()
+    internal class StateMachine<TObj, TStates> : IStateMachine<TStates>
     {
-        _states = new Dictionary<string, IState<TObj>>();
-    }
+        private readonly Dictionary<TStates, IState<TObj, TStates>> _states;
 
-    public State<TObj> AddState(string stateId, StateType stateType, uint? durationInSec)
-    {
-        var newState = new State<TObj>(stateId, stateType, durationInSec);
-        _states.Add(stateId, newState);
-        switch (stateType)
+        public StateMachine()
         {
-            case StateType.Entry:
-                _entryStateId = stateId;
-                break;
-            case StateType.Body:
-                break;
-            case StateType.Finish:
-                _finishStateId = stateId;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(stateType), stateType, null);
+            _states = new Dictionary<TStates, IState<TObj, TStates>>();
         }
-            ;
-        return newState;
-    }
 
-    public IStateBase<TObj> GetState(string currentStateId)
-    {
-        return GetStateInternal(currentStateId);
-    }
+        public State<TObj, TStates> AddState(TStates stateId, StateType stateType,
+            Func<object, TStates, TObj, ITelegramMessage[], Task> sender, uint? durationInSec,
+            Func<object, TStates, TObj, Task<ITelegramCommandExecutionResult>> finalizer)
+        {
+            var newState = stateType switch
+            {
+                StateType.Body => new State<TObj, TStates>(stateId, stateType, sender, durationInSec),
+                StateType.Finish => new State<TObj, TStates>(stateId, stateType, sender, durationInSec, finalizer),
+                _ => throw new ArgumentOutOfRangeException(nameof(stateType), stateType, null)
+            };
 
-    public IState<TObj> GetStateInternal(string currentStateId)
-    {
-        return _states[currentStateId];
-    }
+            _states.Add(stateId, newState);
+            return newState;
+        }
 
-    public IState<TObj> GetEntryState()
-    {
-        return _states[_entryStateId];
-    }
-}
+        public State<TObj, TStates> AddExit<TQuery>(TStates stateId,
+            Func<TQuery, TStates, TObj, Task<ITelegramCommandExecutionResult>> finalizer) where TQuery : class
+        {
+            Task<ITelegramCommandExecutionResult> FinalizerObj(object q, TStates s, TObj o) => finalizer(q as TQuery, s, o);
+            return AddState(stateId, StateType.Finish, null, null, FinalizerObj);
+        }
 
-internal enum StateType
-{
-    Entry,
-    Body,
-    Finish
+        public IStateBase<TStates> GetState(TStates currentStateId)
+        {
+            return GetStateInternal(currentStateId);
+        }
+
+        public IState<TObj, TStates> GetStateInternal(TStates currentStateId)
+        {
+            return _states[currentStateId];
+        }
+    }
 }

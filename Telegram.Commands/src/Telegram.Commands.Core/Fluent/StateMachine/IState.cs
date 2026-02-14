@@ -1,13 +1,16 @@
 ﻿using System.Threading.Tasks;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Interfaces.Commands;
+using Telegram.Commands.Abstract.Commands;
+using Telegram.Commands.Abstract.Interfaces;
 
-namespace Telegram.Commands.Core.Fluent.StateMachine;
-
-internal interface IState<TObj> : IStateBase<TObj>
+namespace Telegram.Commands.Core.Fluent.StateMachine
 {
-    Task SendMessage<TQuery>(TQuery currentQuery, TObj obj);
-    Task<string> HandleQuery<TQuery>(TQuery query, TObj obj);
-    bool IsCommandHandle(IQueryTelegramCommand<CallbackQuery> currentCommand);
-    StateType GetStateType();
+    internal interface IState<TObj, TStates> : IStateBase<TStates>
+    {
+        Task SendMessages<TQuery>(TQuery currentQuery, TObj obj);
+        Task<(TStates, bool)> HandleQuery<TQuery>(TQuery query, TObj obj);
+        Task<bool> IsCommandHandle<TQuery>(TObj obj, IQueryTelegramCommand<TQuery> currentCommand);
+        StateType GetStateType();
+        Task<ITelegramCommandExecutionResult> Finalize<TQuery>(TQuery query, TObj sessionObjectObject);
+        bool NeedAnswer { get;}
+    }
 }

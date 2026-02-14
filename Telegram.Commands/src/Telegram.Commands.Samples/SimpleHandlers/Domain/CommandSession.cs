@@ -1,6 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
-using EntityStorage;
+using EntityStorage.Core;
 
 namespace SimpleHandlers.Domain
 {

@@ -2,8 +2,8 @@
 using System.Reflection;
 // using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Fluent;
 
 namespace Telegram.Commands.Core
@@ -37,7 +37,7 @@ namespace Telegram.Commands.Core
             return GetCommandInfo(command.GetType());
         }
         
-        public static ITelegramCommandDescriptor GetCommandInfo<TObj>(this FluentCommand<TObj> command)
+        public static ITelegramCommandDescriptor GetCommandInfo<TObj, TStates>(this FluentCommand<TObj, TStates> command)
         {
             return GetCommandInfo(command.GetType());
         }
@@ -54,8 +54,8 @@ namespace Telegram.Commands.Core
             return GetCommandInfo(typeof(TCommand));
         }
         
-        public static ITelegramCommandDescriptor GetFluentCommandInfo<TCommand, TObject>() 
-            where TCommand: FluentCommand<TObject>
+        public static ITelegramCommandDescriptor GetFluentCommandInfo<TCommand, TObject, TStates>() 
+            where TCommand: FluentCommand<TObject, TStates>
         {
             return GetCommandInfo(typeof(TCommand));
         }
@@ -87,6 +87,8 @@ namespace Telegram.Commands.Core
             if (attr == null)
                 throw new InvalidOperationException("unknown command");
             var data = query.GetData();
+            if (data == null)
+                return null;
             var com = "/" + TelegramQueryExtensions.ExtractCommand(data);
             return data.Replace(com, "").Trim();
         }

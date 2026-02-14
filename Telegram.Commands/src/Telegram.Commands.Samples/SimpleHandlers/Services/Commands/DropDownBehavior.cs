@@ -2,8 +2,8 @@
 using SimpleHandlers.Services.Commands.Models;
 using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
 using Telegram.Commands.Core.Exceptions;
 
 namespace SimpleHandlers.Services.Commands

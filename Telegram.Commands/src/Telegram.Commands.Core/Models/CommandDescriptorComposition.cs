@@ -8,8 +8,8 @@ namespace Telegram.Commands.Core.Models
         {
         }
 
-        public FullCommandDescriptor SessionCommand { get; private init; }
-        public FullCommandDescriptor QueryCommand { get; private init; }
+        public FullCommandDescriptor SessionCommand { get; private set; }
+        public FullCommandDescriptor QueryCommand { get; private set; }
 
         public static CommandDescriptorComposition CreateSessionResult(FullCommandDescriptor sessionCommandDescriptor)
         {

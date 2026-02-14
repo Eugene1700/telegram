@@ -1,129 +1,111 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Services;
 
-namespace Telegram.Commands.Core.Fluent.StateMachine;
-
-internal class CallbackDataContainerRow<TObj>
+namespace Telegram.Commands.Core.Fluent.StateMachine
 {
-    private readonly List<CallbackDataContainer<TObj>> _containers;
-
-    public CallbackDataContainerRow()
+    internal class CallbackDataContainer<TObj, TStates>
     {
-        _containers = new List<CallbackDataContainer<TObj>>();
-    }
+        private readonly Func<TStates, TObj, CallbackDataWithCommand> _builder;
+        private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
+        private readonly Func<object, TStates, TObj, string, Task<TStates>> _handler;
+        private readonly bool _forceNext;
+        private const string _fcudKey = "fud";
+        private const string _fcbidKey = "fid";
+        public string CallbackKey { get; }
 
-    public bool HasCommand(ITelegramCommandDescriptor curComDesc)
-    {
-        return _containers.Any(x => x.HasCommand(curComDesc));
-    }
-
-    public CallbackDataContainer<TObj> AddContainer<TQuery>(string callbackId,
-        Func<TObj, CallbackData> callbackProvider, Func<TQuery, TObj, string, Task<string>> commitExpr) where TQuery : class
-    {
-        Func<TObj, CallbackDataWithCommand> newProvider = (o) =>
+        public CallbackDataContainer(string callbackId, Func<TStates, TObj, CallbackData> provider,
+            Func<object, TStates, TObj, string, Task<TStates>> handler = null, bool force = false)
         {
-            var callbackData = callbackProvider(o);
-            return new CallbackDataWithCommand
+            CallbackDataWithCommand NewProvider(TStates s, TObj o)
             {
-                CallbackMode = callbackData.CallbackMode,
-                CallbackText = $"{CallbackDataContainer<TObj>._fcbidKey}={callbackId}&{CallbackDataContainer<TObj>._fcudKey}={callbackData.CallbackText}",
-                Text = callbackData.Text
-            };
-        };
-
-        Task<string> Committer(object q, TObj o, string d) => commitExpr(q as TQuery, o, d);
-
-        var newContainer = new CallbackDataContainer<TObj>(newProvider, Committer);
-        _containers.Add(newContainer);
-        return newContainer;
-    }
-
-    public ReadOnlyCollection<CallbackDataContainer<TObj>> GetContainers()
-    {
-        return _containers.AsReadOnly();
-    }
-
-    public CallbackDataContainer<TObj> AddContainer(Func<TObj, CallbackData> callbackProvider,
-        ITelegramCommandDescriptor telegramCommandDescriptor)
-    {
-        Func<TObj, CallbackDataWithCommand> newProvider = (o) =>
-        {
-            var callbackData = callbackProvider(o);
-            return new CallbackDataWithCommand
-            {
-                CallbackMode = callbackData.CallbackMode,
-                CallbackText = callbackData.CallbackText,
-                Text = callbackData.Text,
-                CommandDescriptor = telegramCommandDescriptor
-            };
-        };
-        var newContainer =
-            new CallbackDataContainer<TObj>(newProvider, telegramCommandDescriptor: telegramCommandDescriptor);
-        _containers.Add(newContainer);
-        return newContainer;
-    }
-}
-
-internal class CallbackDataContainer<TObj>
-{
-    private readonly Func<TObj, CallbackDataWithCommand> _builder;
-    private readonly ITelegramCommandDescriptor _telegramCommandDescriptor;
-    private readonly Func<object, TObj, string, Task<string>> _committer;
-    public static string _fcudKey = "fcUd";
-    internal const string _fcbidKey = "fcbId";
-
-    public CallbackDataContainer(Func<TObj, CallbackDataWithCommand> provider,
-        Func<object, TObj, string, Task<string>> committer = null, ITelegramCommandDescriptor telegramCommandDescriptor = null)
-    {
-        _builder = provider;
-        _telegramCommandDescriptor = telegramCommandDescriptor;
-        _committer = committer;
-    }
-
-    public CallbackDataWithCommand Build(TObj obj)
-    {
-        if (_builder != null)
-            return _builder(obj);
-
-        throw new InvalidOperationException();
-    }
-
-    public Task<string> Commit<TQuery>(TQuery query, TObj obj, string callbackUserData)
-    {
-        return _committer?.Invoke(query, obj, callbackUserData);
-    }
-
-    public bool HasCommand(ITelegramCommandDescriptor descriptor)
-    {
-        return _telegramCommandDescriptor != null && _telegramCommandDescriptor.MatchCommand(descriptor);
-    }
-
-    public static bool IsCallback<TQuery>(TQuery query)
-    {
-        var data = query.GetData();
-        return data.Split("&").Any(x => x.StartsWith(_fcbidKey));
-    }
-
-    public static (string, string) ExtractData<TQuery>(TQuery query)
-    {
-        var data = query.GetData();
-       var parametrs = data.Split("&").Select(x =>
-        {
-            var parts = x.Split("=");
-            if (parts.Length < 2)
-            {
-                throw new InvalidOperationException();
+                var callbackData = provider(s, o);
+                return
+                    new CallbackDataWithCommand
+                    {
+                        CallbackMode = callbackData.CallbackMode,
+                        CallbackText =
+                            $"{_fcbidKey}={callbackId}&{_fcudKey}={callbackData.CallbackText}",
+                        Text = callbackData.Text
+                    };
             }
-            return new KeyValuePair<string, string>(parts[0], parts[1]);
-        }).ToArray();
-       var callbackId = parametrs.SingleOrDefault(x => x.Key == _fcbidKey).Value;
-       var userData = parametrs.SingleOrDefault(x => x.Key == _fcudKey).Value;
-       return (callbackId, userData);
+
+            CallbackKey = callbackId;
+            _builder = NewProvider;
+            _telegramCommandDescriptor = null;
+            _handler = handler;
+            _forceNext = force;
+        }
+
+        public CallbackDataContainer(Func<TStates, TObj, CallbackData> provider,
+            ITelegramCommandDescriptor telegramCommandDescriptor)
+        {
+            CallbackDataWithCommand NewProvider(TStates s, TObj o)
+            {
+                var callbackData = provider(s, o);
+                return new CallbackDataWithCommand
+                {
+                    CallbackMode = callbackData.CallbackMode, CallbackText = callbackData.CallbackText,
+                    Text = callbackData.Text, CommandDescriptor = telegramCommandDescriptor
+                };
+            }
+
+            CallbackKey = default;
+            _builder = NewProvider;
+            _telegramCommandDescriptor = telegramCommandDescriptor;
+            _handler = null;
+            _forceNext = false;
+        }
+
+        public CallbackDataWithCommand Build(TStates state, TObj obj)
+        {
+            if (_builder != null)
+            {
+                var c = _builder(state, obj);
+                return c;
+            }
+
+            throw new InvalidOperationException("Callback builder was not set");
+        }
+
+        public async Task<(TStates, bool)> Handle<TQuery>(TQuery query, TStates state, TObj obj, string callbackUserData)
+        {
+            return (await _handler?.Invoke(query, state, obj, callbackUserData), _forceNext);
+        }
+
+        public bool HasCommand(ITelegramCommandDescriptor descriptor)
+        {
+            return _telegramCommandDescriptor != null && _telegramCommandDescriptor.MatchCommand(descriptor);
+        }
+
+        public static bool IsCallback<TQuery>(TQuery query)
+        {
+            var data = query.GetData();
+            return !string.IsNullOrWhiteSpace(data) && data.Split("&").Any(x => x.StartsWith(_fcbidKey));
+        }
+
+        public static (string, string) ExtractData<TQuery>(TQuery query)
+        {
+            var data = query.GetData();
+            var parametrs = data.Split("&").Select(x =>
+            {
+                var parts = x.Split("=");
+                if (parts.Length < 2)
+                {
+                    throw new InvalidOperationException("Callback data format is incorrect");
+                }
+
+                return new KeyValuePair<string, string>(parts[0], parts[1]);
+            }).ToArray();
+            var callbackId = parametrs.SingleOrDefault(x => x.Key == _fcbidKey).Value;
+            var userData = parametrs.SingleOrDefault(x => x.Key == _fcudKey).Value;
+            return (callbackId, userData);
+        }
     }
 }
