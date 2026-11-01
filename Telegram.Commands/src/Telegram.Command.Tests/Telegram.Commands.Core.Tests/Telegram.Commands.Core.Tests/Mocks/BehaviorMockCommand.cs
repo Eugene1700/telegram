@@ -1,8 +1,6 @@
 ﻿using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Interfaces.Commands;
-using Telegram.Commands.Core.Models;
 
 namespace Telegram.Commands.Core.Tests.Mocks;
 
@@ -22,24 +20,6 @@ public class BehaviorMockCommand: IBehaviorTelegramCommand<SessionObjectMock>
         _defaultExecuteCallback = defaultExecuteCallback;
     }
     
-    public Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query, SessionObjectMock sessionObject)
-    {
-        _defaultExecuteCallback?.Invoke(query, sessionObject);
-        return Task.FromResult(_result);
-    }
-
-    public Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, TQuery query, SessionObjectMock sessionObject)
-    {
-        _queryCommandExecuteCallback?.Invoke(currentCommand, query, sessionObject);
-        return Task.FromResult(_queryResult);
-    }
-
-    public Task<ITelegramCommandExecutionResult> Execute<TQuery>(ISessionTelegramCommand<TQuery, SessionObjectMock> currentCommand, TQuery query, SessionObjectMock sessionObject)
-    {
-        _sessionCommandExecuteCallback?.Invoke(currentCommand, query, sessionObject);
-        return Task.FromResult(_sessionResult);
-    }
-
     public void SetSessionCommandExecuteResult(ITelegramCommandExecutionResult result, Action<object, object, SessionObjectMock> sessionCommandExecuteCallback)
     {
         _sessionResult = result;
@@ -50,5 +30,23 @@ public class BehaviorMockCommand: IBehaviorTelegramCommand<SessionObjectMock>
     {
         _queryResult = result;
         _queryCommandExecuteCallback = queryCommandExecuteCallback;
+    }
+
+    public Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, SessionObjectMock sessionObject)
+    {
+        _defaultExecuteCallback?.Invoke(query, sessionObject);
+        return Task.FromResult(_result);
+    }
+
+    public Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, QueryContext<TQuery> query, SessionObjectMock sessionObject)
+    {
+        _queryCommandExecuteCallback?.Invoke(currentCommand, query, sessionObject);
+        return Task.FromResult(_queryResult);
+    }
+
+    public Task<ITelegramCommandExecutionResult> Execute<TQuery>(ISessionTelegramCommand<TQuery, SessionObjectMock> currentCommand, QueryContext<TQuery> query, SessionObjectMock sessionObject)
+    {
+        _sessionCommandExecuteCallback?.Invoke(currentCommand, query, sessionObject);
+        return Task.FromResult(_sessionResult);
     }
 }

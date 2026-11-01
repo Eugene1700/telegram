@@ -21,7 +21,7 @@ namespace SimpleHandlers.Services.Commands
         }
         public async Task<ITelegramCommandExecutionResult> Execute(QueryContext<CallbackQuery> query)
         {
-            await _telegramBotClient.SendTextMessageAsync(query.GetChatId(),
+            await _telegramBotClient.SendMessage(query.GetChatId(),
                 $"You press cancelation. Type {TelegramCommandExtensions.GetCommandQuery<SendPhotoCommand>()} or {TelegramCommandExtensions.GetCommandQuery<DropDownMenuCommand>()}");
             return TelegramCommandExecutionResult.Break();
         }

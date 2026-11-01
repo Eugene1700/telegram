@@ -15,11 +15,11 @@ namespace SimpleHandlers.Controllers
     public class TelegramMessageController: ControllerBase
     {
         private readonly ILogger<TelegramMessageController> _logger;
-        private readonly IBotCommandResolver<> _botCommandService;
+        private readonly IBotCommandResolver<Update> _botCommandService;
         private readonly ITelegramBotClient _telegramBotClient;
 
         public TelegramMessageController(ILogger<TelegramMessageController> logger, 
-            IBotCommandResolver<> botCommandService, ITelegramBotClient telegramBotClient)
+            IBotCommandResolver<Update> botCommandService, ITelegramBotClient telegramBotClient)
         {
             _logger = logger;
             _botCommandService = botCommandService;
@@ -44,17 +44,17 @@ namespace SimpleHandlers.Controllers
             }
             catch (TelegramExtractionCommandException e)
             {
-                await _telegramBotClient.SendTextMessageAsync(e.ChatId,
+                await _telegramBotClient.SendMessage(e.ChatId,
                     $"This is {nameof(TelegramExtractionCommandException)}");
             }
             catch (TelegramCommandsPermissionException e)
             {
-                await _telegramBotClient.SendTextMessageAsync(e.ChatId,
+                await _telegramBotClient.SendMessage(e.ChatId,
                     $"This is {nameof(TelegramCommandsPermissionException)}");
             }
             catch (TelegramCommandsChatAreaException e)
             {
-                await _telegramBotClient.SendTextMessageAsync(e.ChatId,
+                await _telegramBotClient.SendMessage(e.ChatId,
                     $"This is {nameof(TelegramCommandsChatAreaException)}");
             }
             catch (Exception ex)

@@ -2,8 +2,8 @@
 
 namespace Telegram.Commands.Abstract.Interfaces
 {
-    public interface IBotCommandResolver<in TUpdate, TResult>
+    public interface IBotCommandResolver<in TUpdate>
     {
-        Task<TResult> Handle(TUpdate update);
+        Task Handle(TUpdate update);
     }
 }

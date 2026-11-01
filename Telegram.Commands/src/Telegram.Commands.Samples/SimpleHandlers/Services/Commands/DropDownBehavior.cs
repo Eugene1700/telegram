@@ -13,7 +13,7 @@ namespace SimpleHandlers.Services.Commands
     {
         public Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, DropDownSessionObject sessionObject)
         {
-            throw new TelegramDomainException("From menu, please");
+            throw new BotDomainException("From menu, please");
         }
 
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)

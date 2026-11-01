@@ -64,7 +64,7 @@ namespace SimpleHandlers.Services.Commands
                 Text = "Cancel",
                 CallbackText = ""
             });
-            await _telegramBotClient.SendTextMessageAsync(query.GetChatId(), $"Ok, your dropdown",
+            await _telegramBotClient.SendMessage(query.GetChatId(), $"Ok, your dropdown",
                 replyMarkup: builder.GetResult());
             return TelegramCommandExecutionResult.Ahead<DropDownBehavior, DropDownSessionObject>(
                 new DropDownSessionObject

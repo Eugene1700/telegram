@@ -22,7 +22,7 @@ namespace SimpleHandlers.Services.Commands
         }
         public async Task<ITelegramCommandExecutionResult> Execute(Message query)
         {
-            await _telegramBotClient.SendTextMessageAsync(query.GetChatId(), $"Ok, send me photo");
+            await _telegramBotClient.SendMessage(query.GetChatId(), $"Ok, send me photo");
             return TelegramCommandExecutionResult.Ahead<GetPhotoSizeSession, Message, List<PhotoSessionObject>>(
                 new List<PhotoSessionObject>(), null);
         }

@@ -104,7 +104,7 @@ namespace SimpleHandlers.Services.Commands
                     replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
             }
 
-            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
+            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
                 message.ParseMode.ToParseMode(),
                 replyMarkup: message.ReplyMarkup);
         }
@@ -152,7 +152,7 @@ namespace SimpleHandlers.Services.Commands
 
         private Task SendSubMessage(object currentQuery, States state, MyObject obj, ITelegramMessage message)
         {
-            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
+            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 
@@ -215,7 +215,7 @@ namespace SimpleHandlers.Services.Commands
 
         private async Task<States> SendUserDataHandler(CallbackQuery arg1, States states, MyObject arg2, string userData)
         {
-            await _telegramBotClient.SendTextMessageAsync(arg2.ChatId, userData);
+            await _telegramBotClient.SendMessage(arg2.ChatId, userData);
             return States.Name;
         }
 
@@ -270,7 +270,7 @@ namespace SimpleHandlers.Services.Commands
                 chatId = callbackQuery.GetChatId();
             }
 
-            await _telegramBotClient.SendTextMessageAsync(chatId, $"Your data: {obj.FirstName} {obj.SecondName}");
+            await _telegramBotClient.SendMessage(chatId, $"Your data: {obj.FirstName} {obj.SecondName}");
             return TelegramCommandExecutionResult.Break();
         }
 
@@ -282,7 +282,7 @@ namespace SimpleHandlers.Services.Commands
                     replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
             }
 
-            return _telegramBotClient.SendTextMessageAsync(obj.ChatId, message.Text,
+            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 

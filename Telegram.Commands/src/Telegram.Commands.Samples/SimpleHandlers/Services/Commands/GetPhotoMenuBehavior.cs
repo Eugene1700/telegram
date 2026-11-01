@@ -14,20 +14,20 @@ namespace SimpleHandlers.Services.Commands
     {
         public Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query, List<PhotoSessionObject> sessionObject)
         {
-            throw new TelegramDomainException("You should do action from menu");
+            throw new BotDomainException("You should do action from menu");
         }
 
         public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, 
             TQuery query, List<PhotoSessionObject> sessionObject)
         {
             if (!(query is CallbackQuery callbackQuery))
-                throw new TelegramDomainException("You should do action from menu");
+                throw new BotDomainException("You should do action from menu");
             if (currentCommand is CancelCallback cancelCallback)
             {
                 return await cancelCallback.Execute(callbackQuery);
             }
 
-            throw new TelegramDomainException("You should do action from menu");
+            throw new BotDomainException("You should do action from menu");
 
         }
 
@@ -35,12 +35,12 @@ namespace SimpleHandlers.Services.Commands
             List<PhotoSessionObject>> currentCommand, TQuery query, List<PhotoSessionObject> sessionObject)
         {
             if (!(query is CallbackQuery callbackQuery))
-                throw new TelegramDomainException("You should do action from menu");
+                throw new BotDomainException("You should do action from menu");
             return currentCommand switch
             {
                 ShowResultCallback showResultCallback => await showResultCallback.Execute(callbackQuery, sessionObject),
                 NextPhotoCallback nextPhotoCallback => await nextPhotoCallback.Execute(callbackQuery, sessionObject),
-                _ => throw new TelegramDomainException("You should do action from menu")
+                _ => throw new BotDomainException("You should do action from menu")
             };
         }
     }

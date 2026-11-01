@@ -10,71 +10,37 @@ using Telegram.Commands.Realization.Models;
 
 namespace Telegram.Commands.Realization.Services
 {
-    internal sealed class TelegramBotCommandService : CommandServiceBase, IBotCommandResolver<Update, TelegramResult>
+    internal sealed class TelegramBotCommandService(
+        IAuthProvider authProvider,
+        SessionManager sessionManager,
+        IBotProfile botProfile,
+        CommandExecutionService commandExecutionService)
+        : CommandServiceBase(commandExecutionService, sessionManager,
+            authProvider, botProfile), IBotCommandResolver<Update>
     {
-        private readonly ITelegramBotClient _telegramClient;
-
-        public TelegramBotCommandService(ITelegramBotClient telegramClient,
-            IAuthProvider authProvider,
-            SessionManager sessionManager,
-            IBotProfile botProfile,
-            CommandExecutionService commandExecutionService) : base(commandExecutionService, sessionManager,
-            authProvider, botProfile)
+        public async Task Handle(Update update)
         {
-            _telegramClient = telegramClient;
-        }
-
-        public async Task<TelegramResult> Handle(Update update)
-        {
-            long? chatId = null;
-            try
+            switch (update.Type)
             {
-                switch (update.Type)
-                {
-                    case UpdateType.Message:
-                        var telegramMessageQueryContext = new TelegramMessageQueryContext(update.Message);
-                        chatId = telegramMessageQueryContext.GetChatId();
-                        await QueryHandler(telegramMessageQueryContext);
-                        break;
-                    case UpdateType.CallbackQuery:
-                        var callbackQueryContext = new CallbackQueryContext(update.CallbackQuery);
-                        chatId = callbackQueryContext.GetChatId();
-                        await QueryHandler(callbackQueryContext);
-                        break;
-                    case UpdateType.PreCheckoutQuery:
-                        var preCheckoutQueryContext = new PreCheckoutQueryContext(update.PreCheckoutQuery);
-                        chatId = preCheckoutQueryContext.GetChatId();
-                        await QueryHandler(preCheckoutQueryContext);
-                        break;
-                    case UpdateType.MyChatMember:
-                        var chatMemberUpdateQueryContext = new ChatMemberUpdateQueryContext(update.MyChatMember);
-                        chatId = chatMemberUpdateQueryContext.GetChatId();
-                        await QueryHandler(chatMemberUpdateQueryContext);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-
-                return new TelegramResult(true);
+                case UpdateType.Message:
+                    var telegramMessageQueryContext = new TelegramMessageQueryContext(update.Message);
+                    await QueryHandler(telegramMessageQueryContext);
+                    break;
+                case UpdateType.CallbackQuery:
+                    var callbackQueryContext = new CallbackQueryContext(update.CallbackQuery);
+                    await QueryHandler(callbackQueryContext);
+                    break;
+                case UpdateType.PreCheckoutQuery:
+                    var preCheckoutQueryContext = new PreCheckoutQueryContext(update.PreCheckoutQuery);
+                    await QueryHandler(preCheckoutQueryContext);
+                    break;
+                case UpdateType.MyChatMember:
+                    var chatMemberUpdateQueryContext = new ChatMemberUpdateQueryContext(update.MyChatMember);
+                    await QueryHandler(chatMemberUpdateQueryContext);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
-            catch (NotImplementedException ex)
-            {
-                if (chatId.HasValue)
-                    await _telegramClient.SendMessage(chatId, ex.Message);
-                return new TelegramResult(false);
-            }
-        }
-
-        protected override async Task SendDomainException<TQuery>(QueryContext<TQuery> query,
-            TelegramDomainException ex)
-        {
-            await _telegramClient.SendMessage(query.GetChatId(), ex.Message,
-                replyParameters: int.TryParse(query.GetMessageId(), out var messageId)
-                    ? new ReplyParameters()
-                    {
-                        MessageId = messageId
-                    }
-                    : null);
         }
     }
 }

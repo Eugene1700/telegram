@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
 
 namespace Telegram.Commands.Core.Fluent.Builders.Extensions
 {
-
     public static class StateBuilderStronglyTypedExtensions
     {
-        public static IMessageBuilder<TObj, TStates> WithMessage<TObj, TStates>(
+        public static IMessageBuilder<TObj, TStates> WithMessage<TObj, TStates, TQuery>(
             this IStateBuilder<TObj, TStates> stateBuilder, string message,
-            Func<object, TStates, TObj, IBotMessage, Task> sender)
+            Func<QueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
         {
             return stateBuilder.WithMessage((s, o) =>
             {
@@ -20,9 +20,9 @@ namespace Telegram.Commands.Core.Fluent.Builders.Extensions
             }, sender);
         }
 
-        public static IMessageBuilder<TObj, TStates> WithMessage<TObj, TStates>(
+        public static IMessageBuilder<TObj, TStates> WithMessage<TObj, TStates, TQuery>(
             this IStateBuilder<TObj, TStates> stateBuilder, Func<TStates, TObj, Task<string>> message,
-            Func<object, TStates, TObj, IBotMessage, Task> sender)
+            Func<QueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
         {
             return stateBuilder.WithMessage(async (s, o) =>
             {

@@ -1,64 +1,37 @@
 ﻿using Bot.Command.Max.Models;
-using Bot.Command.Max.Services;
-using Max.Bot;
 using Max.Bot.Types;
 using Max.Bot.Types.Enums;
-using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Exceptions;
 using Telegram.Commands.Core.Services;
 
-namespace Bot.Command.Max;
+namespace Bot.Command.Max.Services;
 
-public class MaxCommandService : CommandServiceBase, IBotCommandResolver<Update, MaxResult>
+public class MaxCommandService(
+    CommandExecutionService commandExecutionService,
+    SessionManager sessionManager,
+    IAuthProvider authProvider,
+    IBotProfile botProfile)
+    : CommandServiceBase(commandExecutionService,
+        sessionManager, authProvider, botProfile), IBotCommandResolver<Update>
 {
-    private readonly MaxClient _maxClient;
-
-    public MaxCommandService(MaxClient maxClient, CommandExecutionService commandExecutionService, SessionManager sessionManager,
-        IAuthProvider authProvider, IBotProfile botProfile) : base(commandExecutionService,
-        sessionManager, authProvider, botProfile)
+    public async Task Handle(Update update)
     {
-        _maxClient = maxClient;
-    }
-
-    public async Task<MaxResult> Handle(Update update)
-    {
-        long? chatId = null;
-        try
+        switch (update.Type)
         {
-            switch (update.Type)
-            {
-                case UpdateType.MessageCreated:
-                    var telegramMessageQueryContext = new MessageCreatedQueryContext(update.Chat, update.Message);
-                    chatId = telegramMessageQueryContext.GetChatId();
-                    await QueryHandler(telegramMessageQueryContext);
-                    break;
-                case UpdateType.MessageCallback:
-                    var callbackQueryContext = new MessageCallbackContext(update.Chat, update.Callback);
-                    chatId = callbackQueryContext.GetChatId();
-                    await QueryHandler(callbackQueryContext);
-                    break;
-                case UpdateType.UserAdded:
-                    var chatMemberUpdateQueryContext = new ChatMemberUpdateQueryContext(update.UserAddedUpdate);
-                    chatId = chatMemberUpdateQueryContext.GetChatId();
-                    await QueryHandler(chatMemberUpdateQueryContext);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-
-            return new MaxResult();
+            case UpdateType.MessageCreated:
+                var telegramMessageQueryContext = new MessageCreatedQueryContext(update.Chat, update.Message);
+                await QueryHandler(telegramMessageQueryContext);
+                break;
+            case UpdateType.MessageCallback:
+                var callbackQueryContext = new MessageCallbackContext(update.Chat, update.Callback);
+                await QueryHandler(callbackQueryContext);
+                break;
+            case UpdateType.UserAdded:
+                var chatMemberUpdateQueryContext = new UserAddedUpdateContext(update.UserAddedUpdate);
+                await QueryHandler(chatMemberUpdateQueryContext);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
-        catch (NotImplementedException ex)
-        {
-            if (chatId.HasValue)
-                await _maxClient.Messages.SendMessageAsync(chatId.Value, ex.Message);
-            return new MaxResult();
-        }
-    }
-
-    protected override Task SendDomainException<TQuery>(QueryContext<TQuery> query, TelegramDomainException ex)
-    {
-        throw new NotImplementedException();
     }
 }

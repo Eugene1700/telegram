@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
@@ -95,8 +96,8 @@ namespace Telegram.Commands.Core.Fluent.Builders.StateBuilders
             return this;
         }
 
-        public IMessageBuilder<TObj, TStates> WithMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<object, TStates, TObj, IBotMessage, Task> sender)
+        public IMessageBuilder<TObj, TStates> WithMessage<TQuery>(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
+            Func<QueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
         {
             _state.AddMessage(messageProvider, sender);
             return this;

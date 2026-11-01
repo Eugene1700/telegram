@@ -74,7 +74,7 @@ namespace Telegram.Commands.Realization
             return this;
         }
 
-        public IReplyMarkup GetResult()
+        public InlineKeyboardMarkup GetResult()
         {
             return new InlineKeyboardMarkup(_buttons);
         }
@@ -102,7 +102,7 @@ namespace Telegram.Commands.Realization
                 case CallbackMode.Url:
                     return InlineKeyboardButton.WithUrl(x.Text, x.CallbackText);
                 case CallbackMode.Payment:
-                    return InlineKeyboardButton.WithPayment(x.Text);
+                    return InlineKeyboardButton.WithPay(x.Text);
                 default:
                     throw new ArgumentOutOfRangeException();
             }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Messages;
 using Telegram.Commands.Core.Fluent.Builders;
@@ -62,8 +63,8 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
             _messageFlowBuilders.Add(newBuilder);
         }
 
-        public void AddMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<object, TStates, TObj, IBotMessage, Task> sender)
+        public void AddMessage<TQuery>(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
+            Func<QueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
         {
             var newBuilder = new MessageFlowBuilder<TObj, TStates>($"{_prefix}mfb{_messageFlowBuilders.Count}",
                 messageProvider,

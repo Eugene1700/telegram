@@ -27,7 +27,7 @@ namespace SimpleHandlers.Services.Commands
         public async Task<ITelegramCommandExecutionResult> Execute(Message query, List<PhotoSessionObject> sessionObject)
         {
             if (query.Type != MessageType.Photo)
-                throw new TelegramDomainException("It's no photo");
+                throw new BotDomainException("It's no photo");
 
             var maxSize = query.Photo?.Max(x => x.FileSize);
             sessionObject.Add(new PhotoSessionObject
@@ -38,7 +38,7 @@ namespace SimpleHandlers.Services.Commands
 
             var builder = new InlineMarkupQueryBuilder();
             builder.AddMenu();
-            await _telegramBotClient.SendTextMessageAsync(query.GetChatId(),
+            await _telegramBotClient.SendMessage(query.GetChatId(),
                 $"Your photo size=[{maxSize}]. What I should do next (only from menu)?",
                 replyMarkup: builder.GetResult());
 

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
+using Telegram.Commands.Abstract.Commands;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Core.Models;
 using Telegram.Commands.Core.Services;
@@ -35,7 +36,7 @@ public class Tests : TestsBase
     {
         var result = TelegramCommandExecutionResult.Break();
 
-        var newMessage = _messageEnvironment.CreateMessage();
+        var newMessage = _messageEnvironment.CreateMessageQueryContext();
         var res = await ExecuteCommandWithMessage(result, newMessage);
 
         Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
@@ -50,7 +51,7 @@ public class Tests : TestsBase
     {
         var result = TelegramCommandExecutionResult.Freeze();
 
-        var newMessage = _messageEnvironment.CreateMessage();
+        var newMessage = _messageEnvironment.CreateMessageQueryContext();
         var res = await ExecuteCommandWithMessage(result, newMessage);
 
         Assert.That(res.Result, Is.EqualTo(ExecuteResult.Freeze));
@@ -69,7 +70,7 @@ public class Tests : TestsBase
                 Data = "123"
             }, (uint?)15);
 
-        var newMessage = _messageEnvironment.CreateMessage();
+        var newMessage = _messageEnvironment.CreateMessageQueryContext();
         var res = await ExecuteCommandWithMessage(result, newMessage);
 
         Assert.That(res.Result, Is.EqualTo(ExecuteResult.Ahead));
@@ -97,7 +98,7 @@ public class Tests : TestsBase
                 Data = "123"
             }, 66434, 15);
 
-        var newMessage = _messageEnvironment.CreateMessage();
+        var newMessage = _messageEnvironment.CreateMessageQueryContext();
         var res = await ExecuteCommandWithMessage(result, newMessage);
 
         Assert.That(res.Result, Is.EqualTo(ExecuteResult.Ahead));
@@ -129,22 +130,22 @@ public class Tests : TestsBase
             Data = "myData"
         });
 
-        var newMessage = _messageEnvironment.CreateMessage();
+        var newMessageContext = _messageEnvironment.CreateMessageQueryContext();
         var sessionCommandDescriptor = new FullCommandDescriptor(_sessionMessageMockCommand.GetType());
         Assert.That(sessionCommandDescriptor.IsQueryCommand, Is.False);
         Assert.That(sessionCommandDescriptor.IsBehaviorTelegramCommand, Is.False);
         Assert.That(sessionCommandDescriptor.IsSessionTelegramCommand, Is.True);
         _sessionMessageMockCommand.SetResult(result, (m, so) =>
         {
-            Assert.That(m.Text, Is.EqualTo(newMessage.Text));
-            Assert.That(m.GetChatId(), Is.EqualTo(newMessage.Chat.Id));
+            Assert.That(m.Query.Text, Is.EqualTo(newMessageContext.GetData()));
+            Assert.That(m.GetChatId(), Is.EqualTo(newMessageContext.GetChatId()));
             Assert.That(so, Is.Not.Null);
             Assert.That(so.Data, Is.EqualTo("myData"));
         });
 
         var res = await _commandExecutionService.Execute(
             CommandDescriptorComposition.CreateSessionResult(sessionCommandDescriptor),
-            newMessage);
+            newMessageContext);
 
         Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
         Assert.That(res.Data, Is.Null);
@@ -166,7 +167,7 @@ public class Tests : TestsBase
             Data = "myData"
         });
         
-        var newMessage = _messageEnvironment.CreateMessage();
+        var newMessage = _messageEnvironment.CreateMessageQueryContext();
         var behaviorFullCommandDescriptor = new FullCommandDescriptor(_behaviorMockCommand.GetType());
         Assert.That(behaviorFullCommandDescriptor.IsQueryCommand, Is.False);
         Assert.That(behaviorFullCommandDescriptor.IsBehaviorTelegramCommand, Is.True);
@@ -174,10 +175,10 @@ public class Tests : TestsBase
         
         _behaviorMockCommand.SetDefaultExecuteResult(result, (q, so) =>
         {
-            var query = q as Message;
+            var query = q as QueryContext<Message>;
             Assert.That(query, Is.Not.Null);
-            Assert.That(query.Text, Is.EqualTo(newMessage.Text));
-            Assert.That(query.GetChatId(), Is.EqualTo(newMessage.Chat.Id));
+            Assert.That(query.GetData(), Is.EqualTo(newMessage.GetData()));
+            Assert.That(query.GetChatId(), Is.EqualTo(newMessage.GetChatId()));
             Assert.That(so, Is.Not.Null);
             Assert.That(so.Data, Is.EqualTo("myData"));
         });
@@ -206,20 +207,22 @@ public class Tests : TestsBase
             Data = "myData"
         });
         
-        var newMessage = _messageEnvironment.CreateMessage();
+        var newMessage = _messageEnvironment.CreateMessageQueryContext();
         var behaviorFullCommandDescriptor = new FullCommandDescriptor(_behaviorMockCommand.GetType());
         var sessionFullCommandDescriptor = new FullCommandDescriptor(_sessionMessageMockCommand.GetType());
 
-        _behaviorMockCommand.SetSessionCommandExecuteResult(result, (cc, q, so) =>
-        {
+        _behaviorMockCommand.SetSessionCommandExecuteResult(result, (cc, q, so) => {
             var currentCommand = cc as SessionMessageMockCommand;
             Assert.That(currentCommand, Is.Not.Null);
             
-            var query = q as Message;
+            var query = q as QueryContext<Message>;
             Assert.That(query, Is.Not.Null);
-            Assert.That(query.Text, Is.EqualTo(newMessage.Text));
-            Assert.That(query.GetChatId(), Is.EqualTo(newMessage.Chat.Id));
-            Assert.That(so, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(query.GetData(), Is.EqualTo(newMessage.GetData()));
+                Assert.That(query.GetChatId(), Is.EqualTo(newMessage.GetChatId()));
+                Assert.That(so, Is.Not.Null);
+            });
             Assert.That(so.Data, Is.EqualTo("myData"));
         });
 
@@ -247,7 +250,7 @@ public class Tests : TestsBase
             Data = "myData"
         });
         
-        var newMessage = _messageEnvironment.CreateMessage();
+        var newMessage = _messageEnvironment.CreateMessageQueryContext();
         var behaviorFullCommandDescriptor = new FullCommandDescriptor(_behaviorMockCommand.GetType());
         var queryFullCommandDescriptor = new FullCommandDescriptor(_queryMessageMockCommand.GetType());
 
@@ -256,10 +259,10 @@ public class Tests : TestsBase
             var currentCommand = cc as QueryMessageMockCommand;
             Assert.That(currentCommand, Is.Not.Null);
             
-            var query = q as Message;
+            var query = q as QueryContext<Message>;
             Assert.That(query, Is.Not.Null);
-            Assert.That(query.Text, Is.EqualTo(newMessage.Text));
-            Assert.That(query.GetChatId(), Is.EqualTo(newMessage.Chat.Id));
+            Assert.That(query.GetData(), Is.EqualTo("My Text"));
+            Assert.That(query.GetChatId(), Is.EqualTo(123456789));
             Assert.That(so, Is.Not.Null);
             Assert.That(so.Data, Is.EqualTo("myData"));
         });
@@ -267,16 +270,18 @@ public class Tests : TestsBase
         var res = await _commandExecutionService.Execute(
             CommandDescriptorComposition.CreateBehaviorResult(behaviorFullCommandDescriptor, queryFullCommandDescriptor),
             newMessage);
-        
-        Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
-        Assert.That(res.Data, Is.Null);
-        Assert.That(res.NextCommandDescriptor, Is.Null);
-        Assert.That(res.SessionDurationInSec, Is.Null);
-        Assert.That(res.WaitFromChatId, Is.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(res.Result, Is.EqualTo(ExecuteResult.Break));
+            Assert.That(res.Data, Is.Null);
+            Assert.That(res.NextCommandDescriptor, Is.Null);
+            Assert.That(res.SessionDurationInSec, Is.Null);
+            Assert.That(res.WaitFromChatId, Is.Null);
+        });
     }
-    
+
     private async Task<ITelegramCommandExecutionResult> ExecuteCommandWithMessage(TelegramCommandExecutionResult result,
-        Message newMessage)
+        QueryContext<Message> newMessage)
     {
         var queryCommandDescriptor = new FullCommandDescriptor(_queryMessageMockCommand.GetType());
         Assert.That(queryCommandDescriptor.IsQueryCommand, Is.True);
@@ -284,8 +289,8 @@ public class Tests : TestsBase
         Assert.That(queryCommandDescriptor.IsSessionTelegramCommand, Is.False);
         _queryMessageMockCommand.SetResult(result, m =>
         {
-            Assert.That(m.Text, Is.EqualTo(newMessage.Text));
-            Assert.That(m.GetChatId(), Is.EqualTo(newMessage.Chat.Id));
+            Assert.That(m.GetData(), Is.EqualTo("My Text"));
+            Assert.That(m.GetChatId(), Is.EqualTo(123456789));
         });
         var res = await _commandExecutionService.Execute(
             CommandDescriptorComposition.CreateQueryResult(queryCommandDescriptor),

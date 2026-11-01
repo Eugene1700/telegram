@@ -5,14 +5,10 @@ using Telegram.Bot.Types;
 using Telegram.Commands.Abstract.Attributes;
 using Telegram.Commands.Abstract.Interfaces;
 using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core;
 using Telegram.Commands.Core.Fluent;
 using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
-using Telegram.Commands.Core.Fluent.Builders.Extensions;
-using Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
 using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Telegram.Commands.Core.Fluent.StateMachine;
-using Telegram.Commands.Core.Messages;
 using Telegram.Commands.Core.Models;
 
 namespace SimpleHandlers.Services.Commands
@@ -63,7 +59,7 @@ namespace SimpleHandlers.Services.Commands
         }
 
         public Task Send<TQuery>(TQuery query, FluentCommandWithGlobalInterceptStates state,
-            FluentCommandWithGlobalInterceptObject obj, ITelegramMessage message)
+            FluentCommandWithGlobalInterceptObject obj, IBotMessage message)
         {
             var chatId = query switch
             {
@@ -72,7 +68,7 @@ namespace SimpleHandlers.Services.Commands
                 _ => throw new InvalidOperationException()
             };
 
-            return _telegramBotClient.SendTextMessageAsync(chatId, message.Text,
+            return _telegramBotClient.SendMessage(chatId, message.Text,
                 replyMarkup: message.ReplyMarkup);
         }
 
@@ -92,7 +88,7 @@ namespace SimpleHandlers.Services.Commands
             };
             if (sessionObject.IsIntercept)
             {
-                await _telegramBotClient.SendTextMessageAsync(chatId, "Intercepted message");
+                await _telegramBotClient.SendMessage(chatId, "Intercepted message");
                 sessionObject.IsIntercept = !sessionObject.IsIntercept;
                 return GlobalInterceptResult.Freeze;
             }

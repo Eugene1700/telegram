@@ -44,13 +44,7 @@ public abstract class CommandServiceBase
         {
             throw new TelegramExtractionCommandException(ex.Message, query.GetChatId());
         }
-        catch (TelegramDomainException ex)
-        {
-            await SendDomainException(query, ex);
-        }
     }
-
-    protected abstract Task SendDomainException<TQuery>(QueryContext<TQuery> query, TelegramDomainException ex);
 
     private async Task Next<TQuery>(QueryContext<TQuery> query, ITelegramCommandExecutionResult commandExecutionResult)
     {

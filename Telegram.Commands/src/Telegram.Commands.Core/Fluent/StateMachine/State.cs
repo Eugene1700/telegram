@@ -113,8 +113,8 @@ namespace Telegram.Commands.Core.Fluent.StateMachine
 
         public bool NeedAnswer => !_withoutAnswer;
 
-        public void AddMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<object, TStates, TObj, IBotMessage, Task> sender)
+        public void AddMessage<TQuery>(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
+            Func<QueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
         {
             _messagesBuilder.AddMessage(messageProvider, sender);
         }
