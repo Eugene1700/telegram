@@ -1,10 +1,10 @@
-﻿using Bot.Command.Max.Models;
-using Max.Bot.Types;
-using Max.Bot.Types.Enums;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Services;
+using Bot.Commands.Max.Models;
+using global::Max.Bot.Types;
+using global::Max.Bot.Types.Enums;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core.Services;
 
-namespace Bot.Command.Max.Services;
+namespace Bot.Commands.Max.Services;
 
 public class MaxCommandService(
     CommandExecutionService commandExecutionService,
@@ -19,19 +19,19 @@ public class MaxCommandService(
         switch (update.Type)
         {
             case UpdateType.MessageCreated:
-                var telegramMessageQueryContext = new MessageCreatedQueryContext(update.Chat, update.Message);
-                await QueryHandler(telegramMessageQueryContext);
+                var messageQueryContext = new MessageCreatedQueryContext(update.Chat, update.Message);
+                await QueryHandler(messageQueryContext);
                 break;
             case UpdateType.MessageCallback:
-                var callbackQueryContext = new MessageCallbackContext(update.Chat, update.Callback);
+                var callbackQueryContext = new MessageCallbackContext(update.Chat, update.Callback, update.Message);
                 await QueryHandler(callbackQueryContext);
                 break;
             case UpdateType.UserAdded:
-                var chatMemberUpdateQueryContext = new UserAddedUpdateContext(update.UserAddedUpdate);
+                var chatMemberUpdateQueryContext = new UserAddedUpdateContext(update.UserAddedUpdate, update.ChatId);
                 await QueryHandler(chatMemberUpdateQueryContext);
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+                break;
         }
     }
 }

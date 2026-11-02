@@ -1,25 +1,26 @@
-﻿using System;
+using Bot.Commands.Abstract.Commands;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Fluent;
-using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders;
-using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
-using Telegram.Commands.Core.Fluent.Builders.Extensions;
-using Telegram.Commands.Core.Fluent.Builders.StateBuilders;
-using Telegram.Commands.Core.Fluent.Builders.StateBuilders.Extensions;
-using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
-using Telegram.Commands.Core.Fluent.StateMachine;
-using Telegram.Commands.Core.Messages;
-using Telegram.Commands.Core.Models;
-using Telegram.Commands.Core.Services;
-using Telegram.Commands.UI.Pagination;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using global::Telegram.Bot.Types.ReplyMarkups;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Abstract.Messages;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Fluent;
+using Bot.Commands.Core.Fluent.Builders.CallbackBuilders;
+using Bot.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
+using Bot.Commands.Core.Fluent.Builders.Extensions;
+using Bot.Commands.Core.Fluent.Builders.StateBuilders;
+using Bot.Commands.Telegram.Extensions;
+using Bot.Commands.Core.Fluent.Builders.StateMachineBuilders;
+using Bot.Commands.Core.Fluent.StateMachine;
+using Bot.Commands.Telegram;
+using Bot.Commands.Core.Models;
+using Bot.Commands.Core.Services;
+using Bot.Commands.UI.Pagination;
 
 namespace SimpleHandlers.Services.Commands
 {
@@ -46,8 +47,8 @@ namespace SimpleHandlers.Services.Commands
         {
             var chatId = query switch
             {
-                Message message => message.GetChatId(),
-                CallbackQuery callbackQuery => callbackQuery.GetChatId(),
+                Message message => message.Chat.Id,
+                CallbackQuery callbackQuery => callbackQuery.Message.Chat.Id,
                 _ => throw new InvalidOperationException()
             };
             var o = myObject ?? new MyObject();
@@ -74,7 +75,7 @@ namespace SimpleHandlers.Services.Commands
                     BotCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
                 .ExitFromCallback(CallbackDataWithCommand())
                 .KeyBoard(SameCallbackKey)
-                .KeyboardWithPagination(Paginator)
+                .KeyboardWithPagination<MyObject, States, CallbackQuery>(Paginator)
                 .WithMessages(OtherMessages)
                 // .WithMessage(GetMessageWithParseMode, SendWithParseMode)
                 .WithMessage(GetMessageWithParseMode2, SendWithParseMode)
@@ -95,28 +96,28 @@ namespace SimpleHandlers.Services.Commands
 
             return a.Build();
         }
-        private Task SendWithParseMode(object currentQuery, States arg2, MyObject obj, ITelegramMessageTyped<TelegramParseMode> message)
+        private Task SendWithParseMode(object currentQuery, States arg2, MyObject obj, IBotMessage message)
         {
-            if (currentQuery is CallbackQuery callbackQuery)
+            if (currentQuery is QueryContext<CallbackQuery> callbackContext)
             {
-                return _telegramBotClient.EditMessageTextAsync(obj.ChatId, callbackQuery.Message.MessageId, message.Text,
+                return _telegramBotClient.EditMessageText(obj.ChatId, callbackContext.Query.Message.MessageId, message.Text,
                     message.ParseMode.ToParseMode(),
-                    replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
+                    replyMarkup: (InlineKeyboardMarkup)message.ToReplyMarkup());
             }
 
             return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
                 message.ParseMode.ToParseMode(),
-                replyMarkup: message.ReplyMarkup);
+                replyMarkup: message.ToReplyMarkup());
         }
 
-        private Task<ITextMessageTyped<TelegramParseMode>> GetMessageWithParseMode(States arg1, MyObject arg2)
+        private Task<ITextMessage> GetMessageWithParseMode(States arg1, MyObject arg2)
         {
             throw new NotImplementedException();
         }
         
-        private Task<(string, TelegramParseMode)> GetMessageWithParseMode2(States arg1, MyObject arg2)
+        private Task<ITextMessage> GetMessageWithParseMode2(States arg1, MyObject arg2)
         {
-            return Task.FromResult(("*MarkDownText*", TelegramParseMode.MarkDownV2));
+            return Task.FromResult<ITextMessage>(new BotMessage("*MarkDownText*", null, BotMessageParseMode.MarkDown, null));
         }
 
         private Task BackHandler<TQuery>(TQuery arg1, MyObject arg2, string arg3) where TQuery : class
@@ -150,10 +151,10 @@ namespace SimpleHandlers.Services.Commands
             };
         }
 
-        private Task SendSubMessage(object currentQuery, States state, MyObject obj, ITelegramMessage message)
+        private Task SendSubMessage(object currentQuery, States state, MyObject obj, IBotMessage message)
         {
             return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
-                replyMarkup: message.ReplyMarkup);
+                replyMarkup: message.ToReplyMarkup());
         }
 
         private Task<IFluentPaginationMenu> Paginator(MyObject arg1, uint arg2,
@@ -257,36 +258,36 @@ namespace SimpleHandlers.Services.Commands
             return States.Exit;
         }
 
-        private async Task<ITelegramCommandExecutionResult> Finalize(object currentQuery, States  state, MyObject obj)
+        private async Task<ICommandExecutionResult> Finalize(object currentQuery, States  state, MyObject obj)
         {
             long chatId = 0;
             if (currentQuery is Message message)
             {
-                chatId = message.GetChatId();
+                chatId = message.Chat.Id;
             }
 
             if (currentQuery is CallbackQuery callbackQuery)
             {
-                chatId = callbackQuery.GetChatId();
+                chatId = callbackQuery.Message.Chat.Id;
             }
 
             await _telegramBotClient.SendMessage(chatId, $"Your data: {obj.FirstName} {obj.SecondName}");
-            return TelegramCommandExecutionResult.Break();
+            return CommandExecutionResult.Break();
         }
 
-        public Task Send<TQuery>(TQuery currentQuery, States state, MyObject obj, ITelegramMessage message)
+        public Task Send(object currentQuery, States state, MyObject obj, IBotMessage message)
         {
-            if (currentQuery is CallbackQuery callbackQuery)
+            if (currentQuery is QueryContext<CallbackQuery> callbackContext)
             {
-                return _telegramBotClient.EditMessageTextAsync(obj.ChatId, callbackQuery.Message.MessageId, message.Text,
-                    replyMarkup: (InlineKeyboardMarkup)message.ReplyMarkup);
+                return _telegramBotClient.EditMessageText(obj.ChatId, callbackContext.Query.Message.MessageId, message.Text,
+                    replyMarkup: (InlineKeyboardMarkup)message.ToReplyMarkup());
             }
 
             return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
-                replyMarkup: message.ReplyMarkup);
+                replyMarkup: message.ToReplyMarkup());
         }
 
-        public Task Send<TQuery>(TQuery currentQuery, MyObject obj, ITelegramMessage[] message)
+        public Task Send<TQuery>(TQuery currentQuery, MyObject obj, IBotMessage[] message)
         {
             throw new NotImplementedException();
         }

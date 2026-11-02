@@ -1,18 +1,18 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands.Models;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Models;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Models;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "nextphoto_callback", Authorized = true)]
-    public class NextPhotoCallback : ISessionTelegramCommand<CallbackQuery, List<PhotoSessionObject>>
+    public class NextPhotoCallback : ISessionCommand<CallbackQuery, List<PhotoSessionObject>>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -20,10 +20,11 @@ namespace SimpleHandlers.Services.Commands
         {
             _telegramBotClient = telegramBotClient;
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(CallbackQuery query, List<PhotoSessionObject> sessionObject)
+        public async Task<ICommandExecutionResult> Execute(QueryContext<CallbackQuery> context, List<PhotoSessionObject> sessionObject)
         {
-            await _telegramBotClient.SendMessage(query.GetChatId(), $"Ok, send me photo");
-            return TelegramCommandExecutionResult.Ahead<GetPhotoSizeSession, Message, List<PhotoSessionObject>>(
+            var query = context.Query;
+            await _telegramBotClient.SendMessage(context.GetChatId(), $"Ok, send me photo");
+            return CommandExecutionResult.Ahead<GetPhotoSizeSession, Message, List<PhotoSessionObject>>(
                 sessionObject, null);
         }
     }

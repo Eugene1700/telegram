@@ -1,0 +1,279 @@
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core.Exceptions;
+using Bot.Commands.Core.Models;
+
+namespace Bot.Commands.Core.Services;
+
+public abstract class CommandServiceBase
+{
+    private readonly CommandExecutionService _commandExecutionService;
+    private readonly SessionManager _sessionManager;
+    private readonly IAuthProvider _authProvider;
+    private readonly IBotProfile _botProfile;
+    protected IBotProfile BotProfile => _botProfile;
+
+    protected CommandServiceBase(CommandExecutionService commandExecutionService, SessionManager sessionManager,
+        IAuthProvider authProvider, IBotProfile botProfile)
+    {
+        _commandExecutionService = commandExecutionService;
+        _sessionManager = sessionManager;
+        _authProvider = authProvider;
+        _botProfile = botProfile;
+    }
+
+    protected async Task QueryHandler<TQuery>(QueryContext<TQuery> query)
+    {
+        try
+        {
+            var commandDesc = GetCommand(query);
+            if (commandDesc == null)
+                return;
+
+            await AssertAuth(query, commandDesc);
+            AssertChatType(query, commandDesc);
+            var commandExecutionResult =
+                await _commandExecutionService.Execute(commandDesc, query);
+            await Next(query, commandExecutionResult);
+        }
+        catch (CommandExtractionInternalException ex)
+        {
+            throw new CommandExtractionException(ex.Message, query.GetChatId());
+        }
+    }
+
+    private async Task Next<TQuery>(QueryContext<TQuery> query, ICommandExecutionResult commandExecutionResult)
+    {
+        var chatId = query.GetChatId();
+        var userId = query.GetFromId();
+        if (commandExecutionResult.Result == ExecuteResult.Freeze)
+            return;
+
+        var sessionChatId = commandExecutionResult.WaitFromChatId ?? chatId;
+        if (commandExecutionResult.Result == ExecuteResult.Break)
+        {
+            await _sessionManager.ReleaseSessionIfExists(sessionChatId, userId);
+            return;
+        }
+
+        var activeSession = _sessionManager.GetCurrentSession(chatId, userId);
+        if (commandExecutionResult.Result == ExecuteResult.Ahead)
+        {
+            if (activeSession == null)
+            {
+                await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor,
+                    sessionChatId,
+                    userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
+                return;
+            }
+
+            await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
+                chatId,
+                sessionChatId,
+                userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
+
+            return;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(commandExecutionResult.Result),
+            commandExecutionResult.Result.ToString());
+    }
+
+    private async Task AssertAuth<TQuery>(QueryContext<TQuery> query, CommandDescriptorComposition commandDesc)
+    {
+        var chatId = query.GetChatId();
+        var userId = query.GetFromId();
+        if (commandDesc.SessionCommand?.Authorized ?? false)
+        {
+            if (!await _authProvider.AuthUser(userId,
+                    new CommandExecutionContext<TQuery>(query.Query, commandDesc.SessionCommand, chatId)))
+                throw new CommandPermissionException("Unauthorized user", chatId);
+        }
+
+        if (commandDesc.QueryCommand?.Authorized ?? false)
+        {
+            if (!await _authProvider.AuthUser(userId,
+                    new CommandExecutionContext<TQuery>(query.Query, commandDesc.QueryCommand, chatId)))
+                throw new CommandPermissionException("Unauthorized user", chatId);
+        }
+    }
+
+    private CommandDescriptorComposition GetCommand<TQuery>(QueryContext<TQuery> query)
+    {
+        if (query.IsEvent())
+        {
+            return GetEvent(query);
+        }
+        
+        var chatId = query.GetChatId();
+        if (TryGetSessionCommandStr(query, out var commandStr))
+        {
+            var comDesc = FindCommand<TQuery>(commandStr, chatId);
+            if (!comDesc.IsBehaviorCommand)
+                return CommandDescriptorComposition.CreateSessionResult(comDesc);
+            if (!TryGetQueryCommandStr(query, out var currentCommandStr))
+                return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
+            var queryCommandDesc = FindCommand<TQuery>(currentCommandStr, chatId);
+            return CommandDescriptorComposition.CreateBehaviorResult(comDesc, queryCommandDesc);
+        }
+
+        if (!TryGetQueryCommandStr(query, out commandStr))
+            if (query.IsGroupMessage())
+                return null;
+            else
+                throw new CommandExtractionException("Could not extract command", chatId);
+
+        var queryComDesc = FindCommand<TQuery>(commandStr, chatId);
+        return CommandDescriptorComposition.CreateQueryResult(queryComDesc);
+    }
+
+    private static CommandDescriptorComposition GetEvent<TQuery>(QueryContext<TQuery> query)
+    {
+        if (!query.IsEvent())
+            return null;
+
+        var eventType = query.GetEventType();
+        if (eventType == null)
+        {
+            return null;
+        }
+        var descriptor = CommandTypeDiscovery.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && !t.ContainsGenericParameters &&
+                t.GetCustomAttribute<EventAttribute>()?.Type == eventType.Value)
+            .Select(t => new FullCommandDescriptor(t))
+            .SingleOrDefault(d => d.SupportsQuery(typeof(TQuery)));
+        return descriptor == null ? null : CommandDescriptorComposition.CreateQueryResult(descriptor);
+    }
+
+    private FullCommandDescriptor FindCommand<TQuery>(string commandStr, long chatId)
+    {
+        var commandTypes = FindCommandByName(commandStr).Where(d => d.SupportsQuery(typeof(TQuery))).ToArray();
+        var comDesc = ApplySwarm(chatId, commandTypes);
+        if (comDesc == null)
+        {
+            throw new CommandExtractionException("Command without attribute", chatId);
+        }
+
+        return comDesc;
+    }
+
+    private void AssertChatType<TQuery>(QueryContext<TQuery> query, CommandDescriptorComposition commandDescriptorComposition)
+    {
+        if (commandDescriptorComposition.IsBehaviorCommand)
+        {
+            if (commandDescriptorComposition.SessionCommand != null)
+                AssertChatTypeConcrete(query, commandDescriptorComposition.SessionCommand.Descriptor);
+            if (commandDescriptorComposition.QueryCommand != null)
+                AssertChatTypeConcrete(query, commandDescriptorComposition.QueryCommand.Descriptor);
+            return;
+        }
+
+        if (commandDescriptorComposition.IsSessionCommand)
+        {
+            AssertChatTypeConcrete(query, commandDescriptorComposition.SessionCommand.Descriptor);
+            return;
+        }
+
+        AssertChatTypeConcrete(query, commandDescriptorComposition.QueryCommand.Descriptor);
+    }
+    
+    private void AssertChatTypeConcrete<TQuery>(QueryContext<TQuery> query, ICommandDescriptor commandInfo)
+    {
+        if (commandInfo == null)
+            throw new ArgumentNullException(nameof(commandInfo));
+        var chatType = query.GetChatType();
+        var chatId = query.GetChatId();
+        switch (chatType)
+        {
+            case ChatArea.Private:
+                if ((commandInfo.Area & ChatArea.Private) != ChatArea.Private)
+                    throw new CommandChatAreaException("This command is not for private chat", chatId);
+                return;
+            case ChatArea.Group:
+                if ((commandInfo.Area & ChatArea.Group) != ChatArea.Group)
+                    throw new CommandChatAreaException("This command is not for group", chatId);
+                return;
+            case ChatArea.Channel:
+                if ((commandInfo.Area & ChatArea.Channel) != ChatArea.Channel)
+                    throw new CommandChatAreaException("This command is not for channel", chatId);
+                return;
+            case ChatArea.SuperGroup:
+                if ((commandInfo.Area & ChatArea.SuperGroup) != ChatArea.SuperGroup)
+                    throw new CommandChatAreaException("This command is not for supergroup", chatId);
+                return;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private bool TryGetSessionCommandStr<TQuery>(QueryContext<TQuery> query, out string commandStr)
+    {
+        commandStr = null;
+        var chatId = query.GetChatId();
+        var userId = query.GetFromId();
+        var sessionInfo = _sessionManager.GetCurrentSession(chatId, userId);
+        if (sessionInfo == null) return false;
+        commandStr = sessionInfo.CommandQuery;
+        return true;
+    }
+
+    protected virtual bool TryGetQueryCommandStr<TQuery>(QueryContext<TQuery> query, out string commandStr)
+    {
+        commandStr = query.GetData();
+        var isCommand = !string.IsNullOrWhiteSpace(commandStr) && commandStr[0] == '/';
+        if (!isCommand)
+            return false;
+        return true;
+    }
+    private static FullCommandDescriptor[] FindCommandByName(string queryString)
+    {
+        //todo need cache
+        var commandTypes = CommandTypeDiscovery.GetTypes()
+            .Where(p =>
+            {
+                var attrLoc = p.GetCustomAttribute<CommandAttribute>();
+                return p.IsClass && !p.IsAbstract && !p.ContainsGenericParameters &&
+                    attrLoc != null && !(attrLoc is EventAttribute) && attrLoc.MatchCommand(queryString);
+            }).Select(x => new FullCommandDescriptor(x)).ToArray();
+
+        return commandTypes;
+    }
+
+    private FullCommandDescriptor ApplySwarm(long chatId, FullCommandDescriptor[] suspectedCommands)
+    {
+        var swarms = _botProfile.Swarms;
+        if (_botProfile.Swarms != null && (_botProfile?.Swarms.Any() ?? false))
+        {
+            var descs = suspectedCommands
+                .Where(x =>
+                    x.Descriptor.Swarms == null || x.Descriptor.Swarms.Any(y => swarms.Contains(y))).ToArray();
+            if (descs.Length == 1)
+                return descs[0];
+
+            throw new CommandExtractionException("Too many commands for query", chatId);
+        }
+
+        if (suspectedCommands.Length == 1)
+            return suspectedCommands[0];
+
+        throw new CommandExtractionException("Too many commands for query", chatId);
+    }
+
+    protected static Type FindEventByType(EventType eventType)
+    {
+        //todo need cache
+        var commandType = CommandTypeDiscovery.GetTypes()
+            .SingleOrDefault(p =>
+            {
+                var attrLoc = p.GetCustomAttribute<EventAttribute>();
+                return p.IsClass && !p.IsAbstract && attrLoc != null && attrLoc.Type == eventType;
+            });
+
+        return commandType;
+    }
+}

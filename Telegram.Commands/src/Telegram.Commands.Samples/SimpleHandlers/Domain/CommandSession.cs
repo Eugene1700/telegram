@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using EntityStorage.Core;
 
@@ -17,10 +17,10 @@ namespace SimpleHandlers.Domain
         public DateTime? ExpiredAt { get; set; }
 
         [Column("ID_TELEGRAM_CHAT")]
-        public long TelegramChatId { get; set; }
+        public long ChatId { get; set; }
 
         [Column("ID_TELEGRAM_USER")] 
-        public long TelegramUserId { get; set; }
+        public long UserId { get; set; }
         
         [Column("SESSION_DATA")]
         public string SessionData { get; set; }

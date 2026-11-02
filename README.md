@@ -1,168 +1,95 @@
-Helpers for telegram api dotnet client, which has been implemeted in https://github.com/TelegramBots/Telegram.Bot.
+# Bot.Commands
 
-# How to use it
-Telegram.Commands.Core.TelegramCommandService for automatic resolving telegram bot commands for the format: ```/<command> <args>``` from update message or CallbackQuery or PreCheckoutQuery and etc. And you can make chains of commands as state machine.
-  
-1. For dotnetcore dependency injection just call Telegram.Commands.DependencyInjection.TelegramDependencyExtensions.UseTelegramCommandsServices from startup file.
-2. Implement Telegram.Commands.Abstract.IAuthProvider
-3. Implement Telegram.Commands.Abstract.ITelegramBotProfile for each bot.
-5. Implement Telegram.Commands.Abstract.ISessionStore for storing service info about command handling flow.
-5. Release needed commands for bot in your project
-6. From Update methods call Telegram.Commands.Core.TelegramCommandService.Handle for automatic handling commands.
+**Commands, sessions, and fluent conversation flows for Telegram and Max bots in .NET.**
 
-# Make command
+Bot.Commands separates conversation logic from incoming messenger updates. Use typed commands for individual actions, session commands for multi-step interactions, and `FluentCommand` to describe a conversation as a state machine.
 
-There are three kinds of commands:
-1. IQueryTelegramCommand<TQuery> - it is a simple handler. We can get info about handler directly from query (for example Text field for Message).
-2. ISessionTelegramCommand<TQuery, TSessionObject> - it is a handler for chaining command, where we can use strong type of query. For example, photo uploading after some /command.
-3. IBehaviorCommand<TSessionObject> - it is a handler with interceptors for IQueryTelegramCommand<TQuery> and ISessionTelegramCommand<TQuery, TSessionObject>. Use this type, when you need a chain with other actions. For example, photo uploading after some /command with cancel action (CallbackQuery).
-More information in [Sample](https://github.com/Eugene1700/telegram/tree/master/Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers) project.
-*TQuery* - query from Telegram.Bots (Message, Callback and etc.) 
-*TSessionObject* is object, which you can exchage between the commands of chain.
-  
-```
-public interface IQueryTelegramCommand<in TQuery>
-{
-    Task<ITelegramCommandExecutionResult> Execute(TQuery query);
-}
-  
-public interface ISessionTelegramCommand<in TQuery, TSessionObject>
-{
-    Task<ITelegramCommandExecutionResult> Execute(TQuery query, TSessionObject sessionObject);
-}
-  
-public interface IBehaviorCommand<TSessionObject>
-{
-    Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> queryCommand, TQuery query, TSessionObject sessionObject);
-    Task<ITelegramCommandExecutionResult> Execute<TQuery>(ISessionTelegramCommand<TQuery> sessionCommand, TQuery query, TSessionObject sessionObject);
-    Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query, TSessionObject sessionObject);
-}
+The shared engine uses messenger-independent `Bot.Commands.*` contracts. Adapters for **Telegram** and **Max** own SDK integration, command addressing, and formatting rules. This is a breaking source/API migration from the earlier Telegram-prefixed contracts; see the [migration guide](docs/migration.md). The repository's historical `Telegram.Commands/src` directory and solution filename are unchanged.
+
+## What you can build
+
+- Route `/command arguments` messages and callback buttons to typed handlers.
+- Carry application data between steps using your own session store.
+- Describe prompts, validation, transitions, and exit actions with a fluent API.
+- Intercept commands inside an active conversation using behavior commands.
+- Restrict commands by authorization, chat type, and bot-specific command groups.
+- Build common inline keyboards and convert them to Telegram or Max SDK types.
+
+The library handles command execution and conversation state. Your application owns update delivery, SDK clients, outgoing messages, storage, and hosting.
+
+## A conversation in code
+
+```csharp
+// Inside a FluentCommand<ProfileData, ProfileStep> subclass.
+return builder
+    .State(ProfileStep.Name)
+    .WithMessage("What is your name?", Send)
+    .Next<object>((query, state, data) =>
+    {
+        data.Name = ReadText(query);
+        return Task.FromResult(ProfileStep.Done);
+    }, force: false)
+    .Exit<object>(ProfileStep.Done, Finish)
+    .Build();
 ```
 
-## Example
-  [Sample IQueryTelegramCommand](https://github.com/Eugene1700/telegram/blob/master/Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/SendPhotoCommand.cs) 
-  [Sample ISessionTelegramCommand](https://github.com/Eugene1700/telegram/blob/master/Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/GetPhotoSizeSession.cs)
+`Send`, `ReadText`, and `Finish` are application methods. See the [complete, runnable example](docs/examples/QuickStart/Commands.cs) and the [Fluent guide](docs/fluent.md) for their implementations and handler contracts.
 
+## Try it locally
+
+Requires the **.NET 10 SDK**. Run these commands from the repository root:
+
+```sh
+dotnet restore Telegram.Commands/src/Telegram.Commands.sln
+dotnet build Telegram.Commands/src/Telegram.Commands.sln --no-restore
+dotnet run --project docs/examples/QuickStart -- telegram
+dotnet run --project docs/examples/QuickStart -- max
 ```
-[Command(Name = "my", ChatArea = ChatArea.Private)]
-public class MyCommand : IQueryTelegramCommand<Message>
-{
-    private readonly ITelegramBotClient _telegramClient;
 
-    public MyCommand(ITelegramBotClient telegramClient)
-    {
-        _telegramClient = telegramClient;
-    }
-    public async Task<ITelegramCommandExecutionResult> Execute(Message query)
-    {
-        var chatId = query.GetChatId();
+The quick-start example processes synthetic SDK updates and writes replies to the console. It requires no bot token, makes no bot API calls, and demonstrates the same commands and Fluent flow through either adapter.
 
-        if (query.Text.Contains("ahead"))
-        {
-            await _telegramClient.SendTextMessageAsync(chatId,
-                $"Your message");
-            //Next command of chain, you can store data between commands
-            return TelegramCommandExecutionResult.Ahead<NextCommand, Message, long>(1);
-        }
+For a real bot, start with [installation and integration](docs/getting-started.md). The guide uses project references to this checkout; it does not assume that a matching NuGet release has already been published.
 
-        if (query.Text.Contains("break"))
-        {
-            await _telegramClient.SendTextMessageAsync(chatId,
-                $"Your message");
-            //interrupt execution of chain
-            return TelegramCommandExecutionResult.Break();
-        }
+## Documentation
 
-        if (query.Text.Contains("freeze"))
-        {
-            await _telegramClient.SendTextMessageAsync(chatId,
-                $"Your message");
-            //freeze state of chains and you go this command again
-            return TelegramCommandExecutionResult.Freeze();
-        }
-        throw new TelegramDomainException("You have to input an action");
-    }
-}
- 
-[Command(Name = "nextcommand", ChatArea = ChatArea.Private)]
-public class NextCommand : ISessionTelegramCommand<Message, long>
-{
-    private readonly ITelegramBotClient _telegramClient;
+| Guide | Contents |
+| --- | --- |
+| [Getting started](docs/getting-started.md) | Requirements, registration, SDK integration, update scopes |
+| [Commands and sessions](docs/commands.md) | Command types, routing, results, authorization, events, storage contract |
+| [Fluent conversations](docs/fluent.md) | States, messages, callbacks, transitions, interception |
+| [Messenger adapters](docs/adapters.md) | Supported updates, keyboard conversion, platform differences |
+| [Architecture and operations](docs/architecture.md) | Project boundaries, execution flow, concurrency, troubleshooting |
+| [Migration](docs/migration.md) | Moving from the older Telegram-only API |
+| [Contributing](CONTRIBUTING.md) | Build, tests, documentation changes, release preparation |
 
-    public MyCommand(ITelegramBotClient telegramClient)
-    {
-        _telegramClient = telegramClient;
-    }
-  
-    public async Task<ITelegramCommandExecutionResult> Execute(Message query, long sessionObject)
-    {
-        var chatId = query.GetChatId();
-  
-        await _telegramClient.SendTextMessageAsync(chatId,
-                $"SessionObject={sessionObject} Message={query.Text}");
-       return TelegramCommandExecutionResult.Break();
-    }
-}
-    
+## Project layout
 
+| Project | Responsibility |
+| --- | --- |
+| `Bot.Commands.Abstract` | Command contracts, query contexts, metadata, common messages |
+| `Bot.Commands.Core` | Resolution, execution, sessions, Fluent state machines |
+| `Bot.Commands.UI` | Dropdown and pagination helpers |
+| `Bot.Commands.Telegram` | Telegram update contexts and SDK conversions |
+| `Bot.Commands.Max` | Max update contexts and SDK conversions |
+| `Bot.Commands.DependencyInjection` | Microsoft DI registration and command factory |
+
+Abstract, Core, UI, and common DependencyInjection do not reference a messenger SDK or adapter. Each adapter references the common registration project and provides its own registration extension. See [architecture](docs/architecture.md) for dependency details.
+
+## Current scope
+
+The code targets .NET 10 and currently references Telegram.Bot **22.9.0** and MaxMessenger.Bot **0.4.1-alpha**. These are the versions in this repository, not a claim about the latest upstream releases.
+
+Not every update or SDK feature is exposed by the adapters. Sessions are keyed by chat and user, so applications running multiple bots must isolate their stores and profiles. The engine does not provide update deduplication, per-session locking, or automatic retries. Read the [operational notes](docs/architecture.md#operational-boundaries) before connecting a persistent store or multiple workers.
+
+## Build and test
+
+```sh
+dotnet build Telegram.Commands/src/Telegram.Commands.sln
+dotnet test Telegram.Commands/src/Telegram.Command.Tests/Bot.Commands.Core.Tests/Bot.Commands.Core.Tests/Bot.Commands.Core.Tests.csproj
 ```
-## Behaviors command
 
-See [sample](https://github.com/Eugene1700/telegram/blob/master/Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/GetPhotoMenuBehavior.cs)
-  
-## Forwarding
- 
-You can exit from command hadler with ways:
-  TelegramCommandExecutionResult.Ahead - to create or continue chain.
-  TelegramCommandExecutionResult.Break  - to interrupt chain or simple exit.
-  TelegramCommandExecutionResult.Freeze - to freeze state of current chain. 
-  
-## Chat type contraction
+Tests cover command results, messenger-specific routing, shared session commands, Fluent query handling, and keyboard rows. They do not replace live SDK integration tests.
 
-You can use command only for private, group, channel chats. Set the flag in CommandAttribute.
-  
-  ```
-  [Flags]
-  public enum ChatArea
-  {
-    Private = 1,
-    Group = 2,
-    Channel = 4,
-    SuperGroup = 8,
-  }
-  ```
-  
-## Swarms
-  
-  You can unite some commands in swarms and distribute them between different bots. Set the Swarms in CommandAttribute and ITelegramBotProfile.
-  
-## Authorization
-  
-  You can set the Authorized flag for enable authorization of command with IAuthProvider.
+## License status
 
-## Exceptions
-
-# Other helpers
-
-## InlineMarkupQueryBuilder
-  
-For easy creating keyaboards.
-  
-  ```
-  public InlineMarkupQueryBuilder AddInlineKeyboardButtons<TCommand>(CallbackData[] callbackQueries)
-            where TCommand : IQueryTelegramCommand<CallbackQuery>;
-  public InlineMarkupQueryBuilder AddInlineKeyboardButtons<TCommand, TSessionObject>(CallbackData[] callbackQueries)
-            where TCommand : ISessionTelegramCommand<CallbackQuery, TSessionObject>;
-  public InlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand>(CallbackData callbackData)
-            where TCommand : IQueryTelegramCommand<CallbackQuery>;
-  public InlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand, TSessionObject>(CallbackData callbackData)
-            where TCommand : ISessionTelegramCommand<CallbackQuery, TSessionObject>;
-  public InlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackData[] callbackQueries);
-  public InlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackData callbackData);
-  public InlineMarkupQueryBuilder InlineKeyboardButtonsRow(CallbackDataWithCommand[] callbackData);
-  
-  public IReplyMarkup GetResult();
-  ```
-
-## TelegramCommandExtensions
-
+The project metadata references MIT, but this checkout does not include a standalone `LICENSE` file. The repository owner should confirm the intended license and add its full text before publishing a release. This README does not grant a license itself.

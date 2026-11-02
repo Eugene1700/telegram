@@ -1,22 +1,22 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands.Models;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Exceptions;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core.Exceptions;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "dropdown_behavior")]
-    public class DropDownBehavior : IBehaviorTelegramCommand<DropDownSessionObject>
+    public class DropDownBehavior : IBehaviorCommand<DropDownSessionObject>
     {
-        public Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, DropDownSessionObject sessionObject)
+        public Task<ICommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, DropDownSessionObject sessionObject)
         {
             throw new BotDomainException("From menu, please");
         }
 
-        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)
+        public async Task<ICommandExecutionResult> Execute<TQuery>(IQueryCommand<TQuery> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)
         {
             return currentCommand switch
             {
@@ -25,13 +25,13 @@ namespace SimpleHandlers.Services.Commands
             };
         }
 
-        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(ISessionTelegramCommand<TQuery, DropDownSessionObject> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)
+        public async Task<ICommandExecutionResult> Execute<TQuery>(ISessionCommand<TQuery, DropDownSessionObject> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)
         {
             return currentCommand switch
             {
                 SelectDropDownItemCallback selectDropDownItemCallback => await selectDropDownItemCallback.Execute(
-                    query as CallbackQuery, sessionObject),
-                ShowDropDownCallback showDropDownCallback => await showDropDownCallback.Execute(query as CallbackQuery,
+                    query as QueryContext<CallbackQuery>, sessionObject),
+                ShowDropDownCallback showDropDownCallback => await showDropDownCallback.Execute(query as QueryContext<CallbackQuery>,
                     sessionObject),
                 _ => await DefaultExecute(query, sessionObject)
             };

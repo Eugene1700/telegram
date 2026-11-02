@@ -1,15 +1,18 @@
-﻿using System;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Core.Fluent.Builders.Extensions;
+using Bot.Commands.Telegram.Extensions;
+using System;
 using System.Threading.Tasks;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core.Fluent;
-using Telegram.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
-using Telegram.Commands.Core.Fluent.Builders.StateMachineBuilders;
-using Telegram.Commands.Core.Fluent.StateMachine;
-using Telegram.Commands.Core.Models;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Abstract.Messages;
+using Bot.Commands.Core.Fluent;
+using Bot.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
+using Bot.Commands.Core.Fluent.Builders.StateMachineBuilders;
+using Bot.Commands.Core.Fluent.StateMachine;
+using Bot.Commands.Core.Models;
 
 namespace SimpleHandlers.Services.Commands
 {
@@ -45,10 +48,10 @@ namespace SimpleHandlers.Services.Commands
                 .Exit<object>(FluentCommandWithGlobalInterceptStates.Stop, Stop).Build();
         }
 
-        private async Task<ITelegramCommandExecutionResult> Stop(object arg1, FluentCommandWithGlobalInterceptStates state, 
+        private async Task<ICommandExecutionResult> Stop(object arg1, FluentCommandWithGlobalInterceptStates state,
             FluentCommandWithGlobalInterceptObject arg2)
         {
-            return TelegramCommandExecutionResult.Break();
+            return CommandExecutionResult.Break();
         }
 
         public async Task<FluentCommandWithGlobalInterceptStates> HandleMessage(object query,
@@ -58,18 +61,18 @@ namespace SimpleHandlers.Services.Commands
             return FluentCommandWithGlobalInterceptStates.Entry;
         }
 
-        public Task Send<TQuery>(TQuery query, FluentCommandWithGlobalInterceptStates state,
+        public Task Send(object query, FluentCommandWithGlobalInterceptStates state,
             FluentCommandWithGlobalInterceptObject obj, IBotMessage message)
         {
             var chatId = query switch
             {
-                Message m => m.GetChatId(),
-                CallbackQuery callbackQuery => callbackQuery.GetChatId(),
+                QueryContext<Message> m => m.GetChatId(),
+                QueryContext<CallbackQuery> callbackQuery => callbackQuery.GetChatId(),
                 _ => throw new InvalidOperationException()
             };
 
             return _telegramBotClient.SendMessage(chatId, message.Text,
-                replyMarkup: message.ReplyMarkup);
+                replyMarkup: message.ToReplyMarkup());
         }
 
         private Task<string> GetEntryMessage(FluentCommandWithGlobalInterceptStates arg1,
@@ -82,8 +85,8 @@ namespace SimpleHandlers.Services.Commands
         {
             var chatId = query switch
             {
-                Message m => m.GetChatId(),
-                CallbackQuery callbackQuery => callbackQuery.GetChatId(),
+                Message m => m.Chat.Id,
+                CallbackQuery callbackQuery => callbackQuery.Message.Chat.Id,
                 _ => throw new InvalidOperationException()
             };
             if (sessionObject.IsIntercept)

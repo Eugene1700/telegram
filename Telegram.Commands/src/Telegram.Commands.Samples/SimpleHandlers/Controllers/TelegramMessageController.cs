@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Exceptions;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core.Exceptions;
 
 namespace SimpleHandlers.Controllers
 {
@@ -36,32 +36,32 @@ namespace SimpleHandlers.Controllers
         [HttpPost]
         [Route(Settings.RouteToUpdate)]
         [AllowAnonymous]
-        public async Task<TelegramResult> Update([FromBody] Update update)
+        public async Task<BotResult> Update([FromBody] Update update)
         {
             try
             {
                 await _botCommandService.Handle(update);
             }
-            catch (TelegramExtractionCommandException e)
+            catch (CommandExtractionException e)
             {
                 await _telegramBotClient.SendMessage(e.ChatId,
-                    $"This is {nameof(TelegramExtractionCommandException)}");
+                    $"This is {nameof(CommandExtractionException)}");
             }
-            catch (TelegramCommandsPermissionException e)
+            catch (CommandPermissionException e)
             {
                 await _telegramBotClient.SendMessage(e.ChatId,
-                    $"This is {nameof(TelegramCommandsPermissionException)}");
+                    $"This is {nameof(CommandPermissionException)}");
             }
-            catch (TelegramCommandsChatAreaException e)
+            catch (CommandChatAreaException e)
             {
                 await _telegramBotClient.SendMessage(e.ChatId,
-                    $"This is {nameof(TelegramCommandsChatAreaException)}");
+                    $"This is {nameof(CommandChatAreaException)}");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
             }
-            return new TelegramResult(true);
+            return new BotResult(true);
         }
     }
 }

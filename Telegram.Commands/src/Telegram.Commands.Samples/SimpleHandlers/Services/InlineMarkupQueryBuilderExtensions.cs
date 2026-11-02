@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+using global::Telegram.Bot.Types;
+using System.Collections.Generic;
 using SimpleHandlers.Services.Commands;
 using SimpleHandlers.Services.Commands.Models;
-using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core.Services;
+using Bot.Commands.Abstract.Messages;
+using Bot.Commands.Core.Services;
 
 namespace SimpleHandlers.Services
 {
@@ -10,17 +11,17 @@ namespace SimpleHandlers.Services
     {
         public static InlineMarkupQueryBuilder AddMenu(this InlineMarkupQueryBuilder builder)
         {
-            builder.AddInlineKeyboardButton<NextPhotoCallback, List<PhotoSessionObject>>(new CallbackData
+            builder.AddInlineKeyboardButton<NextPhotoCallback, List<PhotoSessionObject>, CallbackQuery>(new CallbackData
             {
                 Text = "Next photo",
                 CallbackText = "this is callback text"
             });
-            builder.AddInlineKeyboardButton<ShowResultCallback, List<PhotoSessionObject>>(new CallbackData
+            builder.AddInlineKeyboardButton<ShowResultCallback, List<PhotoSessionObject>, CallbackQuery>(new CallbackData
             {
                 Text = "Show result",
                 CallbackText = "this is callback text"
             });
-            builder.AddInlineKeyboardButton<CancelCallback>(new CallbackData
+            builder.AddInlineKeyboardButton<CancelCallback, CallbackQuery>(new CallbackData
             {
                 Text = "Cancel",
                 CallbackText = ""

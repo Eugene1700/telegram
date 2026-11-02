@@ -1,22 +1,22 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Core", "Telegram.Commands.Core\Telegram.Commands.Core.csproj", "{5185D497-65B5-4C29-8C27-CDAF293AB1B3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Commands.Core", "Bot.Commands.Core\Bot.Commands.Core.csproj", "{5185D497-65B5-4C29-8C27-CDAF293AB1B3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Abstract", "Telegram.Commands.Abstract\Telegram.Commands.Abstract.csproj", "{07B1F737-144B-4C45-A507-1D68C7ADEF2E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Commands.Abstract", "Bot.Commands.Abstract\Bot.Commands.Abstract.csproj", "{07B1F737-144B-4C45-A507-1D68C7ADEF2E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.DependencyInjection", "Telegram.Commands.DependencyInjection\Telegram.Commands.DependencyInjection.csproj", "{30E69E2D-D1ED-4462-9189-F3746C33B92A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Commands.DependencyInjection", "Bot.Commands.DependencyInjection\Bot.Commands.DependencyInjection.csproj", "{30E69E2D-D1ED-4462-9189-F3746C33B92A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Telegram.Commands.Samples", "Telegram.Commands.Samples", "{105560B5-CFFC-4997-A4D9-66263A54C605}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleHandlers", "Telegram.Commands.Samples\SimpleHandlers\SimpleHandlers.csproj", "{540F360A-B1A6-46B6-A11A-EF54D5455B60}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.UI", "Telegram.Commands.UI\Telegram.Commands.UI.csproj", "{82414793-ACC4-4F24-BFED-DF739755F30A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Commands.UI", "Bot.Commands.UI\Bot.Commands.UI.csproj", "{82414793-ACC4-4F24-BFED-DF739755F30A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Telegram.Commands.Tests", "Telegram.Commands.Tests", "{F82258B0-EB89-4D6B-9AAF-4148501299BC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Core.Tests", "Telegram.Command.Tests\Telegram.Commands.Core.Tests\Telegram.Commands.Core.Tests\Telegram.Commands.Core.Tests.csproj", "{FFB0E028-9378-4CF1-B350-E5B4483C6822}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Commands.Core.Tests", "Telegram.Command.Tests\Bot.Commands.Core.Tests\Bot.Commands.Core.Tests\Bot.Commands.Core.Tests.csproj", "{FFB0E028-9378-4CF1-B350-E5B4483C6822}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram.Commands.Realization", "Telegram.Commands.Realization\Telegram.Commands.Realization.csproj", "{67371E89-572C-41BE-BC8A-F9A1F3661579}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Commands.Telegram", "Bot.Commands.Telegram\Bot.Commands.Telegram.csproj", "{67371E89-572C-41BE-BC8A-F9A1F3661579}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Commands.Max", "Bot.Commands.Max\Bot.Commands.Max.csproj", "{37826C9E-59E6-44A6-80FE-97A2316AA089}"
 EndProject

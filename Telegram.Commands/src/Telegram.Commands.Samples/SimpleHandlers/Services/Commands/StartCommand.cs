@@ -1,16 +1,16 @@
-﻿using System.Threading.Tasks;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Models;
+using System.Threading.Tasks;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Models;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "start", Authorized = false)]
-    public class StartCommand: IQueryTelegramCommand<Message>
+    public class StartCommand: IQueryCommand<Message>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -18,11 +18,12 @@ namespace SimpleHandlers.Services.Commands
         {
             _telegramBotClient = telegramBotClient;
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(Message query)
+        public async Task<ICommandExecutionResult> Execute(QueryContext<Message> context)
         {
-            await _telegramBotClient.SendMessage(query.GetChatId(),
+            var query = context.Query;
+            await _telegramBotClient.SendMessage(context.GetChatId(),
                 $"Hello, {query.From?.Username ?? "User"}! We are ready to start");
-            return TelegramCommandExecutionResult.Break();
+            return CommandExecutionResult.Break();
         }
     }
 }

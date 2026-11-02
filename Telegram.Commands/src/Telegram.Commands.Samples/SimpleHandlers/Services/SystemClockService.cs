@@ -1,5 +1,5 @@
-﻿using System;
-using Telegram.Commands.Abstract.Interfaces;
+using System;
+using Bot.Commands.Abstract.Interfaces;
 
 namespace SimpleHandlers.Services
 {

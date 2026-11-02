@@ -1,26 +1,26 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands.Models;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core.Exceptions;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core.Exceptions;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "getphotomenu_behavior", Authorized = true)]
-    public class GetPhotoMenuBehavior : IBehaviorTelegramCommand<List<PhotoSessionObject>>
+    public class GetPhotoMenuBehavior : IBehaviorCommand<List<PhotoSessionObject>>
     {
-        public Task<ITelegramCommandExecutionResult> DefaultExecute<TQuery>(TQuery query, List<PhotoSessionObject> sessionObject)
+        public Task<ICommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, List<PhotoSessionObject> sessionObject)
         {
             throw new BotDomainException("You should do action from menu");
         }
 
-        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(IQueryTelegramCommand<TQuery> currentCommand, 
-            TQuery query, List<PhotoSessionObject> sessionObject)
+        public async Task<ICommandExecutionResult> Execute<TQuery>(IQueryCommand<TQuery> currentCommand,
+            QueryContext<TQuery> query, List<PhotoSessionObject> sessionObject)
         {
-            if (!(query is CallbackQuery callbackQuery))
+            if (!(query is QueryContext<CallbackQuery> callbackQuery))
                 throw new BotDomainException("You should do action from menu");
             if (currentCommand is CancelCallback cancelCallback)
             {
@@ -31,10 +31,10 @@ namespace SimpleHandlers.Services.Commands
 
         }
 
-        public async Task<ITelegramCommandExecutionResult> Execute<TQuery>(ISessionTelegramCommand<TQuery, 
-            List<PhotoSessionObject>> currentCommand, TQuery query, List<PhotoSessionObject> sessionObject)
+        public async Task<ICommandExecutionResult> Execute<TQuery>(ISessionCommand<TQuery,
+            List<PhotoSessionObject>> currentCommand, QueryContext<TQuery> query, List<PhotoSessionObject> sessionObject)
         {
-            if (!(query is CallbackQuery callbackQuery))
+            if (!(query is QueryContext<CallbackQuery> callbackQuery))
                 throw new BotDomainException("You should do action from menu");
             return currentCommand switch
             {

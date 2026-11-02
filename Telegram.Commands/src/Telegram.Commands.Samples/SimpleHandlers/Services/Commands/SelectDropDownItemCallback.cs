@@ -1,21 +1,22 @@
-﻿using System.Threading.Tasks;
+using Bot.Commands.Telegram.Extensions;
+using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands.Models;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Models;
-using Telegram.Commands.Core.Services;
-using Telegram.Commands.UI.DropDown;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using global::Telegram.Bot.Types.ReplyMarkups;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Abstract.Messages;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Models;
+using Bot.Commands.Core.Services;
+using Bot.Commands.UI.DropDown;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "selectdropdownitem_callback")]
-    public class SelectDropDownItemCallback : ISessionTelegramCommand<CallbackQuery, DropDownSessionObject>
+    public class SelectDropDownItemCallback : ISessionCommand<CallbackQuery, DropDownSessionObject>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -23,21 +24,22 @@ namespace SimpleHandlers.Services.Commands
         {
             _telegramBotClient = telegramBotClient;
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(CallbackQuery query, DropDownSessionObject sessionObject)
+        public async Task<ICommandExecutionResult> Execute(QueryContext<CallbackQuery> context, DropDownSessionObject sessionObject)
         {
-            var itemCallbackData = this.ExtractData(query);
+            var query = context.Query;
+            var itemCallbackData = this.ExtractData(context);
             sessionObject.DropDown.SelectItem(itemCallbackData);
             var builder = new InlineMarkupQueryBuilder();
-            builder.AddDropDown<string, ShowDropDownCallback, SelectDropDownItemCallback, DropDownSessionObject>(
+            builder.AddDropDown<string, ShowDropDownCallback, SelectDropDownItemCallback, DropDownSessionObject, CallbackQuery>(
                 sessionObject.DropDown);
-            builder.AddInlineKeyboardButton<CancelCallback>(new CallbackData
+            builder.AddInlineKeyboardButton<CancelCallback, CallbackQuery>(new CallbackData
             {
                 Text = "Cancel",
                 CallbackText = ""
             });
-            await _telegramBotClient.EditMessageTextAsync(query.GetChatId(), query.Message.MessageId, $"Ok, your dropdown",
+            await _telegramBotClient.EditMessageText(context.GetChatId(), query.Message.MessageId, $"Ok, your dropdown",
                 replyMarkup: (InlineKeyboardMarkup) builder.GetResult());
-            return TelegramCommandExecutionResult.Ahead<DropDownBehavior, DropDownSessionObject>(sessionObject);
+            return CommandExecutionResult.Ahead<DropDownBehavior, DropDownSessionObject>(sessionObject);
         }
     }
 }

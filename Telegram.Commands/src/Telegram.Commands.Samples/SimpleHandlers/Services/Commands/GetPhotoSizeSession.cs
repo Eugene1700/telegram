@@ -1,22 +1,23 @@
-﻿using System.Collections.Generic;
+using Bot.Commands.Telegram.Extensions;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands.Models;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Exceptions;
-using Telegram.Commands.Core.Models;
-using Telegram.Commands.Core.Services;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using global::Telegram.Bot.Types.Enums;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Exceptions;
+using Bot.Commands.Core.Models;
+using Bot.Commands.Core.Services;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "getphotosize_session", Authorized = true)]
-    public class GetPhotoSizeSession: ISessionTelegramCommand<Message, List<PhotoSessionObject>>
+    public class GetPhotoSizeSession: ISessionCommand<Message, List<PhotoSessionObject>>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -24,8 +25,9 @@ namespace SimpleHandlers.Services.Commands
         {
             _telegramBotClient = telegramBotClient;
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(Message query, List<PhotoSessionObject> sessionObject)
+        public async Task<ICommandExecutionResult> Execute(QueryContext<Message> context, List<PhotoSessionObject> sessionObject)
         {
+            var query = context.Query;
             if (query.Type != MessageType.Photo)
                 throw new BotDomainException("It's no photo");
 
@@ -38,11 +40,11 @@ namespace SimpleHandlers.Services.Commands
 
             var builder = new InlineMarkupQueryBuilder();
             builder.AddMenu();
-            await _telegramBotClient.SendMessage(query.GetChatId(),
+            await _telegramBotClient.SendMessage(context.GetChatId(),
                 $"Your photo size=[{maxSize}]. What I should do next (only from menu)?",
                 replyMarkup: builder.GetResult());
 
-            return TelegramCommandExecutionResult.Ahead<GetPhotoMenuBehavior, List<PhotoSessionObject>>(sessionObject, null);
+            return CommandExecutionResult.Ahead<GetPhotoMenuBehavior, List<PhotoSessionObject>>(sessionObject, null);
         }
     }
 }

@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using EntityStorage;
 using EntityStorage.Extensions;
-using Newtonsoft.Json;
 using SimpleHandlers.Domain;
-using Telegram.Commands.Abstract.Interfaces;
-using IClock = Telegram.Commands.Abstract.Interfaces.IClock;
+using Bot.Commands.Abstract.Interfaces;
+using IClock = Bot.Commands.Abstract.Interfaces.IClock;
 
 namespace SimpleHandlers.Services
 {
@@ -21,15 +21,15 @@ namespace SimpleHandlers.Services
             _clock = clock;
         }
 
-        public ISessionInfo GetSessionInfo(DateTime now, long chatId, long telegramUserId)
+        public ISessionInfo GetSessionInfo(DateTime now, long chatId, long userId)
         {
-            var s = GetCurrentDomainSession(now, chatId, telegramUserId);
+            var s = GetCurrentDomainSession(now, chatId, userId);
             return s == null
                 ? null
                 : new CourseSessionDescriptorBase
                 {
-                    TelegramChatId = s.TelegramChatId,
-                    TelegramUserId = telegramUserId,
+                    ChatId = s.ChatId,
+                    UserId = userId,
                     Data = null,
                     CommandQuery = s.CommandQuery,
                     ExpiredAt = s.ExpiredAt,
@@ -37,33 +37,33 @@ namespace SimpleHandlers.Services
                 };
         }
 
-        public ISessionInfoWithData GetSessionInfoWithData(DateTime now, long chatId, long telegramUserId, string commandName,
+        public ISessionInfoWithData GetSessionInfoWithData(DateTime now, long chatId, long userId, string commandName,
             Type sessionObject)
         {
-            var s = GetCurrentDomainSession(now, chatId, telegramUserId);
+            var s = GetCurrentDomainSession(now, chatId, userId);
             return s == null
                 ? null
                 : new CourseSessionDescriptorBase
                 {
-                    TelegramChatId = s.TelegramChatId,
-                    TelegramUserId = telegramUserId,
-                    Data = JsonConvert.DeserializeObject(s.SessionData, sessionObject),
+                    ChatId = s.ChatId,
+                    UserId = userId,
+                    Data = JsonSerializer.Deserialize(s.SessionData, sessionObject),
                     CommandQuery = s.CommandQuery,
                     ExpiredAt = s.ExpiredAt,
                     OpenedAt = s.OpenedAt
                 };
         }
         
-        public ISessionInfoWithData<TData> GetSessionInfoWithData<TData>(DateTime now, long chatId, long telegramUserId, string commandName)
+        public ISessionInfoWithData<TData> GetSessionInfoWithData<TData>(DateTime now, long chatId, long userId, string commandName)
         {
-            var s = GetCurrentDomainSession(now, chatId, telegramUserId);
+            var s = GetCurrentDomainSession(now, chatId, userId);
             return s == null
                 ? null
                 : new CourseSessionDescriptor<TData>
                 {
-                    TelegramChatId = s.TelegramChatId,
-                    TelegramUserId = telegramUserId,
-                    Data = JsonConvert.DeserializeObject<TData>(s.SessionData),
+                    ChatId = s.ChatId,
+                    UserId = userId,
+                    Data = JsonSerializer.Deserialize<TData>(s.SessionData),
                     CommandQuery = s.CommandQuery,
                     ExpiredAt = s.ExpiredAt,
                     OpenedAt = s.OpenedAt
@@ -75,11 +75,11 @@ namespace SimpleHandlers.Services
             var comSes = new CommandSession
             {
                 CommandQuery = getCommandQuery.CommandQuery,
-                SessionData = JsonConvert.SerializeObject(getCommandQuery.Data),
+                SessionData = JsonSerializer.Serialize(getCommandQuery.Data),
                 ExpiredAt = getCommandQuery.ExpiredAt,
                 OpenedAt = getCommandQuery.OpenedAt,
-                TelegramUserId = getCommandQuery.TelegramUserId,
-                TelegramChatId = getCommandQuery.TelegramChatId
+                UserId = getCommandQuery.UserId,
+                ChatId = getCommandQuery.ChatId
             };
             await _entityStorage.CreateEntity(comSes);
         }
@@ -87,21 +87,21 @@ namespace SimpleHandlers.Services
         public async Task UpdateSession(ISessionInfoWithData session, long chatIdFrom)
         {
             var now = _clock.Now;
-            var currentSession = GetCurrentDomainSession(now, chatIdFrom, session.TelegramUserId);
+            var currentSession = GetCurrentDomainSession(now, chatIdFrom, session.UserId);
             await _entityStorage.UpdateSingle(currentSession, _ => new CommandSession
             {
-                TelegramChatId = session.TelegramChatId,
+                ChatId = session.ChatId,
                 CommandQuery = session.CommandQuery,
                 ExpiredAt = session.ExpiredAt,
-                SessionData = JsonConvert.SerializeObject(session.Data)
+                SessionData = JsonSerializer.Serialize(session.Data)
             });
         }
 
-        private CommandSession GetCurrentDomainSession(DateTime now, long chatId, long telegramUserId)
+        private CommandSession GetCurrentDomainSession(DateTime now, long chatId, long userId)
         {
             return (from session in _entityStorage.Select<CommandSession>()
-                where session.TelegramUserId == telegramUserId
-                where session.TelegramChatId == chatId
+                where session.UserId == userId
+                where session.ChatId == chatId
                 where session.ExpiredAt == null || session.ExpiredAt > now
                 select session).SingleOrDefault();
         }
@@ -112,13 +112,17 @@ namespace SimpleHandlers.Services
         public string CommandQuery { get; set; }
         public DateTime OpenedAt { get; set; }
         public DateTime? ExpiredAt { get; set; }
-        public long TelegramChatId { get; set; }
-        public long TelegramUserId { get; set; }
+        public long ChatId { get; set; }
+        public long UserId { get; set; }
         public object Data { get; set; }
     }
 
     public class CourseSessionDescriptor<TData> : CourseSessionDescriptorBase, ISessionInfoWithData<TData>
     {
-        public new TData Data { get; set; }
+        public new TData Data
+        {
+            get => base.Data == null ? default : (TData)base.Data;
+            set => base.Data = value;
+        }
     }
 }

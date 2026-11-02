@@ -1,12 +1,12 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Telegram.Bot;
-using Telegram.Commands.Abstract;
-using Telegram.Commands.Abstract.Interfaces;
+using global::Telegram.Bot;
+using Bot.Commands.Abstract;
+using Bot.Commands.Abstract.Interfaces;
 
 namespace SimpleHandlers.Services
 {

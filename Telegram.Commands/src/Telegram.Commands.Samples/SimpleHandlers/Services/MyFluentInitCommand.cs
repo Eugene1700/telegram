@@ -1,17 +1,17 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Models;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Models;
 
 namespace SimpleHandlers.Services
 {
     [Command(Name="otherfluent")]
-    public class MyFluentInitCommand : IQueryTelegramCommand<Message>
+    public class MyFluentInitCommand : IQueryCommand<Message>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -20,10 +20,10 @@ namespace SimpleHandlers.Services
             _telegramBotClient = telegramBotClient;
         }
 
-        public async Task<ITelegramCommandExecutionResult> Execute(QueryContext<Message> query)
+        public async Task<ICommandExecutionResult> Execute(QueryContext<Message> query)
         {
             await _telegramBotClient.SendMessage(query.GetChatId(),"Hi! Tell me your name, please");
-            return TelegramCommandExecutionResult.AheadFluent<MyFluentCommandFluent, MyObject, States>(new MyObject
+            return CommandExecutionResult.AheadFluent<MyFluentCommandFluent, MyObject, States>(new MyObject
             {
                 ChatId = query.GetChatId()
             }, false, null);

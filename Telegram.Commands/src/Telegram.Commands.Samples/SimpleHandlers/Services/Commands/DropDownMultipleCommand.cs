@@ -1,20 +1,21 @@
-﻿using System.Threading.Tasks;
+using Bot.Commands.Telegram.Extensions;
+using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands.Models;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Abstract.Messages;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Models;
-using Telegram.Commands.Core.Services;
-using Telegram.Commands.UI.DropDown;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Abstract.Messages;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Models;
+using Bot.Commands.Core.Services;
+using Bot.Commands.UI.DropDown;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "dropdownmultiple")]
-    public class DropDownMultipleCommand : IQueryTelegramCommand<Message>
+    public class DropDownMultipleCommand : IQueryCommand<Message>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -22,8 +23,9 @@ namespace SimpleHandlers.Services.Commands
         {
             _telegramBotClient = telegramBotClient;
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(Message query)
+        public async Task<ICommandExecutionResult> Execute(QueryContext<Message> context)
         {
+            var query = context.Query;
             var dropDown = new DropDown<string>
             {
                 Show = false, Title = "DropDownMenu", CallbackData = "DropDownMenu", NothingIsAll = true,
@@ -55,16 +57,16 @@ namespace SimpleHandlers.Services.Commands
             };
             dropDown.Items = items;
             var builder = new InlineMarkupQueryBuilder();
-            builder.AddDropDown<string, ShowDropDownCallback, SelectDropDownItemCallback, DropDownSessionObject>(
+            builder.AddDropDown<string, ShowDropDownCallback, SelectDropDownItemCallback, DropDownSessionObject, CallbackQuery>(
                 dropDown);
-            builder.AddInlineKeyboardButton<CancelCallback>(new CallbackData
+            builder.AddInlineKeyboardButton<CancelCallback, CallbackQuery>(new CallbackData
             {
                 Text = "Cancel",
                 CallbackText = ""
             });
-            await _telegramBotClient.SendMessage(query.GetChatId(), $"Ok, your dropdown",
+            await _telegramBotClient.SendMessage(context.GetChatId(), $"Ok, your dropdown",
                 replyMarkup: builder.GetResult());
-            return TelegramCommandExecutionResult.Ahead<DropDownBehavior, DropDownSessionObject>(
+            return CommandExecutionResult.Ahead<DropDownBehavior, DropDownSessionObject>(
                 new DropDownSessionObject
                 {
                     DropDown = dropDown

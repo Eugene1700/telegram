@@ -1,20 +1,21 @@
-﻿using System.Collections.Generic;
+using Bot.Commands.Telegram.Extensions;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using SimpleHandlers.Services.Commands.Models;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Models;
-using Telegram.Commands.Core.Services;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Models;
+using Bot.Commands.Core.Services;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "showresult_callback", Authorized = true)]
-    public class ShowResultCallback : ISessionTelegramCommand<CallbackQuery, List<PhotoSessionObject>>
+    public class ShowResultCallback : ISessionCommand<CallbackQuery, List<PhotoSessionObject>>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -22,8 +23,9 @@ namespace SimpleHandlers.Services.Commands
         {
             _telegramBotClient = telegramBotClient;
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(CallbackQuery query, List<PhotoSessionObject> sessionObject)
+        public async Task<ICommandExecutionResult> Execute(QueryContext<CallbackQuery> context, List<PhotoSessionObject> sessionObject)
         {
+            var query = context.Query;
             var sb = new StringBuilder();
             sb.AppendLine("Your result:");
             foreach (var photoSessionObject in sessionObject)
@@ -33,9 +35,9 @@ namespace SimpleHandlers.Services.Commands
 
             var builder = new InlineMarkupQueryBuilder();
             builder.AddMenu();
-            await _telegramBotClient.SendMessage(query.GetChatId(), sb.ToString(),
+            await _telegramBotClient.SendMessage(context.GetChatId(), sb.ToString(),
                 replyMarkup: builder.GetResult());
-            return TelegramCommandExecutionResult.Ahead<GetPhotoMenuBehavior, List<PhotoSessionObject>>(sessionObject, null);
+            return CommandExecutionResult.Ahead<GetPhotoMenuBehavior, List<PhotoSessionObject>>(sessionObject, null);
         }
     }
 }

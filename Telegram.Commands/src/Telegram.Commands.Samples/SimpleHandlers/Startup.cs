@@ -8,9 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SimpleHandlers.Domain;
 using SimpleHandlers.Services;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.DependencyInjection;
-using IClock = Telegram.Commands.Abstract.Interfaces.IClock;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.DependencyInjection;
+using IClock = Bot.Commands.Abstract.Interfaces.IClock;
 
 namespace SimpleHandlers
 {
@@ -27,7 +27,7 @@ namespace SimpleHandlers
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
-            services.AddControllers().AddNewtonsoftJson();;
+            services.AddControllers();
             
             services.AddEntityStorage(builder =>
                 builder

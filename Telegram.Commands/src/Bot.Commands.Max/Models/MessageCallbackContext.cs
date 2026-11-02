@@ -1,14 +1,15 @@
-﻿using Max.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
+using global::Max.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
 
-namespace Bot.Command.Max.Models;
+namespace Bot.Commands.Max.Models;
 
-public class MessageCallbackContext(Chat chat, CallbackQuery query) : QueryContext<CallbackQuery>(query)
+public class MessageCallbackContext(Chat? chat, CallbackQuery query, Message? message = null) : QueryContext<CallbackQuery>(query)
 {
+    private Message Message => message ?? Query.Message ?? throw new InvalidOperationException("Callback has no message");
     public override long GetChatId()
     {
-        return chat.ChatId;
+        return chat?.ChatId ?? Message.Recipient?.ChatId ?? throw new InvalidOperationException("Callback has no chat ID");
     }
 
     public override long GetFromId()
@@ -23,7 +24,7 @@ public class MessageCallbackContext(Chat chat, CallbackQuery query) : QueryConte
 
     public override bool IsGroupMessage()
     {
-        throw new NotImplementedException();
+        return (chat?.Type ?? MaxChatExtensions.ParseChatType(Message.Recipient?.ChatType)).IsGroupMessage();
     }
 
     public override bool IsEvent()
@@ -38,11 +39,11 @@ public class MessageCallbackContext(Chat chat, CallbackQuery query) : QueryConte
 
     public override ChatArea GetChatType()
     {
-        throw new NotImplementedException();
+        return (chat?.Type ?? MaxChatExtensions.ParseChatType(Message.Recipient?.ChatType)).ToChatArea();
     }
 
     public override string? GetMessageId()
     {
-        return Query.Message.Mid;
+        return Message.Mid;
     }
 }

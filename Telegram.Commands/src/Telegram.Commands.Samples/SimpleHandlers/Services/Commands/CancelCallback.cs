@@ -1,17 +1,17 @@
-﻿using System.Threading.Tasks;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
-using Telegram.Commands.Abstract.Interfaces;
-using Telegram.Commands.Core;
-using Telegram.Commands.Core.Models;
-using Telegram.Commands.Realization.Extensions;
+using System.Threading.Tasks;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Models;
+using Bot.Commands.Telegram.Extensions;
 
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "cancel_callback", Authorized = true)]
-    public class CancelCallback : IQueryTelegramCommand<CallbackQuery>
+    public class CancelCallback : IQueryCommand<CallbackQuery>
     {
         private readonly ITelegramBotClient _telegramBotClient;
 
@@ -19,11 +19,11 @@ namespace SimpleHandlers.Services.Commands
         {
             _telegramBotClient = telegramBotClient;
         }
-        public async Task<ITelegramCommandExecutionResult> Execute(QueryContext<CallbackQuery> query)
+        public async Task<ICommandExecutionResult> Execute(QueryContext<CallbackQuery> query)
         {
             await _telegramBotClient.SendMessage(query.GetChatId(),
                 $"You press cancelation. Type {TelegramCommandExtensions.GetCommandQuery<SendPhotoCommand>()} or {TelegramCommandExtensions.GetCommandQuery<DropDownMenuCommand>()}");
-            return TelegramCommandExecutionResult.Break();
+            return CommandExecutionResult.Break();
         }
     }
 }

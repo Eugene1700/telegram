@@ -1,15 +1,15 @@
-﻿using Max.Bot.Types;
-using Max.Bot.Types.Enums;
-using Telegram.Commands.Abstract.Attributes;
-using Telegram.Commands.Abstract.Commands;
+using global::Max.Bot.Types;
+using global::Max.Bot.Types.Enums;
+using Bot.Commands.Abstract.Attributes;
+using Bot.Commands.Abstract.Commands;
 
-namespace Bot.Command.Max.Models;
+namespace Bot.Commands.Max.Models;
 
-public class MessageCreatedQueryContext(Chat chat, Message query) : QueryContext<Message>(query)
+public class MessageCreatedQueryContext(Chat? chat, Message query) : QueryContext<Message>(query)
 {
     public override long GetChatId()
     {
-        return chat.ChatId;
+        return chat?.ChatId ?? Query.Recipient?.ChatId ?? throw new InvalidOperationException("Message has no chat ID");
     }
 
     public override long GetFromId()
@@ -24,7 +24,7 @@ public class MessageCreatedQueryContext(Chat chat, Message query) : QueryContext
 
     public override bool IsGroupMessage()
     {
-        return chat.Type == ChatType.Channel;
+        return (chat?.Type ?? MaxChatExtensions.ParseChatType(Query.Recipient?.ChatType)).IsGroupMessage();
     }
 
     public override bool IsEvent()
@@ -39,7 +39,7 @@ public class MessageCreatedQueryContext(Chat chat, Message query) : QueryContext
 
     public override ChatArea GetChatType()
     {
-        throw new NotImplementedException();
+        return (chat?.Type ?? MaxChatExtensions.ParseChatType(Query.Recipient?.ChatType)).ToChatArea();
     }
 
     public override string? GetMessageId()
