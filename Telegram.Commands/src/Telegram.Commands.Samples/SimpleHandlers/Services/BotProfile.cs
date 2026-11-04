@@ -7,12 +7,12 @@ namespace SimpleHandlers.Services
     {
         public string Key { get; set; }
         public string BaseUrl { get; set; }
-        public string UpdateRoute => Settings.RouteToUpdate;
+        public string UpdateRoute { get; set; } = Settings.RouteToUpdate;
         public string BotName { get; set; }
         
         public GroupMessageHandlingStrategy GroupMessageHandlingStrategy => 
             GroupMessageHandlingStrategy.Direct;
 
-        public string[] Swarms => null;
+        public string[] Swarms { get; set; }
     }
 }

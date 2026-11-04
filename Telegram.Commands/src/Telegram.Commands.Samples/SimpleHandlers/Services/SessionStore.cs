@@ -13,11 +13,13 @@ namespace SimpleHandlers.Services
     public class SessionStore : ISessionsStore
     {
         private readonly IEntityStorage _entityStorage;
+        private readonly BotPlatform _platform;
         private readonly IClock _clock;
 
-        public SessionStore(IEntityStorage entityStorage, IClock clock)
+        public SessionStore(IEntityStorage entityStorage, IClock clock, BotRuntime runtime)
         {
             _entityStorage = entityStorage;
+            _platform = runtime.Platform;
             _clock = clock;
         }
 
@@ -41,7 +43,7 @@ namespace SimpleHandlers.Services
             Type sessionObject)
         {
             var s = GetCurrentDomainSession(now, chatId, userId);
-            return s == null
+            return s == null || s.CommandQuery != commandName
                 ? null
                 : new CourseSessionDescriptorBase
                 {
@@ -57,7 +59,7 @@ namespace SimpleHandlers.Services
         public ISessionInfoWithData<TData> GetSessionInfoWithData<TData>(DateTime now, long chatId, long userId, string commandName)
         {
             var s = GetCurrentDomainSession(now, chatId, userId);
-            return s == null
+            return s == null || s.CommandQuery != commandName
                 ? null
                 : new CourseSessionDescriptor<TData>
                 {
@@ -74,6 +76,7 @@ namespace SimpleHandlers.Services
         {
             var comSes = new CommandSession
             {
+                Platform = _platform,
                 CommandQuery = getCommandQuery.CommandQuery,
                 SessionData = JsonSerializer.Serialize(getCommandQuery.Data),
                 ExpiredAt = getCommandQuery.ExpiredAt,
@@ -87,7 +90,8 @@ namespace SimpleHandlers.Services
         public async Task UpdateSession(ISessionInfoWithData session, long chatIdFrom)
         {
             var now = _clock.Now;
-            var currentSession = GetCurrentDomainSession(now, chatIdFrom, session.UserId);
+            var currentSession = GetCurrentDomainSession(now, chatIdFrom, session.UserId)
+                ?? throw new InvalidOperationException("The session no longer exists on this platform.");
             await _entityStorage.UpdateSingle(currentSession, _ => new CommandSession
             {
                 ChatId = session.ChatId,
@@ -100,6 +104,7 @@ namespace SimpleHandlers.Services
         private CommandSession GetCurrentDomainSession(DateTime now, long chatId, long userId)
         {
             return (from session in _entityStorage.Select<CommandSession>()
+                where session.Platform == _platform
                 where session.UserId == userId
                 where session.ChatId == chatId
                 where session.ExpiredAt == null || session.ExpiredAt > now

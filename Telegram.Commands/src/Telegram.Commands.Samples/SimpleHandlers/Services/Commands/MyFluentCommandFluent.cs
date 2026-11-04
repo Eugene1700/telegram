@@ -33,7 +33,7 @@ namespace SimpleHandlers.Services.Commands
         Break
     }
 
-    [Command(Name = "myfluent")]
+    [Command(Swarms = new[] { "telegram" }, Name = "myfluent")]
     public class MyFluentCommandFluent : FluentCommand<MyObject, States>
     {
         private readonly ITelegramBotClient _telegramBotClient;

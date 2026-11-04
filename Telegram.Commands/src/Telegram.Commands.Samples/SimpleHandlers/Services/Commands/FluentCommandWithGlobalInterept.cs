@@ -16,7 +16,7 @@ using Bot.Commands.Core.Models;
 
 namespace SimpleHandlers.Services.Commands
 {
-    [Command(Name = "global")]
+    [Command(Swarms = new[] { "telegram" }, Name = "global")]
     public class FluentCommandWithGlobalIntercept : FluentCommand<FluentCommandWithGlobalInterceptObject,
         FluentCommandWithGlobalInterceptStates>
     {

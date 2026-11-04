@@ -8,7 +8,7 @@ using Bot.Commands.Core.Exceptions;
 
 namespace SimpleHandlers.Services.Commands
 {
-    [Command(Name = "dropdown_behavior")]
+    [Command(Swarms = new[] { "telegram" }, Name = "dropdown_behavior")]
     public class DropDownBehavior : IBehaviorCommand<DropDownSessionObject>
     {
         public Task<ICommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, DropDownSessionObject sessionObject)

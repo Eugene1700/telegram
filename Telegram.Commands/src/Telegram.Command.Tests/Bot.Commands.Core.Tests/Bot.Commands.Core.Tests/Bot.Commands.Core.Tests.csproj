@@ -35,6 +35,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../Bot.Commands.Max/Bot.Commands.Max.csproj" />
+    <Reference Include="EntityStorage">
+      <HintPath>../../../Telegram.Commands.Samples/SimpleHandlers/Assemblies/EntityStorage/EntityStorage.dll</HintPath>
+    </Reference>
     <ProjectReference Include="../../../Telegram.Commands.Samples/SimpleHandlers/SimpleHandlers.csproj" />
   </ItemGroup>
 </Project>

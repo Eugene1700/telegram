@@ -10,19 +10,25 @@ using Bot.Commands.Core.Models;
 namespace SimpleHandlers.Services.Commands
 {
     [Command(Name = "start", Authorized = false)]
-    public class StartCommand: IQueryCommand<Message>
+    public class StartCommand: IQueryCommand<Message>, IQueryCommand<global::Max.Bot.Types.Message>
     {
-        private readonly ITelegramBotClient _telegramBotClient;
+        private readonly ISampleMessageSender _sender;
 
-        public StartCommand(ITelegramBotClient telegramBotClient)
+        public StartCommand(ISampleMessageSender sender)
         {
-            _telegramBotClient = telegramBotClient;
+            _sender = sender;
         }
         public async Task<ICommandExecutionResult> Execute(QueryContext<Message> context)
         {
             var query = context.Query;
-            await _telegramBotClient.SendMessage(context.GetChatId(),
-                $"Hello, {query.From?.Username ?? "User"}! We are ready to start");
+            await _sender.Send(context.GetChatId(), SampleMessages.Text(
+                $"Hello, {query.From?.Username ?? "User"}! Try /ask or /profile."));
+            return CommandExecutionResult.Break();
+        }
+
+        public async Task<ICommandExecutionResult> Execute(QueryContext<global::Max.Bot.Types.Message> context)
+        {
+            await _sender.Send(context.GetChatId(), SampleMessages.Text("Hello! Try /ask or /profile."));
             return CommandExecutionResult.Break();
         }
     }

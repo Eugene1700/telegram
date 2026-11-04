@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using SimpleHandlers.Services;
 using global::Telegram.Bot;
 using global::Telegram.Bot.Types;
 using Bot.Commands.Abstract;
@@ -12,31 +13,33 @@ using Bot.Commands.Core.Exceptions;
 namespace SimpleHandlers.Controllers
 {
     [ApiController]
-    public class TelegramMessageController: ControllerBase
+    public class TelegramMessageController : ControllerBase
     {
         private readonly ILogger<TelegramMessageController> _logger;
         private readonly IBotCommandResolver<Update> _botCommandService;
         private readonly ITelegramBotClient _telegramBotClient;
 
-        public TelegramMessageController(ILogger<TelegramMessageController> logger, 
-            IBotCommandResolver<Update> botCommandService, ITelegramBotClient telegramBotClient)
+        public TelegramMessageController(ILogger<TelegramMessageController> logger,
+            IBotCommandResolver<Update> botCommandService,
+            ITelegramBotClient telegramBotClient)
         {
             _logger = logger;
             _botCommandService = botCommandService;
             _telegramBotClient = telegramBotClient;
         }
-        
+
         [Route("ping")]
         [AllowAnonymous]
         public string Ping()
         {
             return "Hello, its SampleHandlers App";
         }
-        
+
         [HttpPost]
         [Route(Settings.RouteToUpdate)]
         [AllowAnonymous]
-        public async Task<BotResult> Update([FromBody] Update update)
+        [ServiceFilter(typeof(WebhookAccessFilter))]
+        public async Task<IActionResult> Update([FromBody] Update update)
         {
             try
             {
@@ -59,9 +62,11 @@ namespace SimpleHandlers.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex, "Unable to handle Telegram update");
+                return StatusCode(500);
             }
-            return new BotResult(true);
+
+            return Ok(new BotResult(true));
         }
     }
 }

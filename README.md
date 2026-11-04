@@ -55,6 +55,7 @@ For a real bot, start with [installation and integration](docs/getting-started.m
 | Guide | Contents |
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Requirements, registration, SDK integration, update scopes |
+| [SimpleHandlers: Telegram and Max](docs/simple-handlers.md) | Run both bots in one ASP.NET Core application |
 | [Commands and sessions](docs/commands.md) | Command types, routing, results, authorization, events, storage contract |
 | [Fluent conversations](docs/fluent.md) | States, messages, callbacks, transitions, interception |
 | [Messenger adapters](docs/adapters.md) | Supported updates, keyboard conversion, platform differences |

@@ -28,28 +28,38 @@ namespace SimpleHandlers
         {
             services.AddCors();
             services.AddControllers();
-            
-            services.AddEntityStorage(builder =>
-                builder
-                    .UseSqlite($"Data Source=dev.db"));
+            services.AddHttpContextAccessor();
+            services.AddScoped<BotRuntime>();
+            services.AddScoped<WebhookAccessFilter>();
+            services.AddScoped<TelegramSampleMessageSender>();
+            services.AddScoped<MaxSampleMessageSender>();
+            services.AddScoped<ISampleMessageSender>(sp => sp.GetRequiredService<BotRuntime>().IsMax
+                ? sp.GetRequiredService<MaxSampleMessageSender>() : sp.GetRequiredService<TelegramSampleMessageSender>());
+            var sessionsConnection = Configuration.GetConnectionString("Sessions") ?? "Data Source=dev.db";
+            services.AddEntityStorage(builder => builder.UseSqlite(sessionsConnection));
             services.UseEFOnlyTranslator();
-            
+
+
             services.AddScoped<SystemClockService>();
             services.AddScoped<IClock>(sp => sp.GetService<SystemClockService>());
             services.AddScoped<EntityStorage.IClock>(sp => sp.GetService<SystemClockService>());
 
-            var botSettings = Configuration.GetSection("BotProfile");
-            services.AddScoped<IBotProfile>(sp => new BotProfile
-            {
-                BaseUrl = botSettings["BaseUrl"],
-                Key = botSettings["Token"],
-                BotName = botSettings["BotName"],
-            });
+            services.AddScoped<IBotProfile>(sp => BotRuntime.ReadProfile(Configuration,
+                sp.GetRequiredService<BotRuntime>().IsMax));
 
             services.AddScoped<IAuthProvider, AuthProvider>();
             services.AddScoped<ISessionsStore, SessionStore>();
+            services.AddSingleton<global::Telegram.Bot.ITelegramBotClient>(_ =>
+                new global::Telegram.Bot.TelegramBotClient(Configuration["BotProfile:Token"]));
             services.UseTelegramCommandsServices();
-            services.AddHostedService<ConfigureWebhook>();
+            if (Configuration.GetValue("BotProfile:Enabled", true))
+                services.AddHostedService<ConfigureWebhook>();
+            if (Configuration.GetValue<bool>("MaxBotProfile:Enabled"))
+            {
+                services.UseMaxCommandsServices();
+                services.AddSingleton(_ => new global::Max.Bot.MaxClient(Configuration["MaxBotProfile:Token"]));
+                services.AddHostedService<ConfigureMaxWebhook>();
+            }
 
         }
 

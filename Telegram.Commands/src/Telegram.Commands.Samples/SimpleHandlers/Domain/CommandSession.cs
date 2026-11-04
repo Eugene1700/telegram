@@ -7,6 +7,9 @@ namespace SimpleHandlers.Domain
     [Table("COMMAND_SESSION")]
     public class CommandSession : StandardEntity
     {
+        [Column("PLATFORM")]
+        public BotPlatform Platform { get; set; } = BotPlatform.Telegram;
+
         [Column("COMMAND_QUERY")]
         public string CommandQuery { get; set; }
         
@@ -25,5 +28,7 @@ namespace SimpleHandlers.Domain
         [Column("SESSION_DATA")]
         public string SessionData { get; set; }
     }
+
+    public enum BotPlatform { Telegram = 0, Max = 1 }
 
 }
