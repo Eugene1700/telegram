@@ -58,7 +58,8 @@ namespace SimpleHandlers
 
             services.AddScoped<IAuthProvider, AuthProvider>();
             services.AddScoped<ISessionsStore, SessionStore>();
-            services.AddScoped<ICommandMatcher, ProfileFunnelMatcher>();
+            services.AddScoped<ICommandMatcher<global::Telegram.Bot.Types.Message>, ProfileFunnelMatcher<global::Telegram.Bot.Types.Message>>();
+            services.AddScoped<ICommandMatcher<global::Max.Bot.Types.Message>, ProfileFunnelMatcher<global::Max.Bot.Types.Message>>();
             services.AddSingleton<global::Telegram.Bot.ITelegramBotClient>(_ =>
                 new global::Telegram.Bot.TelegramBotClient(Configuration["BotProfile:Token"]));
             services.UseTelegramCommandsServices();

@@ -2,7 +2,11 @@
 
 [README](../README.md) · [Getting started](getting-started.md) · [Commands](commands.md)
 
-The adapters translate incoming SDK updates into `QueryContext<TQuery>` instances.
+The adapters translate incoming SDK updates into `IQueryContext<TQuery>` instances.
+
+Adapter contexts implement this interface directly; there is no required base
+class. They retain the original SDK object in `Query` and provide common metadata
+through the interface methods.
 They do not normalize every SDK object into a new universal message type. Common
 metadata is available through the context; platform-specific fields remain on `Query`.
 

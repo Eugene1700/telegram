@@ -61,10 +61,10 @@ If upgrading from the older direct-message API, query and session commands recei
 Task<ITelegramCommandExecutionResult> Execute(Message message);
 
 // Current signature:
-Task<ICommandExecutionResult> Execute(QueryContext<Message> context);
+Task<ICommandExecutionResult> Execute(IQueryContext<Message> context);
 ```
 
-Use `context.GetChatId()` and `context.GetFromId()` for common metadata. Use `context.Query` for SDK-specific fields. Session handlers add their data argument after the context; behavior overloads receive `QueryContext<TQuery>` as well.
+Use `context.GetChatId()` and `context.GetFromId()` for common metadata. Use `context.Query` for SDK-specific fields. Session handlers add their data argument after the context; behavior overloads receive `IQueryContext<TQuery>` as well.
 
 ## Adapter registration and dependencies
 
@@ -99,7 +99,7 @@ Keep the entire `FluentObject<TData, TState>` wrapper when persisting Fluent ses
 
 ## Addressing and formatting moved to adapters
 
-`QueryContext<TQuery>.RequiresBotMention` has been removed. Core does not interpret `@` as a bot-address separator. Its command token parser preserves that character literally. Telegram mention validation and suffix removal now happen in `TelegramCommandService` for message contexts. Host code that previously called the common `ExtractCommand` expecting Telegram-specific suffix removal should use the adapter's resolver or implement an explicit addressing policy.
+`IQueryContext<TQuery>.RequiresBotMention` has been removed. Core does not interpret `@` as a bot-address separator. Its command token parser preserves that character literally. Telegram mention validation and suffix removal now happen in `TelegramCommandService` for message contexts. Host code that previously called the common `ExtractCommand` expecting Telegram-specific suffix removal should use the adapter's resolver or implement an explicit addressing policy.
 
 `TelegramFormatsHelper` and the former `MarkupMessageBuilder` have moved from Core to `Bot.Commands.Telegram.Extensions` and `Bot.Commands.Telegram.Services`, respectively. Rename `MarkupMessageBuilder` usages to `TelegramMarkupMessageBuilder`. Max exposes `MaxMarkupMessageBuilder` and `MaxInlineMarkupQueryBuilder` in its adapter. Plain text is now escaped consistently, while `AppendMarkdown` preserves raw markup; remove manual escaping from plain-text arguments.
 
@@ -116,7 +116,15 @@ Core's `MessageBuilderBase.GetMessages` no longer defaults to a 4096-character l
 
 Preserve `CallbackDataWithCommand.Row` when adapting keyboards. Core keyboard command helpers include the SDK query type among their generic arguments.
 
-Fluent `Entry`, `GlobalIntercept`, `Next`, `OnCallback`, and `Exit` still receive native SDK queries. Message senders receive contexts; an untyped sender should match `QueryContext<Message>`, not `Message`. See the [handler type table](fluent.md#handler-types-contexts-versus-sdk-objects). This namespace migration does not unify those callback signatures.
+Commands, matchers, and all Fluent hooks now receive `IQueryContext<TQuery>`.
+Use `context.Query` when access to the native SDK object is needed. Shared senders
+can accept `IQueryContext<object>` through covariance. See the
+[handler type table](fluent.md#handler-types-contexts-versus-sdk-objects).
+
+The former abstract context base class has been removed. Custom adapters implement
+`IQueryContext<TQuery>` directly: expose the original query through the read-only
+`Query` property and implement the metadata methods without `override`. Update
+command implementations and Fluent overrides to accept the interface as well.
 
 Avoid `AheadFluent(..., fire: true)` until `ExecuteResult.Fire` is handled by the resolver. See [commands and sessions](commands.md) for current result and expiry semantics.
 

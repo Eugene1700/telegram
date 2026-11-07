@@ -7,44 +7,46 @@ using Bot.Commands.Telegram.Extensions;
 
 namespace Bot.Commands.Telegram.Models;
 
-public class PreCheckoutQueryContext(PreCheckoutQuery query) : QueryContext<PreCheckoutQuery>(query)
+public class PreCheckoutQueryContext(PreCheckoutQuery query) : IQueryContext<PreCheckoutQuery>
 {
-    public override long GetChatId()
+    public PreCheckoutQuery Query { get; } = query;
+
+    public long GetChatId()
     {
         return Query.From.Id;
     }
 
-    public override long GetFromId()
+    public long GetFromId()
     {
         return Query.From.Id;
     }
 
-    public override string GetData()
+    public string GetData()
     {
         return Query.InvoicePayload;
     }
 
-    public override bool IsGroupMessage()
+    public bool IsGroupMessage()
     {
         return ChatType.Private.IsGroupMessage();
     }
 
-    public override bool IsEvent()
+    public bool IsEvent()
     {
         return false;
     }
 
-    public override EventType? GetEventType()
+    public EventType? GetEventType()
     {
         return null;
     }
 
-    public override ChatArea GetChatType()
+    public ChatArea GetChatType()
     {
         return ChatArea.Private;
     }
 
-    public override string? GetMessageId()
+    public string? GetMessageId()
     {
         return null;
     }

@@ -9,15 +9,15 @@ namespace Bot.Commands.Core.Tests.Mocks;
 public class QueryMessageMockCommand: IQueryCommand<Message>
 {
     private ICommandExecutionResult _result = null;
-    private Action<QueryContext<Message>> _messageCallback = null!;
+    private Action<IQueryContext<Message>> _messageCallback = null!;
 
-    public void SetResult(ICommandExecutionResult result, Action<QueryContext<Message>> messageCallback = null)
+    public void SetResult(ICommandExecutionResult result, Action<IQueryContext<Message>> messageCallback = null)
     {
         _result = result;
         _messageCallback = messageCallback;
     }
 
-    public Task<ICommandExecutionResult> Execute(QueryContext<Message> query)
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Message> query)
     {
         _messageCallback?.Invoke(query);
         return Task.FromResult(_result);

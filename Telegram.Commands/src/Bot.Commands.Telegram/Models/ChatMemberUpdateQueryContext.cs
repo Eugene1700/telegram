@@ -1,53 +1,55 @@
-using global::Telegram.Bot.Types;
 using Bot.Commands.Abstract.Attributes;
 using Bot.Commands.Abstract.Commands;
-using Bot.Commands.Core;
 using Bot.Commands.Telegram.Extensions;
+using Telegram.Bot.Types;
 
 namespace Bot.Commands.Telegram.Models;
 
-public class ChatMemberUpdateQueryContext: QueryContext<ChatMemberUpdated>
+public class ChatMemberUpdateQueryContext: IQueryContext<ChatMemberUpdated>
 {
-    public ChatMemberUpdateQueryContext(ChatMemberUpdated query) : base(query)
+    public ChatMemberUpdated Query { get; }
+
+    public ChatMemberUpdateQueryContext(ChatMemberUpdated query)
     {
+        Query = query;
     }
 
-    public override long GetChatId()
+    public long GetChatId()
     {
         return Query.Chat.Id;
     }
 
-    public override long GetFromId()
+    public long GetFromId()
     {
         return Query.From.Id;
     }
 
-    public override string GetData()
+    public string GetData()
     {
         return null;
     }
 
-    public override bool IsGroupMessage()
+    public bool IsGroupMessage()
     {
         return Query.Chat.Type.IsGroupMessage();
     }
 
-    public override bool IsEvent()
+    public bool IsEvent()
     {
         return true;
     }
 
-    public override EventType? GetEventType()
+    public EventType? GetEventType()
     {
         return EventType.BotMemberAddedToChat;
     }
 
-    public override ChatArea GetChatType()
+    public ChatArea GetChatType()
     {
         return Query.Chat.Type.ToChatArea();
     }
 
-    public override string? GetMessageId()
+    public string? GetMessageId()
     {
         return null;
     }

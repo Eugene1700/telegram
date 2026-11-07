@@ -114,7 +114,7 @@ using Bot.Commands.Core.Models;
 [Command(Name = "hello", Authorized = false)]
 public sealed class HelloCommand(ITelegramBotClient client) : IQueryCommand<Message>
 {
-    public async Task<ICommandExecutionResult> Execute(QueryContext<Message> context)
+    public async Task<ICommandExecutionResult> Execute(IQueryContext<Message> context)
     {
         await client.SendMessage(context.GetChatId(), "Hello!");
         return CommandExecutionResult.Break();

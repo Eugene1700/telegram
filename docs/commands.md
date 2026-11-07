@@ -20,11 +20,11 @@ which lives under `Bot.Commands.Core.Fluent`.
 
 ## Query context
 
-Query and session command handlers receive `QueryContext<TQuery>`:
+Query and session command handlers receive `IQueryContext<TQuery>`:
 
 ```csharp
-Task<ICommandExecutionResult> Execute(QueryContext<TQuery> query);
-Task<ICommandExecutionResult> Execute(QueryContext<TQuery> query, TData data);
+Task<ICommandExecutionResult> Execute(IQueryContext<TQuery> query);
+Task<ICommandExecutionResult> Execute(IQueryContext<TQuery> query, TData data);
 ```
 
 These are signatures, not standalone implementations. The context provides:
@@ -135,15 +135,15 @@ must remain available during a conversation.
 
 ```csharp
 Task<ICommandExecutionResult> DefaultExecute<TQuery>(
-    QueryContext<TQuery> query, TData data);
+    IQueryContext<TQuery> query, TData data);
 
 Task<ICommandExecutionResult> Execute<TQuery>(
     IQueryCommand<TQuery> currentCommand,
-    QueryContext<TQuery> query, TData data);
+    IQueryContext<TQuery> query, TData data);
 
 Task<ICommandExecutionResult> Execute<TQuery>(
     ISessionCommand<TQuery, TData> currentCommand,
-    QueryContext<TQuery> query, TData data);
+    IQueryContext<TQuery> query, TData data);
 ```
 
 When a behavior is active, the engine resolves a command from the incoming query
@@ -154,7 +154,7 @@ the behavior's data type.
 
 A directly invoked behavior receives null initial data. Initialize it in
 `DefaultExecute` or enter the behavior through `Ahead` with explicit data.
-See [GetPhotoMenuBehavior](../Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/GetPhotoMenuBehavior.cs)
+See [GetPhotoMenuBehavior](../Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/Photos/GetPhotoMenuBehavior.cs)
 for a concrete example.
 
 ## Authorization and chat areas
@@ -170,6 +170,45 @@ For behavior composition, the relevant session and query command descriptors are
 
 Authorization failures and domain exceptions are not automatically sent to users.
 Handle them at your update boundary and decide which messages to expose.
+
+## Execution filters
+
+Derive a command attribute from `ExecuteFilterAttribute` to add an asynchronous
+pre-execution check shared by all adapters:
+
+```csharp
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
+public sealed class AllowedChatAttribute(long allowedChatId) : ExecuteFilterAttribute
+{
+    public override Task Filter<TQuery>(ICommandExecutionContext<TQuery> context)
+    {
+        if (context.ChatId != allowedChatId)
+            throw new CommandPermissionException("This chat is not allowed", context.ChatId);
+        return Task.CompletedTask;
+    }
+}
+
+// Apply alongside CommandAttribute on a concrete or shared abstract command:
+// [AllowedChat(12345, Order = 10)]
+```
+
+The common resolver checks authorization and chat area before awaiting filters.
+It then executes the command and applies its session result. A filter exception
+propagates to the update boundary: later filters, command execution and session
+updates are skipped. Filter side effects themselves are not rolled back.
+
+Inherited filters are included according to their `AttributeUsage`. Declare
+`AllowMultiple = true` on a derived filter when repeated instances should coexist,
+including on a base class. Lower `Order` values run first within each command;
+use distinct values when ordering matters.
+
+For behavior composition, the active session command's filters run first, followed
+by those of the selected query command, before either handler executes. This is a
+check of the resolved composition, even if the behavior later intercepts that
+query command. Each distinct command type is filtered once per update.
+The execution context identifies that concrete command type and descriptor and
+provides its native query and chat ID. Attribute instances are created for the
+invocation; they are not resolved from dependency injection.
 
 ## Events
 

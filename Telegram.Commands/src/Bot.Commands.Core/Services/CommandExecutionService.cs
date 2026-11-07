@@ -23,7 +23,7 @@ namespace Bot.Commands.Core.Services
 
         public async Task<ICommandExecutionResult> Execute<TQuery>(
             CommandDescriptorComposition fullCommandDescriptor,
-            QueryContext<TQuery> query)
+            IQueryContext<TQuery> query)
         {
             try
             {
@@ -39,7 +39,7 @@ namespace Bot.Commands.Core.Services
 
         private async Task<ICommandExecutionResult> ExecuteInternal<TQuery>(
             CommandDescriptorComposition fullCommandDescriptor,
-            QueryContext<TQuery> query)
+            IQueryContext<TQuery> query)
         {
             if (fullCommandDescriptor.SessionCommand != null)
             {

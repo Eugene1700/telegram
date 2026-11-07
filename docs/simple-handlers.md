@@ -3,6 +3,30 @@
 `Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers` is an ASP.NET Core
 webhook application that can serve both bots at the same time.
 
+## Command folders
+
+Commands are grouped by scenario under `Services/Commands`: `Ask`, `Profile`,
+`Photos`, `DropDown`, `MyFluent`, `GlobalIntercept`, `Start`, and `Cancel`.
+Each folder contains the shared command logic, concrete Telegram/Max commands,
+and its session data and state types. Shared helpers live in `Shared`.
+The folder move preserves existing namespaces.
+
+`Profile/ProfileFunnelMatcher.cs` implements `ICommandMatcher<TQuery>`.
+Register closed types for each supported input, for example:
+
+```csharp
+services.AddScoped<ICommandMatcher<Telegram.Bot.Types.Message>,
+    ProfileFunnelMatcher<Telegram.Bot.Types.Message>>();
+services.AddScoped<ICommandMatcher<Max.Bot.Types.Message>,
+    ProfileFunnelMatcher<Max.Bot.Types.Message>>();
+```
+
+`IsMatch(IQueryContext<TQuery> query)` receives a typed context. Message and callback
+matchers are injected separately by each adapter; message matchers never handle
+callback updates. Matchers run only without an active session or slash command.
+Ambiguous matches are rejected; swarm, authorization and chat-area checks remain
+in effect.
+
 ## Configure and run
 
 Use `appsettings.Example.json` as a configuration reference. It is not loaded

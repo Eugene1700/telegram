@@ -10,9 +10,10 @@ public class MaxCommandService(
     CommandExecutionService commandExecutionService,
     SessionManager sessionManager,
     IAuthProvider authProvider,
-    IBotProfile botProfile, IEnumerable<ICommandMatcher>? matchers = null)
+    IBotProfile botProfile, IEnumerable<ICommandMatcher<Message>>? messageMatchers = null,
+        IEnumerable<ICommandMatcher<CallbackQuery>>? callbackMatchers = null)
     : CommandServiceBase(commandExecutionService,
-        sessionManager, authProvider, botProfile, matchers), IBotCommandResolver<Update>
+        sessionManager, authProvider, botProfile), IBotCommandResolver<Update>
 {
     public async Task Handle(Update update)
     {
@@ -20,11 +21,11 @@ public class MaxCommandService(
         {
             case UpdateType.MessageCreated:
                 var messageQueryContext = new MessageCreatedQueryContext(update.Chat, update.Message);
-                await QueryHandler(messageQueryContext);
+                await QueryHandler(messageQueryContext, messageMatchers);
                 break;
             case UpdateType.MessageCallback:
                 var callbackQueryContext = new MessageCallbackContext(update.Chat, update.Callback, update.Message);
-                await QueryHandler(callbackQueryContext);
+                await QueryHandler(callbackQueryContext, callbackMatchers);
                 break;
             case UpdateType.UserAdded:
                 var chatMemberUpdateQueryContext = new UserAddedUpdateContext(update.UserAddedUpdate, update.ChatId);

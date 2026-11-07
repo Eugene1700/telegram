@@ -6,7 +6,7 @@ namespace Bot.Commands.Abstract.Interfaces
     {
         string Name { get; }
         public ChatArea Area { get; }
-        public string[] Swarms { get; set; }
-        bool Authorized { get; set; }
+        public string[] Swarms { get; }
+        bool Authorized { get; }
     }
 }

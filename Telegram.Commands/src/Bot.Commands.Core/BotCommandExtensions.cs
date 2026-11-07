@@ -10,13 +10,13 @@ namespace Bot.Commands.Core
 {
     public static class BotCommandExtensions
     {
-        public static string ExtractData<TQuery>(this IQueryCommand<TQuery> command, QueryContext<TQuery> query)
+        public static string ExtractData<TQuery>(this IQueryCommand<TQuery> command, IQueryContext<TQuery> query)
         {
             var type = command.GetType();
             return ExtractData(query, type);
         }
 
-        public static string ExtractData<TQuery, TSessionObject>(this ISessionCommand<TQuery, TSessionObject> command, QueryContext<TQuery> query)
+        public static string ExtractData<TQuery, TSessionObject>(this ISessionCommand<TQuery, TSessionObject> command, IQueryContext<TQuery> query)
         {
             var type = command.GetType();
             return ExtractData(query, type);
@@ -66,7 +66,7 @@ namespace Bot.Commands.Core
             return $"/{commandInfo.Name}";
         }
 
-        public static string ExtractData<TQuery>(this QueryContext<TQuery> query, Type type)
+        public static string ExtractData<TQuery>(this IQueryContext<TQuery> query, Type type)
         {
             var attr = type.GetCustomAttribute<CommandAttribute>();
             if (attr == null)

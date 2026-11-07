@@ -141,6 +141,9 @@ public class SimpleHandlersPlatformTests
         await Send("intercept me");
         Assert.That(sent.Messages.Last().Text, Is.EqualTo("Intercepted message"));
         await Click("Stop");
+        // A message-only funnel must not consume a callback with the same text.
+        await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(
+            () => Send("register", callback: true));
         Assert.That(executed.All(t => t.Name.StartsWith(max ? "Max" : "Telegram", StringComparison.Ordinal)), Is.True);
         using var check = provider.CreateScope();
         Assert.That(check.ServiceProvider.GetRequiredService<ISessionsStore>().GetSessionInfo(DateTime.Now, 1, 2), Is.Null);

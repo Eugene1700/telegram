@@ -45,13 +45,13 @@ public class SharedCommandTests
     {
         public List<string> Calls { get; } = new();
         Task<ICommandExecutionResult> ISessionCommand<global::Telegram.Bot.Types.Message, string>.Execute(
-            QueryContext<global::Telegram.Bot.Types.Message> query, string data)
+            IQueryContext<global::Telegram.Bot.Types.Message> query, string data)
         {
             Calls.Add("telegram:" + data);
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Break());
         }
         Task<ICommandExecutionResult> ISessionCommand<global::Max.Bot.Types.Message, string>.Execute(
-            QueryContext<global::Max.Bot.Types.Message> query, string data)
+            IQueryContext<global::Max.Bot.Types.Message> query, string data)
         {
             Calls.Add("max:" + data);
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Break());

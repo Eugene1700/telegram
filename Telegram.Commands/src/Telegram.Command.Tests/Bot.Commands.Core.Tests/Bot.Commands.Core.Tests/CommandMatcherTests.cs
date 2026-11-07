@@ -13,7 +13,7 @@ namespace Bot.Commands.Core.Tests;
 
 public class CommandMatcherTests
 {
-    private static ServiceProvider Provider(params ICommandMatcher[] matchers)
+    private static ServiceProvider Provider(params ICommandMatcher<string>[] matchers)
     {
         var services = new ServiceCollection();
         services.AddSingleton(Mock.Of<IClock>());
@@ -84,17 +84,17 @@ public class CommandMatcherTests
     }
 
     public sealed class Resolver(CommandExecutionService execution, SessionManager sessions, IAuthProvider auth,
-        IBotProfile profile, IEnumerable<ICommandMatcher> matchers) : CommandServiceBase(execution, sessions, auth, profile, matchers)
+        IBotProfile profile, IEnumerable<ICommandMatcher<string>> matchers) : CommandServiceBase(execution, sessions, auth, profile)
     {
-        public Task Handle(CoreBoundaryTests.CustomContext context) => QueryHandler(context);
+        public Task Handle(CoreBoundaryTests.CustomContext context) => QueryHandler(context, matchers);
     }
 
-    private sealed class Matcher(Type commandType, Func<string, bool> match) : ICommandMatcher
+    private sealed class Matcher(Type commandType, Func<string, bool> match) : ICommandMatcher<string>
     {
         public Type CommandType => commandType;
         public int Calls { get; private set; }
         public object LastContext { get; private set; }
-        public bool IsMatch<TQuery>(QueryContext<TQuery> query)
+        public bool IsMatch(IQueryContext<string> query)
         {
             Calls++;
             LastContext = query;
@@ -105,7 +105,7 @@ public class CommandMatcherTests
     public abstract class CountingCommand : IQueryCommand<string>
     {
         public int Calls { get; private set; }
-        public Task<ICommandExecutionResult> Execute(QueryContext<string> query)
+        public Task<ICommandExecutionResult> Execute(IQueryContext<string> query)
         {
             Calls++;
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());
@@ -123,7 +123,7 @@ public class CommandMatcherTests
     public sealed class Session : ISessionCommand<string, string>
     {
         public int Calls { get; private set; }
-        public Task<ICommandExecutionResult> Execute(QueryContext<string> query, string data)
+        public Task<ICommandExecutionResult> Execute(IQueryContext<string> query, string data)
         {
             Calls++;
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());

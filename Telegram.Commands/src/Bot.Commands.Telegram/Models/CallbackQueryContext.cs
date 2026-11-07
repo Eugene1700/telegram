@@ -6,44 +6,46 @@ using Bot.Commands.Telegram.Extensions;
 
 namespace Bot.Commands.Telegram.Models;
 
-public class CallbackQueryContext(CallbackQuery query) : QueryContext<CallbackQuery>(query)
+public class CallbackQueryContext(CallbackQuery query) : IQueryContext<CallbackQuery>
 {
-    public override long GetChatId()
+    public CallbackQuery Query { get; } = query;
+
+    public long GetChatId()
     {
         return Query.Message.Chat.Id;
     }
 
-    public override long GetFromId()
+    public long GetFromId()
     {
         return Query.From.Id;
     }
 
-    public override string? GetData()
+    public string? GetData()
     {
         return Query.Data;
     }
 
-    public override bool IsGroupMessage()
+    public bool IsGroupMessage()
     {
         return Query.Message.Chat.Type.IsGroupMessage();
     }
 
-    public override bool IsEvent()
+    public bool IsEvent()
     {
         return false;
     }
 
-    public override EventType? GetEventType()
+    public EventType? GetEventType()
     {
         return null;
     }
 
-    public override ChatArea GetChatType()
+    public ChatArea GetChatType()
     {
         return Query.Message.Chat.Type.ToChatArea();
     }
 
-    public override string? GetMessageId()
+    public string? GetMessageId()
     {
         return Query.Message?.MessageId.ToString();
     }

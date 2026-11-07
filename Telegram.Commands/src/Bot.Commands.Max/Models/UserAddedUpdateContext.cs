@@ -5,44 +5,46 @@ using Bot.Commands.Abstract.Commands;
 
 namespace Bot.Commands.Max.Models;
 
-public class UserAddedUpdateContext(UserAddedUpdate query, long? chatId = null) : QueryContext<UserAddedUpdate>(query)
+public class UserAddedUpdateContext(UserAddedUpdate query, long? chatId = null) : IQueryContext<UserAddedUpdate>
 {
-    public override long GetChatId()
+    public UserAddedUpdate Query { get; } = query;
+
+    public long GetChatId()
     {
         return Query.Chat?.ChatId ?? chatId ?? throw new InvalidOperationException("User-added update has no chat ID");
     }
 
-    public override long GetFromId()
+    public long GetFromId()
     {
         return Query.User.Id;
     }
 
-    public override string GetData()
+    public string GetData()
     {
         return string.Empty;
     }
 
-    public override bool IsGroupMessage()
+    public bool IsGroupMessage()
     {
         return (Query.Chat?.Type ?? ChatType.Chat).IsGroupMessage();
     }
 
-    public override bool IsEvent()
+    public bool IsEvent()
     {
         return true;
     }
 
-    public override EventType? GetEventType()
+    public EventType? GetEventType()
     {
         return EventType.ChatMemberAdded;
     }
 
-    public override ChatArea GetChatType()
+    public ChatArea GetChatType()
     {
         return (Query.Chat?.Type ?? ChatType.Chat).ToChatArea();
     }
 
-    public override string? GetMessageId()
+    public string? GetMessageId()
     {
         return null;
     }

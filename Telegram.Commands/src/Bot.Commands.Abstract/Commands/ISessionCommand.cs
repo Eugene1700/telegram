@@ -5,6 +5,6 @@ namespace Bot.Commands.Abstract.Commands
 {
     public interface ISessionCommand<TQuery, in TSessionObject>
     {
-        Task<ICommandExecutionResult> Execute(QueryContext<TQuery> query, TSessionObject sessionObject);
+        Task<ICommandExecutionResult> Execute(IQueryContext<TQuery> query, TSessionObject sessionObject);
     }
 }

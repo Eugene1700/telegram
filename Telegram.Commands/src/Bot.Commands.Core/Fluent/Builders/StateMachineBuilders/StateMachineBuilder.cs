@@ -10,14 +10,9 @@ namespace Bot.Commands.Core.Fluent.Builders.StateMachineBuilders
 {
     internal class StateMachineBuilder<TObj, TStates> : IStateMachineBuilder<TObj, TStates>
     {
-        private readonly StateMachine<TObj, TStates> _stateMachine;
+        private readonly StateMachine<TObj, TStates> _stateMachine = new();
 
-        public StateMachineBuilder()
-        {
-            _stateMachine = new StateMachine<TObj, TStates>();
-        }
-
-        private IStateBuilder<TObj, TStates> NewState(TStates stateId, StateType stateType,
+        private StateBuilder<TObj, TStates> NewState(TStates stateId, StateType stateType,
             Func<IQueryContext<object>, TStates, TObj, IBotMessage[], Task> messagesSender, uint? durationInSec)
         {
             var newState = _stateMachine.AddState(stateId, stateType, messagesSender, durationInSec, null);

@@ -5,44 +5,46 @@ using Bot.Commands.Abstract.Commands;
 
 namespace Bot.Commands.Max.Models;
 
-public class MessageCreatedQueryContext(Chat? chat, Message query) : QueryContext<Message>(query)
+public class MessageCreatedQueryContext(Chat? chat, Message query) : IQueryContext<Message>
 {
-    public override long GetChatId()
+    public Message Query { get; } = query;
+
+    public long GetChatId()
     {
         return chat?.ChatId ?? Query.Recipient?.ChatId ?? throw new InvalidOperationException("Message has no chat ID");
     }
 
-    public override long GetFromId()
+    public long GetFromId()
     {
         return Query.Sender.Id;
     }
 
-    public override string GetData()
+    public string GetData()
     {
         return Query.Text;
     }
 
-    public override bool IsGroupMessage()
+    public bool IsGroupMessage()
     {
         return (chat?.Type ?? Query.Recipient?.ChatType ?? throw new InvalidOperationException("Message has no chat type")).IsGroupMessage();
     }
 
-    public override bool IsEvent()
+    public bool IsEvent()
     {
         return false;
     }
 
-    public override EventType? GetEventType()
+    public EventType? GetEventType()
     {
         return null;
     }
 
-    public override ChatArea GetChatType()
+    public ChatArea GetChatType()
     {
         return (chat?.Type ?? Query.Recipient?.ChatType ?? throw new InvalidOperationException("Message has no chat type")).ToChatArea();
     }
 
-    public override string? GetMessageId()
+    public string? GetMessageId()
     {
         return Query.Mid;
     }

@@ -157,7 +157,7 @@ public class MessengerRoutingTests
     public class TelegramTestCommand : IQueryCommand<Tg.Message>
     {
         public int Calls { get; private set; }
-        public Task<ICommandExecutionResult> Execute(QueryContext<Tg.Message> query)
+        public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query)
         {
             Calls++;
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());
@@ -168,7 +168,7 @@ public class MessengerRoutingTests
     public class MaxTestCommand : IQueryCommand<MaxTypes.Message>
     {
         public int Calls { get; private set; }
-        public Task<ICommandExecutionResult> Execute(QueryContext<MaxTypes.Message> query)
+        public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.Message> query)
         {
             Calls++;
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());
@@ -179,7 +179,7 @@ public class MessengerRoutingTests
     public class TelegramCallbackCommand : IQueryCommand<Tg.CallbackQuery>
     {
         public int Calls { get; private set; }
-        public Task<ICommandExecutionResult> Execute(QueryContext<Tg.CallbackQuery> query)
+        public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.CallbackQuery> query)
         {
             Calls++;
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());

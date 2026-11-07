@@ -124,6 +124,20 @@ namespace Bot.Commands.Core.Services
         }
 
         protected abstract string PrepareText(string text);
+        public IInlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand, TQuery>(CallbackData callbackData)
+            where TCommand : Bot.Commands.Abstract.Commands.IQueryCommand<TQuery>
+        {
+            _inlineMarkupBuilder.AddInlineKeyboardButton<TCommand, TQuery>(callbackData);
+            return this;
+        }
+
+        public IInlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand, TSessionObject, TQuery>(CallbackData callbackData)
+            where TCommand : Bot.Commands.Abstract.Commands.ISessionCommand<TQuery, TSessionObject>
+        {
+            _inlineMarkupBuilder.AddInlineKeyboardButton<TCommand, TSessionObject, TQuery>(callbackData);
+            return this;
+        }
+
         public IInlineMarkupQueryBuilder InlineKeyboardButtonsRow(CallbackDataWithCommand[] rows)
         {
             _inlineMarkupBuilder.InlineKeyboardButtonsRow(rows);

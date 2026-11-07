@@ -175,7 +175,7 @@ public class Tests : TestsBase
         
         _behaviorMockCommand.SetDefaultExecuteResult(result, (q, so) =>
         {
-            var query = q as QueryContext<Message>;
+            var query = q as IQueryContext<Message>;
             Assert.That(query, Is.Not.Null);
             Assert.That(query.GetData(), Is.EqualTo(newMessage.GetData()));
             Assert.That(query.GetChatId(), Is.EqualTo(newMessage.GetChatId()));
@@ -215,7 +215,7 @@ public class Tests : TestsBase
             var currentCommand = cc as SessionMessageMockCommand;
             Assert.That(currentCommand, Is.Not.Null);
             
-            var query = q as QueryContext<Message>;
+            var query = q as IQueryContext<Message>;
             Assert.That(query, Is.Not.Null);
             Assert.Multiple(() =>
             {
@@ -259,7 +259,7 @@ public class Tests : TestsBase
             var currentCommand = cc as QueryMessageMockCommand;
             Assert.That(currentCommand, Is.Not.Null);
             
-            var query = q as QueryContext<Message>;
+            var query = q as IQueryContext<Message>;
             Assert.That(query, Is.Not.Null);
             Assert.That(query.GetData(), Is.EqualTo("My Text"));
             Assert.That(query.GetChatId(), Is.EqualTo(123456789));
@@ -281,7 +281,7 @@ public class Tests : TestsBase
     }
 
     private async Task<ICommandExecutionResult> ExecuteCommandWithMessage(CommandExecutionResult result,
-        QueryContext<Message> newMessage)
+        IQueryContext<Message> newMessage)
     {
         var queryCommandDescriptor = new FullCommandDescriptor(_queryMessageMockCommand.GetType());
         Assert.That(queryCommandDescriptor.IsQueryCommand, Is.True);

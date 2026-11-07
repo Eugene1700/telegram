@@ -13,7 +13,7 @@ namespace Bot.Commands.Core.Fluent
         private StateMachine<TObject, TStates> _stateMachine;
         private StateMachine<TObject, TStates> StateMachineInternal => _stateMachine ??= GetStateMachine();
 
-        public async Task<ICommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query,
+        public async Task<ICommandExecutionResult> DefaultExecute<TQuery>(IQueryContext<TQuery> query,
             FluentObject<TObject, TStates> sessionObject)
         {
             var stateMachine = StateMachineInternal;
@@ -102,7 +102,7 @@ namespace Bot.Commands.Core.Fluent
 
 
         public async Task<ICommandExecutionResult> Execute<TQuery>(IQueryCommand<TQuery> currentCommand,
-            QueryContext<TQuery> query, FluentObject<TObject, TStates> sessionObject)
+            IQueryContext<TQuery> query, FluentObject<TObject, TStates> sessionObject)
         {
             var stateMachine = StateMachineInternal;
             if (sessionObject.CurrentStateId == null)
@@ -140,7 +140,7 @@ namespace Bot.Commands.Core.Fluent
         }
 
         protected virtual InterceptResult<TQuery, TObject> TryQueryCommandIntercept<TQuery>(TStates state,
-            IQueryCommand<TQuery> currentCommand, QueryContext<TQuery> query,
+            IQueryCommand<TQuery> currentCommand, IQueryContext<TQuery> query,
             TObject sessionObject)
         {
             return new InterceptResult<TQuery, TObject>
@@ -152,20 +152,20 @@ namespace Bot.Commands.Core.Fluent
             };
         }
 
-        protected virtual Task<GlobalInterceptResult> GlobalIntercept<TQuery>(QueryContext<TQuery> query,
+        protected virtual Task<GlobalInterceptResult> GlobalIntercept<TQuery>(IQueryContext<TQuery> query,
             TObject sessionObject)
         {
             return Task.FromResult(GlobalInterceptResult.Next);
         }
 
         public async Task<ICommandExecutionResult> Execute<TQuery>(
-            ISessionCommand<TQuery, FluentObject<TObject, TStates>> currentCommand, QueryContext<TQuery> query,
+            ISessionCommand<TQuery, FluentObject<TObject, TStates>> currentCommand, IQueryContext<TQuery> query,
             FluentObject<TObject, TStates> sessionObject)
         {
             return await DefaultExecute(query, sessionObject);
         }
 
-        protected abstract Task<(TObject, TStates)> Entry<TQuery>(QueryContext<TQuery> query, TObject currentObject);
+        protected abstract Task<(TObject, TStates)> Entry<TQuery>(IQueryContext<TQuery> query, TObject currentObject);
 
         protected abstract IStateMachine<TStates> StateMachine(IStateMachineBuilder<TObject, TStates> builder);
     }

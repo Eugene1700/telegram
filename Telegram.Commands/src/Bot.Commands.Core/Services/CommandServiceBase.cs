@@ -17,29 +17,28 @@ public abstract class CommandServiceBase
     private readonly SessionManager _sessionManager;
     private readonly IAuthProvider _authProvider;
     private readonly IBotProfile _botProfile;
-    private readonly IEnumerable<ICommandMatcher> _matchers;
     protected IBotProfile BotProfile => _botProfile;
 
     protected CommandServiceBase(CommandExecutionService commandExecutionService, SessionManager sessionManager,
-        IAuthProvider authProvider, IBotProfile botProfile, IEnumerable<ICommandMatcher> matchers = null)
+        IAuthProvider authProvider, IBotProfile botProfile)
     {
         _commandExecutionService = commandExecutionService;
         _sessionManager = sessionManager;
         _authProvider = authProvider;
         _botProfile = botProfile;
-        _matchers = matchers ?? Array.Empty<ICommandMatcher>();
     }
 
-    protected async Task QueryHandler<TQuery>(QueryContext<TQuery> query)
+    protected async Task QueryHandler<TQuery>(IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers = null)
     {
         try
         {
-            var commandDesc = GetCommand(query);
+            var commandDesc = GetCommand(query, matchers);
             if (commandDesc == null)
                 return;
 
             await AssertAuth(query, commandDesc);
             AssertChatType(query, commandDesc);
+            await ApplyExecuteFilters(query, commandDesc);
             var commandExecutionResult =
                 await _commandExecutionService.Execute(commandDesc, query);
             await Next(query, commandExecutionResult);
@@ -50,7 +49,24 @@ public abstract class CommandServiceBase
         }
     }
 
-    private async Task Next<TQuery>(QueryContext<TQuery> query, ICommandExecutionResult commandExecutionResult)
+    private static async Task ApplyExecuteFilters<TQuery>(IQueryContext<TQuery> query,
+        CommandDescriptorComposition commandDesc)
+    {
+        var commands = new[] { commandDesc.SessionCommand, commandDesc.QueryCommand }
+            .Where(command => command != null)
+            .GroupBy(command => command.Type)
+            .Select(group => group.First());
+
+        foreach (var command in commands)
+        {
+            var context = new CommandExecutionContext<TQuery>(query.Query, command, query.GetChatId());
+            foreach (var filter in command.Type.GetCustomAttributes<ExecuteFilterAttribute>(inherit: true)
+                         .OrderBy(filter => filter.Order))
+                await filter.Filter(context);
+        }
+    }
+
+    private async Task Next<TQuery>(IQueryContext<TQuery> query, ICommandExecutionResult commandExecutionResult)
     {
         var chatId = query.GetChatId();
         var userId = query.GetFromId();
@@ -87,7 +103,7 @@ public abstract class CommandServiceBase
             commandExecutionResult.Result.ToString());
     }
 
-    private async Task AssertAuth<TQuery>(QueryContext<TQuery> query, CommandDescriptorComposition commandDesc)
+    private async Task AssertAuth<TQuery>(IQueryContext<TQuery> query, CommandDescriptorComposition commandDesc)
     {
         var chatId = query.GetChatId();
         var userId = query.GetFromId();
@@ -106,7 +122,7 @@ public abstract class CommandServiceBase
         }
     }
 
-    private CommandDescriptorComposition GetCommand<TQuery>(QueryContext<TQuery> query)
+    private CommandDescriptorComposition GetCommand<TQuery>(IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers)
     {
         if (query.IsEvent())
         {
@@ -130,7 +146,7 @@ public abstract class CommandServiceBase
             // A rejected slash command (for example, addressed to another bot) must not start a funnel.
             if (query.GetData()?.StartsWith("/", StringComparison.Ordinal) != true)
             {
-                var matched = FindMatchedCommand(query);
+                var matched = FindMatchedCommand(query, matchers);
                 if (matched != null) return CommandDescriptorComposition.CreateQueryResult(matched);
             }
             if (query.IsGroupMessage())
@@ -143,10 +159,10 @@ public abstract class CommandServiceBase
         return CommandDescriptorComposition.CreateQueryResult(queryComDesc);
     }
 
-    private FullCommandDescriptor FindMatchedCommand<TQuery>(QueryContext<TQuery> query)
+    private FullCommandDescriptor FindMatchedCommand<TQuery>(IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers)
     {
         var matched = new List<FullCommandDescriptor>();
-        foreach (var matcher in _matchers)
+        foreach (var matcher in matchers ?? Array.Empty<ICommandMatcher<TQuery>>())
         {
             var descriptor = BotCommandExtensions.GetCommandInfo(matcher.CommandType);
             var candidates = FindCommandByName("/" + descriptor.Name)
@@ -162,7 +178,7 @@ public abstract class CommandServiceBase
         return distinct.SingleOrDefault();
     }
 
-    private static CommandDescriptorComposition GetEvent<TQuery>(QueryContext<TQuery> query)
+    private static CommandDescriptorComposition GetEvent<TQuery>(IQueryContext<TQuery> query)
     {
         if (!query.IsEvent())
             return null;
@@ -192,7 +208,7 @@ public abstract class CommandServiceBase
         return comDesc;
     }
 
-    private void AssertChatType<TQuery>(QueryContext<TQuery> query, CommandDescriptorComposition commandDescriptorComposition)
+    private void AssertChatType<TQuery>(IQueryContext<TQuery> query, CommandDescriptorComposition commandDescriptorComposition)
     {
         if (commandDescriptorComposition.IsBehaviorCommand)
         {
@@ -212,7 +228,7 @@ public abstract class CommandServiceBase
         AssertChatTypeConcrete(query, commandDescriptorComposition.QueryCommand.Descriptor);
     }
     
-    private void AssertChatTypeConcrete<TQuery>(QueryContext<TQuery> query, ICommandDescriptor commandInfo)
+    private void AssertChatTypeConcrete<TQuery>(IQueryContext<TQuery> query, ICommandDescriptor commandInfo)
     {
         if (commandInfo == null)
             throw new ArgumentNullException(nameof(commandInfo));
@@ -241,7 +257,7 @@ public abstract class CommandServiceBase
         }
     }
 
-    private bool TryGetSessionCommandStr<TQuery>(QueryContext<TQuery> query, out string commandStr)
+    private bool TryGetSessionCommandStr<TQuery>(IQueryContext<TQuery> query, out string commandStr)
     {
         commandStr = null;
         var chatId = query.GetChatId();
@@ -252,7 +268,7 @@ public abstract class CommandServiceBase
         return true;
     }
 
-    protected virtual bool TryGetQueryCommandStr<TQuery>(QueryContext<TQuery> query, out string commandStr)
+    protected virtual bool TryGetQueryCommandStr<TQuery>(IQueryContext<TQuery> query, out string commandStr)
     {
         commandStr = query.GetData();
         var isCommand = !string.IsNullOrWhiteSpace(commandStr) && commandStr[0] == '/';

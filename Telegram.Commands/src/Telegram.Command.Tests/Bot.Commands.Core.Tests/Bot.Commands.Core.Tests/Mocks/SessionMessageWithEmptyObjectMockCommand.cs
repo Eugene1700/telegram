@@ -9,15 +9,15 @@ namespace Bot.Commands.Core.Tests.Mocks;
 public class SessionMessageWithEmptyObjectMockCommand: ISessionCommand<Message, EmptyObject>
 {
     private ICommandExecutionResult _result = null;
-    private Action<QueryContext<Message>, EmptyObject> _messageCallback = null!;
+    private Action<IQueryContext<Message>, EmptyObject> _messageCallback = null!;
 
-    public void SetResult(ICommandExecutionResult result, Action<QueryContext<Message>, EmptyObject> messageCallback = null)
+    public void SetResult(ICommandExecutionResult result, Action<IQueryContext<Message>, EmptyObject> messageCallback = null)
     {
         _result = result;
         _messageCallback = messageCallback;
     }
 
-    public Task<ICommandExecutionResult> Execute(QueryContext<Message> query, EmptyObject sessionObject)
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Message> query, EmptyObject sessionObject)
     {
         _messageCallback?.Invoke(query, sessionObject);
         return Task.FromResult(_result);

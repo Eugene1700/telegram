@@ -5,6 +5,6 @@ namespace Bot.Commands.Abstract.Commands
 {
     public interface IQueryCommand<TQuery>
     {
-        Task<ICommandExecutionResult> Execute(QueryContext<TQuery> query);
+        Task<ICommandExecutionResult> Execute(IQueryContext<TQuery> query);
     }
 }

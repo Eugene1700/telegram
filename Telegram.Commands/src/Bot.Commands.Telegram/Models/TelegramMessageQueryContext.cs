@@ -7,29 +7,31 @@ using Bot.Commands.Telegram.Extensions;
 
 namespace Bot.Commands.Telegram.Models;
 
-public class TelegramMessageQueryContext(Message query) : QueryContext<Message>(query)
+public class TelegramMessageQueryContext(Message query) : IQueryContext<Message>
 {
-    public override long GetChatId()
+    public Message Query { get; } = query;
+
+    public long GetChatId()
     {
         return Query.Chat.Id;
     }
 
-    public override long GetFromId()
+    public long GetFromId()
     {
         return Query.From.Id;
     }
 
-    public override string? GetData()
+    public string? GetData()
     {
         return Query.Type == MessageType.Text ? Query.Text : null;
     }
 
-    public override bool IsGroupMessage()
+    public bool IsGroupMessage()
     {
         return Query.Chat.Type.IsGroupMessage();
     }
 
-    public override bool IsEvent()
+    public bool IsEvent()
     {
         return Query.Type switch
         {
@@ -38,7 +40,7 @@ public class TelegramMessageQueryContext(Message query) : QueryContext<Message>(
         };
     }
 
-    public override EventType? GetEventType()
+    public EventType? GetEventType()
     {
         return Query.Type switch
         {
@@ -47,12 +49,12 @@ public class TelegramMessageQueryContext(Message query) : QueryContext<Message>(
         };
     }
 
-    public override ChatArea GetChatType()
+    public ChatArea GetChatType()
     {
         return Query.Chat.Type.ToChatArea();
     }
 
-    public override string? GetMessageId()
+    public string? GetMessageId()
     {
         return Query.MessageId.ToString();
     }

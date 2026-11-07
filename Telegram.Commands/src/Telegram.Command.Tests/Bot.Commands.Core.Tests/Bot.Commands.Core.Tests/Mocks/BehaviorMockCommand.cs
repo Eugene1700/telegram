@@ -32,19 +32,19 @@ public class BehaviorMockCommand: IBehaviorCommand<SessionObjectMock>
         _queryCommandExecuteCallback = queryCommandExecuteCallback;
     }
 
-    public Task<ICommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, SessionObjectMock sessionObject)
+    public Task<ICommandExecutionResult> DefaultExecute<TQuery>(IQueryContext<TQuery> query, SessionObjectMock sessionObject)
     {
         _defaultExecuteCallback?.Invoke(query, sessionObject);
         return Task.FromResult(_result);
     }
 
-    public Task<ICommandExecutionResult> Execute<TQuery>(IQueryCommand<TQuery> currentCommand, QueryContext<TQuery> query, SessionObjectMock sessionObject)
+    public Task<ICommandExecutionResult> Execute<TQuery>(IQueryCommand<TQuery> currentCommand, IQueryContext<TQuery> query, SessionObjectMock sessionObject)
     {
         _queryCommandExecuteCallback?.Invoke(currentCommand, query, sessionObject);
         return Task.FromResult(_queryResult);
     }
 
-    public Task<ICommandExecutionResult> Execute<TQuery>(ISessionCommand<TQuery, SessionObjectMock> currentCommand, QueryContext<TQuery> query, SessionObjectMock sessionObject)
+    public Task<ICommandExecutionResult> Execute<TQuery>(ISessionCommand<TQuery, SessionObjectMock> currentCommand, IQueryContext<TQuery> query, SessionObjectMock sessionObject)
     {
         _sessionCommandExecuteCallback?.Invoke(currentCommand, query, sessionObject);
         return Task.FromResult(_sessionResult);

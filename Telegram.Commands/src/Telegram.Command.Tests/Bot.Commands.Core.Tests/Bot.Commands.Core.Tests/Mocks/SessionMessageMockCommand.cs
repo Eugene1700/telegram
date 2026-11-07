@@ -10,15 +10,15 @@ public class SessionMessageMockCommand: ISessionCommand<Message, SessionObjectMo
 {
 
     private ICommandExecutionResult _result = null;
-    private Action<QueryContext<Message>, SessionObjectMock> _messageCallback = null!;
+    private Action<IQueryContext<Message>, SessionObjectMock> _messageCallback = null!;
 
-    public void SetResult(ICommandExecutionResult result, Action<QueryContext<Message>, SessionObjectMock> messageCallback = null)
+    public void SetResult(ICommandExecutionResult result, Action<IQueryContext<Message>, SessionObjectMock> messageCallback = null)
     {
         _result = result;
         _messageCallback = messageCallback;
     }
 
-    public Task<ICommandExecutionResult> Execute(QueryContext<Message> query, SessionObjectMock sessionObject)
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Message> query, SessionObjectMock sessionObject)
     {
         _messageCallback?.Invoke(query, sessionObject);
         return Task.FromResult(_result);

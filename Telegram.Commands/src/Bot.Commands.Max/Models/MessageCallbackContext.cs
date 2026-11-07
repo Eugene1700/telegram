@@ -4,45 +4,47 @@ using Bot.Commands.Abstract.Commands;
 
 namespace Bot.Commands.Max.Models;
 
-public class MessageCallbackContext(Chat? chat, CallbackQuery query, Message? message = null) : QueryContext<CallbackQuery>(query)
+public class MessageCallbackContext(Chat? chat, CallbackQuery query, Message? message = null) : IQueryContext<CallbackQuery>
 {
+    public CallbackQuery Query { get; } = query;
+
     private Message Message => message ?? Query.Message ?? throw new InvalidOperationException("Callback has no message");
-    public override long GetChatId()
+    public long GetChatId()
     {
         return chat?.ChatId ?? Message.Recipient?.ChatId ?? throw new InvalidOperationException("Callback has no chat ID");
     }
 
-    public override long GetFromId()
+    public long GetFromId()
     {
         return Query.User.Id;
     }
 
-    public override string GetData()
+    public string GetData()
     {
         return Query.Payload;
     }
 
-    public override bool IsGroupMessage()
+    public bool IsGroupMessage()
     {
         return (chat?.Type ?? Message.Recipient?.ChatType ?? throw new InvalidOperationException("Callback message has no chat type")).IsGroupMessage();
     }
 
-    public override bool IsEvent()
+    public bool IsEvent()
     {
         return false;
     }
 
-    public override EventType? GetEventType()
+    public EventType? GetEventType()
     {
         return null;
     }
 
-    public override ChatArea GetChatType()
+    public ChatArea GetChatType()
     {
         return (chat?.Type ?? Message.Recipient?.ChatType ?? throw new InvalidOperationException("Callback message has no chat type")).ToChatArea();
     }
 
-    public override string? GetMessageId()
+    public string? GetMessageId()
     {
         return Message.Mid;
     }

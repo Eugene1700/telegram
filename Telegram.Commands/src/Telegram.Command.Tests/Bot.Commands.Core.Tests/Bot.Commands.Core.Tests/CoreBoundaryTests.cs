@@ -74,23 +74,24 @@ public class CoreBoundaryTests
         public Task Handle(CustomContext context) => QueryHandler(context);
     }
 
-    public sealed class CustomContext(string text) : QueryContext<string>(text)
+    public sealed class CustomContext(string text) : IQueryContext<string>
     {
-        public override long GetChatId() => 10;
-        public override long GetFromId() => 20;
-        public override string GetData() => Query;
-        public override bool IsGroupMessage() => true;
-        public override bool IsEvent() => false;
-        public override EventType? GetEventType() => null;
-        public override ChatArea GetChatType() => ChatArea.Group;
-        public override string GetMessageId() => "native-id";
+        public string Query { get; } = text;
+        public long GetChatId() => 10;
+        public long GetFromId() => 20;
+        public string GetData() => Query;
+        public bool IsGroupMessage() => true;
+        public bool IsEvent() => false;
+        public EventType? GetEventType() => null;
+        public ChatArea GetChatType() => ChatArea.Group;
+        public string GetMessageId() => "native-id";
     }
 
     [Command(Name = "core_boundary@literal", Authorized = false, Area = ChatArea.Group)]
     public sealed class CustomCommand : IQueryCommand<string>
     {
         public int Calls { get; private set; }
-        public Task<ICommandExecutionResult> Execute(QueryContext<string> query)
+        public Task<ICommandExecutionResult> Execute(IQueryContext<string> query)
         {
             Calls++;
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());

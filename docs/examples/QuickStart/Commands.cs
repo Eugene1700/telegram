@@ -15,8 +15,8 @@ namespace QuickStart;
 [Command(Name = "hello", Authorized = false)]
 public sealed class HelloCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>
 {
-    public Task<ICommandExecutionResult> Execute(QueryContext<Tg.Message> query) => Reply();
-    public Task<ICommandExecutionResult> Execute(QueryContext<MaxTypes.Message> query) => Reply();
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query) => Reply();
+    public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.Message> query) => Reply();
 
     private static Task<ICommandExecutionResult> Reply()
     {
@@ -33,14 +33,14 @@ public sealed class NameData
 [Command(Name = "ask", Authorized = false)]
 public sealed class AskCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>
 {
-    public Task<ICommandExecutionResult> Execute(QueryContext<Tg.Message> query)
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query)
     {
         var data = Prompt();
         return Task.FromResult<ICommandExecutionResult>(
             CommandExecutionResult.Ahead<NameReply, Tg.Message, NameData>(data));
     }
 
-    public Task<ICommandExecutionResult> Execute(QueryContext<MaxTypes.Message> query)
+    public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.Message> query)
     {
         var data = Prompt();
         return Task.FromResult<ICommandExecutionResult>(
@@ -58,9 +58,9 @@ public sealed class AskCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTyp
 [Command(Name = "name_reply", Authorized = false)]
 public sealed class NameReply : ISessionCommand<Tg.Message, NameData>, ISessionCommand<MaxTypes.Message, NameData>
 {
-    public Task<ICommandExecutionResult> Execute(QueryContext<Tg.Message> query, NameData data)
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query, NameData data)
         => Reply(query.GetData(), data);
-    public Task<ICommandExecutionResult> Execute(QueryContext<MaxTypes.Message> query, NameData data)
+    public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.Message> query, NameData data)
         => Reply(query.GetData(), data);
 
     private static Task<ICommandExecutionResult> Reply(string text, NameData data)
@@ -84,7 +84,7 @@ public sealed class ProfileData
 [Command(Name = "profile", Authorized = false)]
 public sealed class ProfileCommand : FluentCommand<ProfileData, ProfileStep>
 {
-    protected override Task<(ProfileData, ProfileStep)> Entry<TQuery>(QueryContext<TQuery> query, ProfileData currentObject)
+    protected override Task<(ProfileData, ProfileStep)> Entry<TQuery>(IQueryContext<TQuery> query, ProfileData currentObject)
         => Task.FromResult((currentObject ?? new ProfileData(), ProfileStep.Name));
 
     protected override IStateMachine<ProfileStep> StateMachine(IStateMachineBuilder<ProfileData, ProfileStep> builder)
@@ -103,7 +103,7 @@ public sealed class ProfileCommand : FluentCommand<ProfileData, ProfileStep>
 
     private static Task Send(IQueryContext<object> context, ProfileStep state, ProfileData data, IBotMessage message)
     {
-        // An untyped sender receives QueryContext<T>, not the native SDK object.
+        // An untyped sender receives IQueryContext<T>, not the native SDK object.
         // A real sender can select a messenger client by matching this context.
         Console.WriteLine($"bot: {message.Text}");
         return Task.CompletedTask;

@@ -14,14 +14,15 @@ namespace Bot.Commands.Telegram.Services
         IAuthProvider authProvider,
         SessionManager sessionManager,
         IBotProfile botProfile,
-        CommandExecutionService commandExecutionService, IEnumerable<ICommandMatcher>? matchers = null)
+        CommandExecutionService commandExecutionService, IEnumerable<ICommandMatcher<Message>>? messageMatchers = null,
+        IEnumerable<ICommandMatcher<CallbackQuery>>? callbackMatchers = null)
         : CommandServiceBase(commandExecutionService, sessionManager,
-            authProvider, botProfile, matchers), IBotCommandResolver<Update>
+            authProvider, botProfile), IBotCommandResolver<Update>
     {
-        protected override bool TryGetQueryCommandStr<TQuery>(QueryContext<TQuery> query, out string commandStr)
+        protected override bool TryGetQueryCommandStr<TQuery>(IQueryContext<TQuery> query, out string commandStr)
         {
             if (!base.TryGetQueryCommandStr(query, out commandStr)) return false;
-            if (query is not QueryContext<Message>) return true;
+            if (query is not IQueryContext<Message>) return true;
 
             var token = commandStr.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)[0];
             var mention = token.IndexOf('@');
@@ -38,11 +39,11 @@ namespace Bot.Commands.Telegram.Services
             {
                 case UpdateType.Message:
                     var telegramMessageQueryContext = new TelegramMessageQueryContext(update.Message);
-                    await QueryHandler(telegramMessageQueryContext);
+                    await QueryHandler(telegramMessageQueryContext, messageMatchers);
                     break;
                 case UpdateType.CallbackQuery:
                     var callbackQueryContext = new CallbackQueryContext(update.CallbackQuery);
-                    await QueryHandler(callbackQueryContext);
+                    await QueryHandler(callbackQueryContext, callbackMatchers);
                     break;
                 case UpdateType.PreCheckoutQuery:
                     var preCheckoutQueryContext = new PreCheckoutQueryContext(update.PreCheckoutQuery);

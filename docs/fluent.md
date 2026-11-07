@@ -12,7 +12,7 @@ A subclass supplies two methods:
 
 ```csharp
 protected override Task<(ProfileData, ProfileStep)> Entry<TQuery>(
-    QueryContext<TQuery> query, ProfileData currentObject)
+    IQueryContext<TQuery> query, ProfileData currentObject)
     => Task.FromResult((currentObject ?? new ProfileData(), ProfileStep.Name));
 
 protected override IStateMachine<ProfileStep> StateMachine(
@@ -40,7 +40,7 @@ The engine sends that state's prompt and persists a Fluent session. The next
 update reaches the state's handler. Returning the exit state runs `Finish`, whose
 execution result determines whether the session ends or continues elsewhere.
 
-`Entry` and `GlobalIntercept` receive `QueryContext<TQuery>`. Read common metadata
+`Entry` and `GlobalIntercept` receive `IQueryContext<TQuery>`. Read common metadata
 through `GetChatId()` and `GetData()`; the original SDK object is available as
 `Query`. Fluent handlers receive that same context through `IQueryContext<TQuery>`.
 
@@ -50,11 +50,11 @@ The distinction below is part of the current API:
 
 | Callback | Receives |
 | --- | --- |
-| Command `Execute` / `DefaultExecute` | `QueryContext<TQuery>` |
+| Command `Execute` / `DefaultExecute` | `IQueryContext<TQuery>` |
 | Typed `WithMessage<TQuery>` sender | `IQueryContext<TQuery>` |
 | Shared `WithMessage` sender | `IQueryContext<object>` |
 | State-level batch sender | `IQueryContext<object>` |
-| Fluent `Entry`, `GlobalIntercept` | `QueryContext<TQuery>` |
+| Fluent `Entry`, `GlobalIntercept` | `IQueryContext<TQuery>` |
 | `Next<TQuery>`, `OnCallback<TQuery>`, `Exit<TQuery>` | `IQueryContext<TQuery>` |
 
 A `Next<Telegram.Bot.Types.Message>` handler expects a context containing a
@@ -170,7 +170,7 @@ For selective command interception, override `TryQueryCommandIntercept` and retu
 - `ResultCallback` runs after a nonterminal executed command.
 
 See [FluentCommand](../Telegram.Commands/src/Bot.Commands.Core/Fluent/FluentCommand.cs)
-for the exact hook signatures and [the global-interception sample](../Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/FluentCommandWithGlobalIntercept.cs)
+for the exact hook signatures and [the global-interception sample](../Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/GlobalIntercept/FluentCommandWithGlobalIntercept.cs)
 for a concrete implementation.
 
 ## Persistence and lifetime

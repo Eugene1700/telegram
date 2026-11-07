@@ -25,7 +25,7 @@ public class MessageEnvironment
         return message;
     }
 
-    public QueryContext<Message> CreateMessageQueryContext(Action<Message> updater = null)
+    public IQueryContext<Message> CreateMessageQueryContext(Action<Message> updater = null)
     {
         var message = CreateMessage(updater);
         return new TelegramMessageQueryContext(message);
