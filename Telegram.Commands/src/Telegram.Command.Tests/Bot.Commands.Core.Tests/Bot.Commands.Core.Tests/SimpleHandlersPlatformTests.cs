@@ -15,10 +15,13 @@ namespace Bot.Commands.Core.Tests;
 
 public class SimpleHandlersPlatformTests
 {
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task SharedCommandsHandleMessagesSessionsAndCallbacks(bool max)
+    [TestCase(SamplePlatform.Telegram)]
+    [TestCase(SamplePlatform.Max)]
+    [TestCase(SamplePlatform.Vk)]
+    public async Task SharedCommandsHandleMessagesSessionsAndCallbacks(SamplePlatform platform)
     {
+        var max = platform == SamplePlatform.Max;
+        var vk = platform == SamplePlatform.Vk;
         var configuration = Configuration();
         var services = new ServiceCollection();
         new Startup(configuration).ConfigureServices(services);
@@ -48,13 +51,32 @@ public class SimpleHandlersPlatformTests
         using var provider = services.BuildServiceProvider();
         provider.GetRequiredService<IHttpContextAccessor>().HttpContext = new DefaultHttpContext();
         provider.GetRequiredService<IHttpContextAccessor>().HttpContext.Request.Path =
-            "/" + (max ? Settings.MaxRouteToUpdate : Settings.RouteToUpdate);
+            "/" + (vk ? Settings.VkRouteToUpdate : max ? Settings.MaxRouteToUpdate : Settings.RouteToUpdate);
 
         async Task Send(string text, bool callback = false, bool photo = false)
         {
             // Each update gets a fresh DI scope, just like a webhook request.
             using var scope = provider.CreateScope();
-            if (max)
+            if (vk)
+            {
+                var json = callback
+                    ? Newtonsoft.Json.JsonConvert.SerializeObject(new
+                    {
+                        type = "message_event", group_id = 1,
+                        @object = new { peer_id = 1, user_id = 2, conversation_message_id = 7, event_id = "cb",
+                            payload = Newtonsoft.Json.Linq.JObject.Parse(Bot.Commands.Vk.VkCallbackPayload.Encode(text)) }
+                    })
+                    : Newtonsoft.Json.JsonConvert.SerializeObject(new
+                    {
+                        type = "message_new", group_id = 1,
+                        @object = new { message = new { peer_id = 1, from_id = 2, conversation_message_id = 7, text,
+                            attachments = photo ? new[] { new { type = "photo", photo = new { id = 12, owner_id = 2 } } } : null },
+                            client_info = new { keyboard = true } }
+                    });
+                await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<VkNet.Model.GroupUpdate>>()
+                    .Handle(Newtonsoft.Json.JsonConvert.DeserializeObject<VkNet.Model.GroupUpdate>(json));
+            }
+            else if (max)
             {
                 var json = callback
                     ? JsonSerializer.Serialize(new { update_type = "message_callback",
@@ -144,7 +166,7 @@ public class SimpleHandlersPlatformTests
         // A message-only funnel must not consume a callback with the same text.
         await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(
             () => Send("register", callback: true));
-        Assert.That(executed.All(t => t.Name.StartsWith(max ? "Max" : "Telegram", StringComparison.Ordinal)), Is.True);
+        Assert.That(executed.All(t => t.Name.StartsWith(vk ? "Vk" : max ? "Max" : "Telegram", StringComparison.Ordinal)), Is.True);
         using var check = provider.CreateScope();
         Assert.That(check.ServiceProvider.GetRequiredService<ISessionsStore>().GetSessionInfo(DateTime.Now, 1, 2), Is.Null);
 
@@ -202,7 +224,11 @@ public class SimpleHandlersPlatformTests
         ["BotProfile:Enabled"] = "true", ["BotProfile:RegisterWebhook"] = "false",
         ["BotProfile:BotName"] = "telegram_sample",
         ["MaxBotProfile:Enabled"] = "true", ["MaxBotProfile:RegisterWebhook"] = "false",
-        ["MaxBotProfile:BotName"] = "max_sample"
+        ["MaxBotProfile:BotName"] = "max_sample",
+        ["VkBotProfile:Enabled"] = "true", ["VkBotProfile:BotName"] = "vk_sample",
+        ["VkBotProfile:Token"] = "dummy",
+        ["VkBotProfile:GroupId"] = "1", ["VkBotProfile:WebhookSecret"] = "test-secret",
+        ["VkBotProfile:ConfirmationCode"] = "confirmation"
     }).Build();
 
     private sealed class RecordingSender : ISampleMessageSender

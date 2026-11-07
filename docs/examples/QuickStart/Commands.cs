@@ -13,8 +13,9 @@ using MaxTypes = global::Max.Bot.Types;
 namespace QuickStart;
 
 [Command(Name = "hello", Authorized = false)]
-public sealed class HelloCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>
+public sealed class HelloCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>, IQueryCommand<VkNet.Model.Message>
 {
+    public Task<ICommandExecutionResult> Execute(IQueryContext<VkNet.Model.Message> query) => Reply();
     public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query) => Reply();
     public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.Message> query) => Reply();
 
@@ -31,8 +32,12 @@ public sealed class NameData
 }
 
 [Command(Name = "ask", Authorized = false)]
-public sealed class AskCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>
+public sealed class AskCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>, IQueryCommand<VkNet.Model.Message>
 {
+    public Task<ICommandExecutionResult> Execute(IQueryContext<VkNet.Model.Message> query)
+        => Task.FromResult<ICommandExecutionResult>(
+            CommandExecutionResult.Ahead<NameReply, VkNet.Model.Message, NameData>(Prompt()));
+
     public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query)
     {
         var data = Prompt();
@@ -56,8 +61,12 @@ public sealed class AskCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTyp
 }
 
 [Command(Name = "name_reply", Authorized = false)]
-public sealed class NameReply : ISessionCommand<Tg.Message, NameData>, ISessionCommand<MaxTypes.Message, NameData>
+public sealed class NameReply : ISessionCommand<Tg.Message, NameData>, ISessionCommand<MaxTypes.Message, NameData>,
+    ISessionCommand<VkNet.Model.Message, NameData>
 {
+    public Task<ICommandExecutionResult> Execute(IQueryContext<VkNet.Model.Message> query, NameData data)
+        => Reply(query.GetData(), data);
+
     public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query, NameData data)
         => Reply(query.GetData(), data);
     public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.Message> query, NameData data)

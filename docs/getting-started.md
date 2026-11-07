@@ -20,9 +20,10 @@ From the repository root:
 ```sh
 dotnet run --project docs/examples/QuickStart -- telegram
 dotnet run --project docs/examples/QuickStart -- max
+dotnet run --project docs/examples/QuickStart -- vk
 ```
 
-Both commands should produce the same bot replies:
+All three commands should produce the same bot replies:
 
 ```text
 bot: Hello! Try /ask or /profile.
@@ -56,9 +57,10 @@ dotnet add MyBot/MyBot.csproj package Microsoft.Extensions.DependencyInjection -
 This references the Telegram adapter, which brings in the shared Core, Abstract,
 and DependencyInjection projects. For Max, reference
 `telegram/Telegram.Commands/src/Bot.Commands.Max/Bot.Commands.Max.csproj` instead.
+For VK, reference `telegram/Telegram.Commands/src/Bot.Commands.Vk/Bot.Commands.Vk.csproj`.
 Reference `Bot.Commands.UI` separately if you need dropdown/pagination helpers.
 An ASP.NET Core application already has the DI container through its framework.
-Referencing the common DI project alone does not install either adapter or SDK;
+Referencing the common DI project alone does not install any adapter or SDK;
 see [architecture](architecture.md).
 
 ## 3. Register application services
@@ -88,6 +90,9 @@ services.UseTelegramCommandsServices();
 ```
 
 For Max, replace the final call with `services.UseMaxCommandsServices()`.
+For VK, use `services.UseVkCommandsServices()`; register your VkNet client/sender
+separately. See [VK integration](adapters.md#vk-integration) for update dispatch,
+payload encoding, and callback acknowledgement.
 
 `UseTelegramCommandsServices()` registers `ITelegramBotClient` using
 `IBotProfile.Key`, unless a client has already been registered. `UseMaxCommandsServices()`

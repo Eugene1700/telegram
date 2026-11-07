@@ -31,6 +31,7 @@
       <ProjectReference Include="..\..\..\Bot.Commands.Core\Bot.Commands.Core.csproj" />
       <ProjectReference Include="..\..\..\Bot.Commands.Telegram\Bot.Commands.Telegram.csproj" />
       <ProjectReference Include="..\..\..\Bot.Commands.DependencyInjection\Bot.Commands.DependencyInjection.csproj" />
+      <ProjectReference Include="..\..\..\Bot.Commands.Vk\Bot.Commands.Vk.csproj" />
     </ItemGroup>
 
   <ItemGroup>

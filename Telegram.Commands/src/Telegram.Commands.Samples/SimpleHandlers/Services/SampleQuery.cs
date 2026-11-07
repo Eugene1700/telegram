@@ -22,10 +22,13 @@ public static class SampleQuery
     {
         IQueryContext<Tg.CallbackQuery> c => c.GetMessageId(),
         IQueryContext<Mx.CallbackQuery> c => c.GetMessageId(),
+        IQueryContext<VkNet.Model.MessageEvent> c => c.GetMessageId(),
         _ => null
     };
     public static PhotoSessionObject Photo(object query)
     {
+        if (query is VkNet.Model.Message vk && vk.Attachments?.Any(a => a.Instance is VkNet.Model.Photo) == true)
+            return new PhotoSessionObject { MessageId = vk.ConversationMessageId?.ToString(), PhotoSize = null };
         if (query is Tg.Message t && t.Photo?.Length > 0)
             return new PhotoSessionObject { MessageId = t.MessageId.ToString(), PhotoSize = t.Photo.Max(p => p.FileSize) };
         if (query is Mx.Message m && m.Body?.Attachments?.OfType<Mx.PhotoAttachment>().FirstOrDefault() is { } photo)

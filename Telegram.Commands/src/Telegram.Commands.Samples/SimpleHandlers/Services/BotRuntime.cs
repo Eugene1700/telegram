@@ -5,16 +5,35 @@ namespace SimpleHandlers.Services;
 
 public sealed class BotRuntime(IHttpContextAccessor accessor)
 {
-    public bool IsMax => accessor.HttpContext?.Request.Path.StartsWithSegments("/api/max") == true;
+    public SamplePlatform Platform =>
+        accessor.HttpContext?.Request.Path.StartsWithSegments("/api/vk") == true ? SamplePlatform.Vk :
+        accessor.HttpContext?.Request.Path.StartsWithSegments("/api/max") == true ? SamplePlatform.Max :
+        SamplePlatform.Telegram;
+    public bool IsMax => Platform == SamplePlatform.Max;
+    public string ProfileSection => Section(Platform);
+    public static string Section(SamplePlatform platform) => platform switch
+    {
+        SamplePlatform.Vk => "VkBotProfile",
+        SamplePlatform.Max => "MaxBotProfile",
+        _ => "BotProfile"
+    };
 
     public static BotProfile ReadProfile(IConfiguration configuration, bool max)
+        => ReadProfile(configuration, max ? SamplePlatform.Max : SamplePlatform.Telegram);
+
+    public static BotProfile ReadProfile(IConfiguration configuration, SamplePlatform platform)
     {
-        var section = configuration.GetSection(max ? "MaxBotProfile" : "BotProfile");
+        var section = configuration.GetSection(Section(platform));
         return new BotProfile
         {
             Key = section["Token"], BaseUrl = section["BaseUrl"], BotName = section["BotName"],
-            UpdateRoute = max ? Settings.MaxRouteToUpdate : Settings.RouteToUpdate,
-            Swarms = new[] { max ? "max" : "telegram" }
+            UpdateRoute = platform switch
+            {
+                SamplePlatform.Vk => Settings.VkRouteToUpdate,
+                SamplePlatform.Max => Settings.MaxRouteToUpdate,
+                _ => Settings.RouteToUpdate
+            },
+            Swarms = new[] { platform.ToString().ToLowerInvariant() }
         };
     }
 }

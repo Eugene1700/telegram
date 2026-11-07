@@ -48,7 +48,28 @@ corrupted callback values, and prefix matching misclassified ordinary text as a
 Fluent callback. Generated callback values are now URI-escaped and decoded on
 receipt; the callback marker must match the complete "fid=" key.
 
+## VK adapter checks (2026-11-07)
+
+`VkAdapterTests` adds 15 offline cases covering private/group routing, legacy
+message shape, text matchers, native callback JSON and command payload round trips,
+active sessions, ignored edits/outgoing replies/service actions, common keyboard
+rows and links, unsupported button modes, missing IDs, plain text formatting, and
+Fluent callback data preservation. The full suite passed 113 cases at this check.
+QuickStart also passed for VK, Telegram, and Max.
+
+These checks do not measure updated coverage percentages or exercise live VK
+delivery, callback acknowledgement, upload APIs, keyboard limits, or webhook setup.
+The coverage table above remains the earlier measurement.
+
 ## Remaining gaps
+
+The later SimpleHandlers VK integration adds the same scenario suite for all
+three platforms, request-filter/controller tests, mocked SDK send/edit/upload
+checks, and an interleaved three-bot SQLite persistence test. The latter verifies
+`BOT_NAME` isolation with equal chat/user IDs and restores Fluent state across
+fresh scopes. Shared keyboard builder regression tests cover interface access,
+typed overloads, command metadata, native modes, empty rows, and failed batches.
+These additions do not update the historical coverage percentages above.
 
 - UI pagination and dropdown edge cases account for substantial uncovered branches.
 - Telegram event-specific contexts and adapter convenience overloads still have

@@ -1,54 +1,67 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Bot.Commands.Abstract.Commands;
+using Bot.Commands.Abstract.Interfaces;
 using Bot.Commands.Abstract.Messages;
 
-namespace Bot.Commands.Core.Services
+namespace Bot.Commands.Core.Services;
+
+/// <summary>Owns common callback metadata and row layout, independently of any SDK.</summary>
+public class InlineMarkupQueryBuilder : IInlineMarkupQueryBuilder
 {
-    public class InlineMarkupQueryBuilder : IInlineMarkupQueryBuilder
+    private readonly List<CallbackDataWithCommand> _callbacks = new();
+    private readonly List<CallbackDataWithCommand[]> _rows = new();
+
+    public IInlineMarkupQueryBuilder InlineKeyboardButtonsRow(CallbackDataWithCommand[] row)
     {
-        private readonly List<CallbackDataWithCommand> _callbacks = new();
-        private int _nextRow;
+        AddRows(new[] { row });
+        return this;
+    }
 
-        public IInlineMarkupQueryBuilder InlineKeyboardButtonsRow(CallbackDataWithCommand[] row)
-        {
-            foreach (var callback in row)
-                _callbacks.Add(callback with { Row = _nextRow });
-            _nextRow++;
-            return this;
-        }
+    public ReadOnlyCollection<CallbackDataWithCommand> GetCallbacks() => new(_callbacks);
 
-        public ReadOnlyCollection<CallbackDataWithCommand> GetCallbacks()
-        {
-            return new ReadOnlyCollection<CallbackDataWithCommand>(_callbacks);
-        }
+    protected IEnumerable<CallbackDataWithCommand[]> GetRows() => _rows;
 
-        public IInlineMarkupQueryBuilder
-            AddInlineKeyboardButton<TCommand, TQuery>(CallbackData callbackData)
-            where TCommand : IQueryCommand<TQuery>
-        {
-            return InlineKeyboardButtonsRow(new[] { new CallbackDataWithCommand
-            {
-                Text = callbackData.Text, CallbackMode = callbackData.CallbackMode,
-                CallbackText = callbackData.CallbackText,
-                CommandDescriptor = BotCommandExtensions.GetCommandInfo(typeof(TCommand))
-            }});
-        }
+    protected virtual void ValidateRow(CallbackDataWithCommand[] row) { }
 
-        public IInlineMarkupQueryBuilder
-            AddInlineKeyboardButton<TCommand, TSessionObject, TQuery>(CallbackData callbackData)
-            where TCommand : ISessionCommand<TQuery, TSessionObject>
+    protected void AddButtons(CallbackData[] callbacks, ICommandDescriptor descriptor = null)
+    {
+        AddRows(callbacks.Select(callback => new[] { WithDescriptor(callback, descriptor) }).ToArray());
+    }
+
+    protected static CallbackDataWithCommand WithDescriptor(CallbackData callback, ICommandDescriptor descriptor)
+        => new()
         {
-            var commandDescriptor = BotCommandExtensions.GetCommandInfo(typeof(TCommand));
-            _callbacks.Add(new CallbackDataWithCommand
-            {
-                Text = callbackData.Text,
-                CallbackMode = callbackData.CallbackMode,
-                CallbackText = callbackData.CallbackText,
-                CommandDescriptor = commandDescriptor,
-                Row = _nextRow++
-            });
-            return this;
+            Text = callback.Text, CallbackText = callback.CallbackText, CallbackMode = callback.CallbackMode,
+            CommandDescriptor = descriptor ?? (callback as CallbackDataWithCommand)?.CommandDescriptor
+        };
+
+    private void AddRows(CallbackDataWithCommand[][] rows)
+    {
+        // Validate the entire operation before changing the builder.
+        var normalized = rows.Select((row, index) =>
+            row.Select(callback => callback with { Row = _rows.Count + index }).ToArray()).ToArray();
+        foreach (var row in normalized) ValidateRow(row);
+        foreach (var row in normalized)
+        {
+            _rows.Add(row);
+            _callbacks.AddRange(row);
         }
+    }
+
+    public IInlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand, TQuery>(CallbackData callbackData)
+        where TCommand : IQueryCommand<TQuery>
+    {
+        AddButtons(new[] { callbackData }, BotCommandExtensions.GetCommandInfo(typeof(TCommand)));
+        return this;
+    }
+
+    public IInlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand, TSessionObject, TQuery>(CallbackData callbackData)
+        where TCommand : ISessionCommand<TQuery, TSessionObject>
+    {
+        AddButtons(new[] { callbackData }, BotCommandExtensions.GetCommandInfo(typeof(TCommand)));
+        return this;
     }
 }

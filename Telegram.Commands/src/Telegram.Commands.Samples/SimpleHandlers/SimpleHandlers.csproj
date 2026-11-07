@@ -12,6 +12,7 @@
         <ProjectReference Include="..\..\Bot.Commands.Telegram\Bot.Commands.Telegram.csproj"/>
         <ProjectReference Include="..\..\Bot.Commands.UI\Bot.Commands.UI.csproj"/>
         <ProjectReference Include="..\..\Bot.Commands.Max\Bot.Commands.Max.csproj"/>
+        <ProjectReference Include="../../Bot.Commands.Vk/Bot.Commands.Vk.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

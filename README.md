@@ -1,10 +1,10 @@
 # Bot.Commands
 
-**Commands, sessions, and fluent conversation flows for Telegram and Max bots in .NET.**
+**Commands, sessions, and fluent conversation flows for Telegram, Max, and VK bots in .NET.**
 
 Bot.Commands separates conversation logic from incoming messenger updates. Use typed commands for individual actions, session commands for multi-step interactions, and `FluentCommand` to describe a conversation as a state machine.
 
-The shared engine uses messenger-independent `Bot.Commands.*` contracts. Adapters for **Telegram** and **Max** own SDK integration, command addressing, and formatting rules. This is a breaking source/API migration from the earlier Telegram-prefixed contracts; see the [migration guide](docs/migration.md). The repository's historical `Telegram.Commands/src` directory and solution filename are unchanged.
+The shared engine uses messenger-independent `Bot.Commands.*` contracts. Adapters for **Telegram**, **Max**, and **VK** own SDK integration, command addressing, and formatting rules. This is a breaking source/API migration from the earlier Telegram-prefixed contracts; see the [migration guide](docs/migration.md). The repository's historical `Telegram.Commands/src` directory and solution filename are unchanged.
 
 ## What you can build
 
@@ -13,7 +13,7 @@ The shared engine uses messenger-independent `Bot.Commands.*` contracts. Adapter
 - Describe prompts, validation, transitions, and exit actions with a fluent API.
 - Intercept commands inside an active conversation using behavior commands.
 - Restrict commands by authorization, chat type, and bot-specific command groups.
-- Build common inline keyboards and convert them to Telegram or Max SDK types.
+- Build common inline keyboards and convert them to Telegram, Max, or VK SDK types.
 
 The library handles command execution and conversation state. Your application owns update delivery, SDK clients, outgoing messages, storage, and hosting.
 
@@ -44,9 +44,10 @@ dotnet restore Telegram.Commands/src/Telegram.Commands.sln
 dotnet build Telegram.Commands/src/Telegram.Commands.sln --no-restore
 dotnet run --project docs/examples/QuickStart -- telegram
 dotnet run --project docs/examples/QuickStart -- max
+dotnet run --project docs/examples/QuickStart -- vk
 ```
 
-The quick-start example processes synthetic SDK updates and writes replies to the console. It requires no bot token, makes no bot API calls, and demonstrates the same commands and Fluent flow through either adapter.
+The quick-start example processes synthetic SDK updates and writes replies to the console. It requires no bot token, makes no bot API calls, and demonstrates the same commands and Fluent flow through all three adapters.
 
 For a real bot, start with [installation and integration](docs/getting-started.md). The guide uses project references to this checkout; it does not assume that a matching NuGet release has already been published.
 
@@ -55,7 +56,7 @@ For a real bot, start with [installation and integration](docs/getting-started.m
 | Guide | Contents |
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Requirements, registration, SDK integration, update scopes |
-| [SimpleHandlers: Telegram and Max](docs/simple-handlers.md) | Run both bots in one ASP.NET Core application |
+| [SimpleHandlers: Telegram, Max, and VK](docs/simple-handlers.md) | Run three bots with separate profiles in one ASP.NET Core application |
 | [Commands and sessions](docs/commands.md) | Command types, routing, results, authorization, events, storage contract |
 | [Fluent conversations](docs/fluent.md) | States, messages, callbacks, transitions, interception |
 | [Messenger adapters](docs/adapters.md) | Supported updates, keyboard conversion, platform differences |
@@ -72,13 +73,14 @@ For a real bot, start with [installation and integration](docs/getting-started.m
 | `Bot.Commands.UI` | Dropdown and pagination helpers |
 | `Bot.Commands.Telegram` | Telegram update contexts and SDK conversions |
 | `Bot.Commands.Max` | Max update contexts and SDK conversions |
+| `Bot.Commands.Vk` | VK community message/callback contexts and VkNet keyboard conversions |
 | `Bot.Commands.DependencyInjection` | Microsoft DI registration and command factory |
 
 Abstract, Core, UI, and common DependencyInjection do not reference a messenger SDK or adapter. Each adapter references the common registration project and provides its own registration extension. See [architecture](docs/architecture.md) for dependency details.
 
 ## Current scope
 
-The code targets .NET 10 and currently references Telegram.Bot **22.10.3.3** and MaxMessenger.Bot **0.8.0-alpha**. These are the versions in this repository, not a claim about the latest upstream releases.
+The code targets .NET 10 and currently references Telegram.Bot **22.10.3.3**, MaxMessenger.Bot **0.8.0-alpha**, and VkNet **1.78.0**. These are the versions in this repository, not a claim about the latest upstream releases.
 
 Not every update or SDK feature is exposed by the adapters. Sessions are keyed by chat and user, so applications running multiple bots must isolate their stores and profiles. The engine does not provide update deduplication, per-session locking, or automatic retries. Read the [operational notes](docs/architecture.md#operational-boundaries) before connecting a persistent store or multiple workers.
 

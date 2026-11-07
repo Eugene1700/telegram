@@ -30,7 +30,7 @@ public static class MaxMessageExtensions
         MaxTextFormat max => max.Mode,
         _ => throw new NotSupportedException($"Text format '{format.GetType().Name}' is not supported by Max.")
     };
-    internal static InlineKeyboardButton ToButton(CallbackDataWithCommand callback) => callback.CallbackMode switch
+    internal static InlineKeyboardButton ToButton(this CallbackDataWithCommand callback) => callback.CallbackMode switch
     {
         CallbackMode.CallbackData => new InlineKeyboardButton
         {

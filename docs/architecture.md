@@ -8,16 +8,20 @@
 flowchart TD
     Host[Application host] --> Telegram[Bot.Commands.Telegram]
     Host --> Max[Bot.Commands.Max]
+    Host --> Vk[Bot.Commands.Vk]
     Host --> UI[Bot.Commands.UI]
     Telegram --> DI[Bot.Commands.DependencyInjection]
     Max --> DI
+    Vk --> DI
     DI --> Core[Bot.Commands.Core]
     Telegram --> Core[Bot.Commands.Core]
     Max --> Core
+    Vk --> Core
     UI --> Core
     Core --> Abstract[Bot.Commands.Abstract]
     Telegram --> TelegramSDK[Telegram.Bot]
     Max --> MaxSDK[MaxMessenger.Bot]
+    Vk --> VkSDK[VkNet]
 ```
 
 `Abstract`, `Core`, `UI`, and `DependencyInjection` contain reusable contracts and
@@ -36,8 +40,9 @@ For manual registration, provide the four application services from
 - The appropriate scoped `IBotCommandResolver<TUpdate>` implementation.
 
 The public resolver implementations are
-`Bot.Commands.Telegram.Services.TelegramCommandService` and
-`Bot.Commands.Max.Services.MaxCommandService`. `UseBotCommandsServices()` registers
+`Bot.Commands.Telegram.Services.TelegramCommandService`,
+`Bot.Commands.Max.Services.MaxCommandService`, and
+`Bot.Commands.Vk.Services.VkCommandService`. `UseBotCommandsServices()` registers
 the common services and discovered commands, but no platform resolver/client.
 
 ## Execution flow
@@ -69,6 +74,8 @@ The store contract identifies a session by chat ID and user ID. Use a separate
 partition or store instance for each bot/platform, and resolve the correct profile
 and clients with it. Different scopes sharing a singleton store and profile still
 share the same namespace. Swarms do not isolate session records.
+The application can partition a shared database by a unique `IBotProfile.BotName`,
+as `SimpleHandlers.SessionStore` does. VK uses the existing session contracts unchanged.
 
 ### Ordering and concurrency
 

@@ -18,6 +18,7 @@ For documentation examples:
 ```sh
 dotnet run --project docs/examples/QuickStart -- telegram
 dotnet run --project docs/examples/QuickStart -- max
+dotnet run --project docs/examples/QuickStart -- vk
 ```
 
 The quick start is outside the main solution so the documentation example does
@@ -28,7 +29,7 @@ run separately. It performs no external bot API calls.
 
 1. Identify whether the behavior belongs in Abstract, Core, UI, an adapter, or the host.
 2. Keep shared contracts messenger-independent; do not introduce legacy Telegram aliases into Core or Abstract.
-3. Add focused tests for changed execution or routing behavior, including both adapters when relevant.
+3. Add focused tests for changed execution or routing behavior, including affected adapters.
 4. Update the relevant guide and runnable example if the public API changes.
 5. Include the problem, resulting behavior, validation, and remaining limitations in the change description.
 
@@ -64,9 +65,9 @@ The current source tree is not by itself a complete distribution plan. Before a 
   Core now uses the package ID `Bot.Commands.Core`; do not assume every project
   name is already available as a published package.
 - Review package metadata, repository links, license metadata, and inclusion of a package README.
-- Build and test the release configuration, run both documentation examples, and
+- Build and test the release configuration, run all documentation example platforms, and
   validate the actual packages in a clean consumer project.
-- Exercise live Telegram and Max integrations for the features claimed by the release.
+- Exercise live Telegram, Max, and VK integrations for the features claimed by the release.
 - Record breaking API/session-format changes and update the installation instructions
   to point to the verified published versions.
 

@@ -69,7 +69,17 @@ Unknown chat-type values are rejected rather than mapped silently.
 `BotStarted` is not currently translated to `/start`. If your host needs that
 behavior, explicitly handle the update or extend the adapter.
 
+### VK
+
+Register with `UseVkCommandsServices()` and resolve
+`IBotCommandResolver<VkNet.Model.GroupUpdate>`. See [VK integration](#vk-integration)
+for supported events, keyboard conversion, and host responsibilities.
+
 ## Command syntax
+
+VK community bots support `/command arguments` in private conversations and chats.
+The adapter does not require or strip Telegram-style `@bot` suffixes or VK mentions.
+Use `ICommandMatcher<VkNet.Model.Message>` for non-command entry text.
 
 | Context | Example |
 | --- | --- |
@@ -191,6 +201,17 @@ explicitly when your adapter/application requires one.
 
 ### Message and keyboard builders
 
+All native keyboard builders now derive from the SDK-independent
+`AdapterInlineMarkupQueryBuilder<TBuilder, TQuery, TButton, TMarkup>`, which
+extends Core's `InlineMarkupQueryBuilder`. Core owns callback descriptors,
+command metadata, row numbering, and typed overloads. Each adapter supplies
+button conversion and the native markup container. Existing adapter method names
+and fluent return types remain available; native builders also implement
+`IInlineMarkupQueryBuilder` and expose `GetCallbacks()`.
+
+Array overloads still add one button per row, explicit rows stay grouped, and
+unsupported native button modes fail during insertion before modifying the builder.
+
 The adapters expose matching builder APIs:
 
 | Telegram | Max |
@@ -228,3 +249,119 @@ other modes throw `NotSupportedException`.
 Common `InlineMarkupQueryBuilder` instances also have adapter-specific `GetResult`
 extensions. When importing both extension namespaces, call the desired extension
 class explicitly to avoid overload ambiguity.
+
+## VK integration
+
+`Bot.Commands.Vk` uses [VkNet](https://github.com/vknet/vk) **1.78.0**.
+It accepts community updates from Callback API or Bots Long Poll through
+`IBotCommandResolver<VkNet.Model.GroupUpdate>`.
+
+| VK update | Query type | Behavior |
+| --- | --- | --- |
+| `message_new` with `MessageNew.Message` | `VkNet.Model.Message` | Command, matcher, or active session |
+| Legacy `message_new` with a direct `Message` | `VkNet.Model.Message` | Same routing |
+| `message_event` | `VkNet.Model.MessageEvent` | Command payload or Fluent callback |
+| Message with a chat service `Action` | — | Ignored; does not advance a session |
+| `message_edit`, `message_reply`, confirmation, other events | — | Ignored by the resolver |
+
+This adapter does not currently translate membership actions to `EventType`.
+Neither community subscribers nor membership actions are ordinary command input.
+
+Registration and dispatch fragment (the host supplies the profile, authorization,
+clock, persistent store, validated JSON body, and service provider):
+
+```csharp
+using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using VkNet.Model;
+
+services.UseVkCommandsServices();
+
+// VkNet models use Newtonsoft.Json converters, not System.Text.Json.
+var update = JsonConvert.DeserializeObject<GroupUpdate>(validatedJson)
+    ?? throw new InvalidOperationException("Empty VK update.");
+using var scope = provider.CreateScope();
+await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<GroupUpdate>>()
+    .Handle(update);
+```
+
+Register the VkNet client separately; this extension only registers command services.
+Use a community token and enable the required incoming event types in your host.
+The host handles Callback API confirmation, secret/group validation, HTTP responses,
+deduplication, and ordered processing. It also acknowledges `message_event` using
+VkNet's `Messages.SendMessageEventAnswerAsync` with the native event's
+`EventId`, `UserId`, and `PeerId`. Resolver completion does not acknowledge the
+button to VK. Apply your host's error and retry policy to both processing and acknowledgement.
+
+### Context and sessions
+
+`VkMessageQueryContext` uses `PeerId` / `FromId`;
+`VkMessageEventContext` uses `PeerId` / `UserId`.
+Peers at or above `2_000_000_000` are mapped to `ChatArea.Group`, other peers
+to `ChatArea.Private`. Missing peer/user IDs are rejected.
+
+Both contexts return `ConversationMessageId` as a string from `GetMessageId()`,
+or null when absent. This is **local to the peer**, not the global message `Id`.
+Use it with the peer and VK API parameters that expect a conversation-local ID;
+the native message remains available through `Query`.
+
+Session contracts are unchanged. In user code, partition the store by a unique
+`IBotProfile.BotName`, as in `SimpleHandlers`, and resolve the matching profile
+for each update.
+
+### Text and keyboards
+
+```csharp
+using Bot.Commands.Vk.Models;
+using Bot.Commands.Vk.Services;
+
+var message = new VkMessageBuilder().AppendPlain("Choose an action").GetMessages()[0];
+var text = message.ToVkText();
+var keyboard = message.ToInlineKeyboard();
+// Pass text and keyboard to VkNet's MessagesSendParams.Message / Keyboard.
+```
+
+`VkMessageBuilder` produces plain text; `ToVkText()` rejects a non-null foreign
+format instead of silently treating Telegram/Max markup as VK formatting.
+The builder preserves common photo/file fields, but the host uploads attachments
+and passes the returned VK attachment references to the SDK.
+
+`VkInlineMarkupQueryBuilder` provides the same typed command/session button
+overloads as Max, using `MessageEvent` as the callback query type.
+`InlineKeyboardButtonsRow` preserves explicit rows; array `AddInlineKeyboardButtons`
+overloads add one button per row. `GetResult()` returns a VkNet `MessageKeyboard`
+with `Inline = true` and `OneTime = false`.
+Common Core keyboards also have a VK `GetResult()` extension.
+
+| Common button mode | VK action |
+| --- | --- |
+| `CallbackData` | `callback` |
+| `Url` | `open_link` |
+| `Inline`, `InlineCurrent`, `Payment` | Throws `NotSupportedException` |
+
+Callback data is encoded as a JSON object:
+
+```json
+{"bot_commands":"/accept order-42"}
+```
+
+`VkCallbackPayload.Encode` creates this envelope; contexts decode it before Core
+parses commands or Fluent callbacks. It preserves quotes, Unicode, and Fluent's
+encoded fields. A command descriptor prefixes the inner string with
+`/{command.Name} `, exactly once when generated by the builder.
+For native text-button messages, only this envelope overrides `Message.Text`.
+Other callback payloads remain available unchanged to application matchers.
+Validate VK keyboard/payload limits in the host, including the JSON envelope's
+size; conversions do not guarantee arbitrary common keyboards fit VK limits.
+
+Run the offline text/session/Fluent example:
+
+```sh
+dotnet run --project docs/examples/QuickStart -- vk
+```
+
+See [VK's message schema](https://github.com/VKCOM/vk-api-schema/blob/master/messages/objects.json)
+for native keyboard/message fields. Tests cover synthetic SDK updates and wire
+payload round trips; a live community integration must be verified separately.

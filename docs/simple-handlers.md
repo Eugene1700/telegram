@@ -1,57 +1,41 @@
-# SimpleHandlers: Telegram and Max
+# SimpleHandlers: Telegram, Max, and VK
 
 `Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers` is an ASP.NET Core
-webhook application that can serve both bots at the same time.
+webhook application that can serve all three bots at the same time.
 
-## Command folders
+## Configuration
 
-Commands are grouped by scenario under `Services/Commands`: `Ask`, `Profile`,
-`Photos`, `DropDown`, `MyFluent`, `GlobalIntercept`, `Start`, and `Cancel`.
-Each folder contains the shared command logic, concrete Telegram/Max commands,
-and its session data and state types. Shared helpers live in `Shared`.
-The folder move preserves existing namespaces.
-
-`Profile/ProfileFunnelMatcher.cs` implements `ICommandMatcher<TQuery>`.
-Register closed types for each supported input, for example:
-
-```csharp
-services.AddScoped<ICommandMatcher<Telegram.Bot.Types.Message>,
-    ProfileFunnelMatcher<Telegram.Bot.Types.Message>>();
-services.AddScoped<ICommandMatcher<Max.Bot.Types.Message>,
-    ProfileFunnelMatcher<Max.Bot.Types.Message>>();
-```
-
-`IsMatch(IQueryContext<TQuery> query)` receives a typed context. Message and callback
-matchers are injected separately by each adapter; message matchers never handle
-callback updates. Matchers run only without an active session or slash command.
-Ambiguous matches are rejected; swarm, authorization and chat-area checks remain
-in effect.
-
-## Configure and run
-
-Use `appsettings.Example.json` as a configuration reference. It is not loaded
-automatically. Merge the sections into your local configuration and provide tokens
-through environment variables or your deployment's secret store. Keep your existing
-Telegram `BotProfile` values when adding Max.
+Use [appsettings.Example.json](../Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/appsettings.Example.json)
+as a reference. It is not loaded automatically. Provide real credentials through
+environment variables or a local secret store. The loaded configuration includes
+a disabled `VkBotProfile`; existing Telegram and Max settings remain independent.
 
 | Setting | Purpose |
 | --- | --- |
-| `BotProfile:Enabled` | Telegram webhook handler and registration; defaults to `true` |
-| `MaxBotProfile:Enabled` | Max webhook handler and registration; defaults to `false` |
-| `Token` in each profile | The corresponding bot token |
-| `BotName` in each profile | Bot name; Telegram uses it for mention matching |
-| `BaseUrl` in each profile | Public HTTPS base URL reachable by that messenger |
-| `RegisterWebhook` in each profile | Register at application startup; defaults to `true` |
-| `MaxBotProfile:WebhookSecret` | Shared secret registered with Max and checked on incoming requests |
-| `ConnectionStrings:Sessions` | Shared EntityStorage SQLite database; defaults to `Data Source=dev.db` |
+| `BotProfile:Enabled` | Telegram endpoint and startup registration; defaults to true |
+| `MaxBotProfile:Enabled` | Max endpoint and startup registration; defaults to false |
+| `VkBotProfile:Enabled` | VK Callback API endpoint; defaults to false |
+| `Token` in each profile | Corresponding bot/community token |
+| `BotName` in each profile | Unique session partition; Telegram also uses it for mentions |
+| `BaseUrl` in each profile | Public HTTPS base URL |
+| Telegram/Max `RegisterWebhook` | Register at startup; defaults to true |
+| `MaxBotProfile:WebhookSecret` | Secret checked in the Max request header |
+| `VkBotProfile:GroupId` | Positive numeric VK community ID |
+| `VkBotProfile:WebhookSecret` | Secret checked in the JSON request body |
+| `VkBotProfile:ConfirmationCode` | Confirmation response supplied by VK |
+| `ConnectionStrings:Sessions` | EntityStorage SQLite connection; default `Data Source=dev2.db` |
 
-For environment variables, replace `:` with `__`, for example
-`MaxBotProfile__Token` and `MaxBotProfile__Enabled=true`. Set both `Enabled` flags
-to `true` for simultaneous operation. The existing Telegram route remains valid:
+Environment variables use double underscores: `VkBotProfile__Token`,
+`VkBotProfile__Enabled=true`, and so on. Enabled profiles must have distinct,
+nonempty `BotName` values (checked case-insensitively). An enabled VK profile
+also requires a token, positive group ID, secret, and confirmation code.
+
+Routes:
 
 - Telegram: `POST /api/message/update`
 - Max: `POST /api/max/message/update`
-- Health check: `GET /ping`
+- VK: `POST /api/vk/message/update`
+- Health: `GET /ping`
 
 Run from the sample directory so relative database paths stay consistent:
 
@@ -60,53 +44,87 @@ cd Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers
 dotnet run
 ```
 
-If webhooks are managed outside the application, set `RegisterWebhook=false` for
-the corresponding profile and register its route yourself. Max subscribes to
-`message_created`, `message_callback`, and `bot_started`. The application retains
-the Max subscription when stopping. Disabled webhook routes return HTTP 404.
+**Existing sample startup behavior:** `Startup.Configure` calls
+`EnsureDeleted()` and `EnsureCreated()` on the configured database. It starts
+empty and discards previous sessions on each application restart. Do not point
+this sample at a database whose contents you need to preserve. The VK integration
+does not change this behavior or introduce a migration.
 
-## Shared commands
+## VK Callback API setup
 
-In a private chat with either bot:
+Create a Callback API server in your community settings with the public URL
+ending in `/api/vk/message/update`. Copy its confirmation code into
+`VkBotProfile:ConfirmationCode`, set the same secret in VK and the profile,
+and enable `message_new` and `message_event`.
 
-1. `/start` sends a welcome message.
-2. `/ask` opens a typed session; the next text message completes it.
-3. `/profile` starts a Fluent conversation. Reply with your name or press **Use Alex**.
+VK registration is managed in the community settings; there is no startup
+registration service or `RegisterWebhook` switch for VK. `BaseUrl` is profile
+metadata, not an automatic subscription request.
 
-`StartCommand`, `AskCommand`, and `NameReplyCommand` implement both native message
-interfaces. `SharedProfileCommand` shares its state machine and common callback
-model. `ISampleMessageSender` converts outgoing messages and keyboards through the
-selected adapter. DI selects `TelegramSampleMessageSender` or `MaxSampleMessageSender`;
-each receives its SDK client directly. Controllers declare their resolver and client
-as action parameters. `WebhookAccessFilter` checks platform availability and the Max
-secret before those dependencies are resolved. Max's **Start** event sends the introductory message as well.
+`WebhookAccessFilter` rejects disabled routes with HTTP 404. For VK it validates
+the secret and community ID before action services are resolved, and rewinds the
+body for model binding. Invalid credentials return HTTP 401; malformed JSON
+returns HTTP 400. Confirmation requests return the configured plain-text code.
+Handled updates return plain-text `ok`. Callback events are acknowledged through
+`messages.sendMessageEventAnswer`. Processing failures return HTTP 500.
 
-The older photo, dropdown, `/myfluent`, and `/global` demonstrations remain
-Telegram-specific. Their behavior commands are restricted to the `telegram` swarm,
-so Max cannot accidentally execute a handler requiring a Telegram client.
+The controller accepts JSON with ASP.NET's normal formatter and uses VkNet's
+Newtonsoft.Json converter for `GroupUpdate`, without changing Telegram/Max
+serialization globally. The sample does not implement deduplication or a queue;
+production hosts should supply ordered, idempotent processing.
+
+Telegram and Max retain their existing registration services. Use
+`RegisterWebhook=false` when managing those subscriptions externally.
+
+## Commands and senders
+
+Commands are grouped by scenario under `Services/Commands`: `Start`, `Ask`,
+`Profile`, `Photos`, `DropDown`, `MyFluent`, `GlobalIntercept`, and `Cancel`.
+Shared bases contain the conversation logic. Concrete Telegram/Max/VK descendants
+declare native interfaces and their platform swarm. Session data and state types
+stay with their scenario.
+
+All three platforms support:
+
+- `/start`, `/ask`, and `/profile`, including the profile callback.
+- The `register` message matcher as an entry to the profile flow.
+- Photo collection, dropdown/multiple selection, and cancellation.
+- `/myfluent`, `/otherfluent`, and `/global` demonstrations.
+
+`BotRuntime` selects the profile from the request route. DI selects
+`TelegramSampleMessageSender`, `MaxSampleMessageSender`, or
+`VkSampleMessageSender`; commands depend on `ISampleMessageSender`.
+
+The VK sender sends/edits plain text and keyboards, uploads and saves photos or
+documents, and preserves file intent and filenames. Edits use the callback's
+**conversation-local** message ID with its peer ID. An edit without buttons
+explicitly removes the old keyboard. The incoming photo sample reports size as
+"not provided" when VK supplies no byte count.
+
+Keyboard builders share row/metadata handling in Core. Adapters own native button
+conversion and formatting. VK command/Fluent payloads use the adapter's JSON
+envelope; see [adapters](adapters.md#vk-integration).
 
 ## Profiles and sessions
 
-Every webhook request has its own DI scope. `BotRuntime` selects the profile and
-sender and supplies the platform to the shared `SessionStore`. Both bots use
-EntityStorage and the same `COMMAND_SESSION` table in `dev.db`.
+Each request gets its own DI scope and resolves the selected `IBotProfile`
+before its store and commands. All platforms use the same application-owned
+`SessionStore`, EntityStorage integration, and `COMMAND_SESSION` table.
 
-Sessions are looked up by `(Platform, ChatId, UserId)`. `PLATFORM` is an enum column:
-`Telegram = 0` (the default) and `Max = 1`. Creation records the current platform;
-reads and updates are restricted to that platform. Payloads use `System.Text.Json`.
-
-On every startup, `Startup.Configure` uses EntityStorage's `EfDbContext` to call
-`Database.EnsureDeleted()` followed by `Database.EnsureCreated()`. The configured
-session database is recreated empty with the current schema, including `PLATFORM`.
-All previous sessions are discarded. No migrations or seed sessions are used.
-EntityStorage itself is unchanged.
-
-This is a teaching sample: authorization permits all users, and it does not provide
-distributed per-session locking or update deduplication.
+The store writes and filters `BOT_NAME`, chat ID, and user ID during creation,
+lookup, and updates. Equal user/chat IDs in different bots therefore do not share
+a conversation. Swarms select commands; `BotName` isolates persisted sessions.
+Shared session contracts and EntityStorage remain unchanged.
 
 ## Verification
 
-`SimpleHandlersPlatformTests` runs the shared commands through both resolvers with
-a recording sender. Both cases use a test session store and a fresh
-scope per update, including a real serialized callback payload. These tests do not
-call either messenger API or register live webhooks.
+`SimpleHandlersPlatformTests` runs the same command/session/callback scenarios
+through all three adapters with a recording sender. `ThreePlatformSessionTests`
+interleaves three Fluent flows with equal user/chat IDs against a temporary
+in-memory SQLite database and checks persisted names, state restoration, and
+completion isolation across fresh scopes.
+
+`VkWebhookTests` covers profile selection, duplicate names, request validation,
+confirmation, and callback acknowledgement. `VkMessageSenderTests` uses mocked
+SDK categories and an HTTP handler for media uploads. These tests do not contact
+live messenger APIs or load production bot credentials.
