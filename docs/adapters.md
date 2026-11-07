@@ -365,3 +365,22 @@ dotnet run --project docs/examples/QuickStart -- vk
 See [VK's message schema](https://github.com/VKCOM/vk-api-schema/blob/master/messages/objects.json)
 for native keyboard/message fields. Tests cover synthetic SDK updates and wire
 payload round trips; a live community integration must be verified separately.
+
+## Instagram
+
+The `Bot.Commands.Instagram` adapter references the independent
+`Instagram.Messaging` API project. Register with `UseInstagramCommandsServices()`
+and dispatch individual `InstagramMessagingEvent` objects. Messages and postbacks
+retain their native types; both DM session IDs map to the sender. No shared
+session contracts change. The common keyboard builder converts to at most three
+native template buttons. See [Instagram](instagram.md) for setup, account
+subscriptions, ID limits, attachments and sample menu behavior.
+
+## WhatsApp
+
+Register UseWhatsAppCommandsServices() and dispatch individual native
+WhatsApp.Messaging.Models.WhatsAppMessage objects. Text/images use message contexts;
+interactive button/list and template quick replies use native WhatsAppReply
+contexts. The independent WhatsApp.Messaging project owns Cloud API requests and
+webhook models. See [WhatsApp](whatsapp.md) for capabilities, strict button limits,
+sample adaptation and account setup.

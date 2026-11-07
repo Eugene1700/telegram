@@ -1,10 +1,10 @@
 # Bot.Commands
 
-**Commands, sessions, and fluent conversation flows for Telegram, Max, and VK bots in .NET.**
+**Commands, sessions, and fluent conversation flows for Telegram, Max, VK, Instagram, and WhatsApp bots in .NET.**
 
 Bot.Commands separates conversation logic from incoming messenger updates. Use typed commands for individual actions, session commands for multi-step interactions, and `FluentCommand` to describe a conversation as a state machine.
 
-The shared engine uses messenger-independent `Bot.Commands.*` contracts. Adapters for **Telegram**, **Max**, and **VK** own SDK integration, command addressing, and formatting rules. This is a breaking source/API migration from the earlier Telegram-prefixed contracts; see the [migration guide](docs/migration.md). The repository's historical `Telegram.Commands/src` directory and solution filename are unchanged.
+The shared engine uses messenger-independent `Bot.Commands.*` contracts. Adapters for **Telegram**, **Max**, **VK**, **Instagram**, and **WhatsApp** own SDK integration, command addressing, and formatting rules. This is a breaking source/API migration from the earlier Telegram-prefixed contracts; see the [migration guide](docs/migration.md). The repository's historical `Telegram.Commands/src` directory and solution filename are unchanged.
 
 ## What you can build
 
@@ -13,7 +13,7 @@ The shared engine uses messenger-independent `Bot.Commands.*` contracts. Adapter
 - Describe prompts, validation, transitions, and exit actions with a fluent API.
 - Intercept commands inside an active conversation using behavior commands.
 - Restrict commands by authorization, chat type, and bot-specific command groups.
-- Build common inline keyboards and convert them to Telegram, Max, or VK SDK types.
+- Build common inline keyboards and convert them to Telegram, Max, VK, Instagram, or WhatsApp SDK types.
 
 The library handles command execution and conversation state. Your application owns update delivery, SDK clients, outgoing messages, storage, and hosting.
 
@@ -45,9 +45,11 @@ dotnet build Telegram.Commands/src/Telegram.Commands.sln --no-restore
 dotnet run --project docs/examples/QuickStart -- telegram
 dotnet run --project docs/examples/QuickStart -- max
 dotnet run --project docs/examples/QuickStart -- vk
+dotnet run --project docs/examples/QuickStart -- instagram
+dotnet run --project docs/examples/QuickStart -- whatsapp
 ```
 
-The quick-start example processes synthetic SDK updates and writes replies to the console. It requires no bot token, makes no bot API calls, and demonstrates the same commands and Fluent flow through all three adapters.
+The quick-start example processes synthetic SDK updates and writes replies to the console. It requires no bot token, makes no bot API calls, and demonstrates the same commands and Fluent flow through all five adapters.
 
 For a real bot, start with [installation and integration](docs/getting-started.md). The guide uses project references to this checkout; it does not assume that a matching NuGet release has already been published.
 
@@ -56,9 +58,11 @@ For a real bot, start with [installation and integration](docs/getting-started.m
 | Guide | Contents |
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Requirements, registration, SDK integration, update scopes |
-| [SimpleHandlers: Telegram, Max, and VK](docs/simple-handlers.md) | Run three bots with separate profiles in one ASP.NET Core application |
+| [SimpleHandlers: Telegram, Max, VK, Instagram, and WhatsApp](docs/simple-handlers.md) | Run five bots with separate profiles in one ASP.NET Core application |
 | [Commands and sessions](docs/commands.md) | Command types, routing, results, authorization, events, storage contract |
 | [Fluent conversations](docs/fluent.md) | States, messages, callbacks, transitions, interception |
+| [WhatsApp](docs/whatsapp.md) | Independent API client, adapter, WABA subscription and webhook setup |
+| [Instagram](docs/instagram.md) | Independent API client, adapter, webhook setup and platform limits |
 | [Messenger adapters](docs/adapters.md) | Supported updates, keyboard conversion, platform differences |
 | [Architecture and operations](docs/architecture.md) | Project boundaries, execution flow, concurrency, troubleshooting |
 | [Migration](docs/migration.md) | Moving from the older Telegram-only API |
@@ -68,6 +72,10 @@ For a real bot, start with [installation and integration](docs/getting-started.m
 
 | Project | Responsibility |
 | --- | --- |
+| `WhatsApp.Messaging` | Independent WhatsApp Cloud API client and native webhook models |
+| `Bot.Commands.WhatsApp` | Typed WhatsApp command/reply adapter |
+| `Instagram.Messaging` | Independent Instagram Login HTTP API client and webhook models |
+| `Bot.Commands.Instagram` | Typed Instagram messaging adapter |
 | `Bot.Commands.Abstract` | Command contracts, query contexts, metadata, common messages |
 | `Bot.Commands.Core` | Resolution, execution, sessions, Fluent state machines |
 | `Bot.Commands.UI` | Dropdown and pagination helpers |

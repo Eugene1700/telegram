@@ -32,7 +32,9 @@ namespace SimpleHandlers
             var telegramEnabled = Configuration.GetValue("BotProfile:Enabled", true);
             var maxEnabled = Configuration.GetValue<bool>("MaxBotProfile:Enabled");
             var vkEnabled = Configuration.GetValue<bool>("VkBotProfile:Enabled");
-            var names = new[] { "BotProfile", "MaxBotProfile", "VkBotProfile" }
+            var instagramEnabled = Configuration.GetValue<bool>("InstagramBotProfile:Enabled");
+            var whatsappEnabled = Configuration.GetValue<bool>("WhatsAppBotProfile:Enabled");
+            var names = new[] { "BotProfile", "MaxBotProfile", "VkBotProfile", "InstagramBotProfile", "WhatsAppBotProfile" }
                 .Where(section => Configuration.GetValue(section + ":Enabled", section == "BotProfile"))
                 .Select(section => Configuration[section + ":BotName"]).ToArray();
             if (names.Any(string.IsNullOrWhiteSpace))
@@ -42,18 +44,25 @@ namespace SimpleHandlers
             if (vkEnabled && (string.IsNullOrWhiteSpace(Configuration["VkBotProfile:Token"]) ||
                 Configuration.GetValue<long>("VkBotProfile:GroupId") <= 0 ||
                 string.IsNullOrWhiteSpace(Configuration["VkBotProfile:WebhookSecret"]) ||
-                string.IsNullOrWhiteSpace(Configuration["VkBotProfile:ConfirmationCode"])))
+                (!Configuration.GetValue<bool>("VkBotProfile:RegisterWebhook") &&
+                 string.IsNullOrWhiteSpace(Configuration["VkBotProfile:ConfirmationCode"]))))
                 throw new InvalidOperationException("VK requires Token, GroupId, WebhookSecret and ConfirmationCode.");
             services.AddCors();
             services.AddControllers();
             services.AddHttpContextAccessor();
             services.AddScoped<BotRuntime>();
             services.AddScoped<WebhookAccessFilter>();
+            services.AddScoped<InstagramWebhookAccessFilter>();
+            services.AddScoped<WhatsAppWebhookAccessFilter>();
+            services.AddScoped<WhatsAppSampleMessageSender>();
             services.AddScoped<TelegramSampleMessageSender>();
             services.AddScoped<MaxSampleMessageSender>();
             services.AddHttpClient<VkSampleMessageSender>();
+            services.AddScoped<InstagramSampleMessageSender>();
             services.AddScoped<ISampleMessageSender>(sp => sp.GetRequiredService<BotRuntime>().Platform switch
             {
+                SamplePlatform.WhatsApp => sp.GetRequiredService<WhatsAppSampleMessageSender>(),
+                SamplePlatform.Instagram => sp.GetRequiredService<InstagramSampleMessageSender>(),
                 SamplePlatform.Vk => sp.GetRequiredService<VkSampleMessageSender>(),
                 SamplePlatform.Max => sp.GetRequiredService<MaxSampleMessageSender>(),
                 _ => sp.GetRequiredService<TelegramSampleMessageSender>()
@@ -75,6 +84,10 @@ namespace SimpleHandlers
             services.AddScoped<ICommandMatcher<global::Telegram.Bot.Types.Message>, ProfileFunnelMatcher<global::Telegram.Bot.Types.Message>>();
             services.AddScoped<ICommandMatcher<global::Max.Bot.Types.Message>, ProfileFunnelMatcher<global::Max.Bot.Types.Message>>();
             services.AddScoped<ICommandMatcher<VkNet.Model.Message>, ProfileFunnelMatcher<VkNet.Model.Message>>();
+            services.AddScoped<ICommandMatcher<Instagram.Messaging.Models.InstagramMessage>,
+                ProfileFunnelMatcher<Instagram.Messaging.Models.InstagramMessage>>();
+            services.AddScoped<ICommandMatcher<WhatsApp.Messaging.Models.WhatsAppMessage>,
+                ProfileFunnelMatcher<WhatsApp.Messaging.Models.WhatsAppMessage>>();
             services.AddSingleton<global::Telegram.Bot.ITelegramBotClient>(_ =>
                 new global::Telegram.Bot.TelegramBotClient(Configuration["BotProfile:Token"]));
             services.UseTelegramCommandsServices();
@@ -88,6 +101,7 @@ namespace SimpleHandlers
             }
             if (vkEnabled)
             {
+                services.AddHostedService<ConfigureVkWebhook>();
                 services.UseVkCommandsServices();
                 services.AddSingleton<VkNet.Abstractions.IVkApi>(_ =>
                 {
@@ -95,6 +109,45 @@ namespace SimpleHandlers
                     client.Authorize(new VkNet.Model.ApiAuthParams { AccessToken = Configuration["VkBotProfile:Token"] });
                     return client;
                 });
+            }
+            if (whatsappEnabled)
+            {
+                var options = new WhatsApp.Messaging.WhatsAppOptions
+                {
+                    PhoneNumberId = Configuration["WhatsAppBotProfile:PhoneNumberId"],
+                    BusinessAccountId = Configuration["WhatsAppBotProfile:BusinessAccountId"],
+                    AccessToken = Configuration["WhatsAppBotProfile:Token"],
+                    ApiVersion = Configuration["WhatsAppBotProfile:ApiVersion"]
+                };
+                options.Validate();
+                WhatsApp.Messaging.WhatsAppOptions.ValidateId(options.BusinessAccountId);
+                if (string.IsNullOrWhiteSpace(Configuration["WhatsAppBotProfile:AppSecret"]) ||
+                    string.IsNullOrWhiteSpace(Configuration["WhatsAppBotProfile:VerifyToken"]))
+                    throw new InvalidOperationException("WhatsApp requires AppSecret and VerifyToken.");
+                if (Configuration.GetValue<bool>("WhatsAppBotProfile:RegisterWebhook"))
+                    WebhookUrl.Build(Configuration["WhatsAppBotProfile:BaseUrl"], Settings.WhatsAppRouteToUpdate);
+                services.AddSingleton(options);
+                services.UseWhatsAppCommandsServices();
+                services.AddHttpClient<WhatsApp.Messaging.IWhatsAppClient, WhatsApp.Messaging.WhatsAppClient>();
+                services.AddHostedService<ConfigureWhatsAppWebhook>();
+            }
+            if (instagramEnabled)
+            {
+                var instagramOptions = new Instagram.Messaging.InstagramOptions
+                {
+                    AccountId = Configuration["InstagramBotProfile:AccountId"],
+                    AccessToken = Configuration["InstagramBotProfile:Token"],
+                    ApiVersion = Configuration["InstagramBotProfile:ApiVersion"]
+                };
+                instagramOptions.Validate();
+                Bot.Commands.Instagram.InstagramIdentity.ToSessionId(instagramOptions.AccountId);
+                if (string.IsNullOrWhiteSpace(Configuration["InstagramBotProfile:AppSecret"]) ||
+                    string.IsNullOrWhiteSpace(Configuration["InstagramBotProfile:VerifyToken"]))
+                    throw new InvalidOperationException("Instagram requires AppSecret and VerifyToken.");
+                services.AddSingleton(instagramOptions);
+                services.UseInstagramCommandsServices();
+                services.AddHttpClient<Instagram.Messaging.IInstagramClient, Instagram.Messaging.InstagramClient>();
+                services.AddHostedService<ConfigureInstagramWebhook>();
             }
 
         }

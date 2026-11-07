@@ -13,8 +13,11 @@ using MaxTypes = global::Max.Bot.Types;
 namespace QuickStart;
 
 [Command(Name = "hello", Authorized = false)]
-public sealed class HelloCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>, IQueryCommand<VkNet.Model.Message>
+public sealed class HelloCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>, IQueryCommand<VkNet.Model.Message>,
+    IQueryCommand<Instagram.Messaging.Models.InstagramMessage>, IQueryCommand<WhatsApp.Messaging.Models.WhatsAppMessage>
 {
+    public Task<ICommandExecutionResult> Execute(IQueryContext<WhatsApp.Messaging.Models.WhatsAppMessage> query) => Reply();
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Instagram.Messaging.Models.InstagramMessage> query) => Reply();
     public Task<ICommandExecutionResult> Execute(IQueryContext<VkNet.Model.Message> query) => Reply();
     public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query) => Reply();
     public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.Message> query) => Reply();
@@ -32,8 +35,14 @@ public sealed class NameData
 }
 
 [Command(Name = "ask", Authorized = false)]
-public sealed class AskCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>, IQueryCommand<VkNet.Model.Message>
+public sealed class AskCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>, IQueryCommand<VkNet.Model.Message>,
+    IQueryCommand<Instagram.Messaging.Models.InstagramMessage>, IQueryCommand<WhatsApp.Messaging.Models.WhatsAppMessage>
 {
+    public Task<ICommandExecutionResult> Execute(IQueryContext<WhatsApp.Messaging.Models.WhatsAppMessage> query)
+        => Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Ahead<NameReply, WhatsApp.Messaging.Models.WhatsAppMessage, NameData>(Prompt()));
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Instagram.Messaging.Models.InstagramMessage> query)
+        => Task.FromResult<ICommandExecutionResult>(
+            CommandExecutionResult.Ahead<NameReply, Instagram.Messaging.Models.InstagramMessage, NameData>(Prompt()));
     public Task<ICommandExecutionResult> Execute(IQueryContext<VkNet.Model.Message> query)
         => Task.FromResult<ICommandExecutionResult>(
             CommandExecutionResult.Ahead<NameReply, VkNet.Model.Message, NameData>(Prompt()));
@@ -62,8 +71,11 @@ public sealed class AskCommand : IQueryCommand<Tg.Message>, IQueryCommand<MaxTyp
 
 [Command(Name = "name_reply", Authorized = false)]
 public sealed class NameReply : ISessionCommand<Tg.Message, NameData>, ISessionCommand<MaxTypes.Message, NameData>,
-    ISessionCommand<VkNet.Model.Message, NameData>
+    ISessionCommand<VkNet.Model.Message, NameData>, ISessionCommand<Instagram.Messaging.Models.InstagramMessage, NameData>, ISessionCommand<WhatsApp.Messaging.Models.WhatsAppMessage, NameData>
 {
+    public Task<ICommandExecutionResult> Execute(IQueryContext<WhatsApp.Messaging.Models.WhatsAppMessage> query, NameData data) => Reply(query.GetData(), data);
+    public Task<ICommandExecutionResult> Execute(IQueryContext<Instagram.Messaging.Models.InstagramMessage> query, NameData data)
+        => Reply(query.GetData(), data);
     public Task<ICommandExecutionResult> Execute(IQueryContext<VkNet.Model.Message> query, NameData data)
         => Reply(query.GetData(), data);
 

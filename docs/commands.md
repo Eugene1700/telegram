@@ -263,3 +263,17 @@ must preserve the `FluentObject<TData, TState>` wrapper, including the current s
 and initialization flag. Plan migrations when renaming commands or changing stored
 data/state types. The [demo store](examples/QuickStart/Infrastructure.cs) is sequential
 and in-memory; it is intended to explain the contract rather than supply production storage.
+
+## Process-local session storage
+
+Call `services.UseInMemoryStorage()` from Bot.Commands.DependencyInjection after
+registering the active IBotProfile and IClock. It replaces ISessionsStore with a
+scoped accessor backed by shared memory for that service provider. Sessions are
+partitioned by BotName, ChatId and UserId. JSON snapshots isolate mutable data;
+payloads must be System.Text.Json serializable. Expired sessions are cleaned on
+access/writes. Completion removes them. There is no persistence across provider
+or process restart, and store-operation locking does not serialize full command
+execution. Keep per-conversation event ordering in the host.
+
+See the [runnable survey comparison](examples/SurveyComparison/README.md) for both
+in-memory and file-backed configurations and verified restart behavior.

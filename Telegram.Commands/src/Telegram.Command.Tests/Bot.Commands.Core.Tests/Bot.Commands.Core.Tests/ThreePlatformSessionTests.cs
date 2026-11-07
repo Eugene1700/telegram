@@ -20,11 +20,19 @@ public class ThreePlatformSessionTests
     [Test]
     public async Task InterleavedFluentSessionsPersistUnderDistinctBotNamesWithSameUserAndChat()
     {
-        var connectionString = $"Data Source=three-bots-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
+        var connectionString = $"Data Source=five-bots-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
         using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
         var config = new ConfigurationBuilder().AddConfiguration(VkWebhookTests.Config())
-            .AddInMemoryCollection(new Dictionary<string, string> { ["ConnectionStrings:Sessions"] = connectionString }).Build();
+            .AddInMemoryCollection(new Dictionary<string, string> { ["ConnectionStrings:Sessions"] = connectionString,
+                ["InstagramBotProfile:Enabled"] = "true", ["InstagramBotProfile:BotName"] = "instagram_sample",
+                ["InstagramBotProfile:AccountId"] = "99", ["InstagramBotProfile:Token"] = "dummy",
+                ["InstagramBotProfile:ApiVersion"] = "v23.0", ["InstagramBotProfile:AppSecret"] = "secret",
+                ["InstagramBotProfile:VerifyToken"] = "verify",
+                ["WhatsAppBotProfile:Enabled"] = "true", ["WhatsAppBotProfile:BotName"] = "whatsapp_sample",
+                ["WhatsAppBotProfile:PhoneNumberId"] = "99", ["WhatsAppBotProfile:BusinessAccountId"] = "88",
+                ["WhatsAppBotProfile:Token"] = "dummy", ["WhatsAppBotProfile:ApiVersion"] = "v23.0",
+                ["WhatsAppBotProfile:AppSecret"] = "secret", ["WhatsAppBotProfile:VerifyToken"] = "verify" }).Build();
         var services = new ServiceCollection();
         new Startup(config).ConfigureServices(services);
         services.AddLogging();
@@ -42,7 +50,7 @@ public class ThreePlatformSessionTests
         accessor.HttpContext = new DefaultHttpContext();
         using (var scope = provider.CreateScope())
             await scope.ServiceProvider.GetRequiredService<EfDbContext>().Database.EnsureCreatedAsync();
-        var platforms = new[] { SamplePlatform.Telegram, SamplePlatform.Max, SamplePlatform.Vk };
+        var platforms = new[] { SamplePlatform.Telegram, SamplePlatform.Max, SamplePlatform.Vk, SamplePlatform.Instagram, SamplePlatform.WhatsApp };
         void Select(SamplePlatform platform) => accessor.HttpContext.Request.Path =
             "/" + BotRuntime.ReadProfile(config, platform).UpdateRoute;
 
@@ -52,12 +60,21 @@ public class ThreePlatformSessionTests
             using var scope = provider.CreateScope();
             switch (platform)
             {
+                case SamplePlatform.WhatsApp:
+                    await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<global::WhatsApp.Messaging.Models.WhatsAppMessage>>()
+                        .Handle(new() { From = "2", Id = "wamid", Type = "text", Text = new() { Body = text } });
+                    break;
+                case SamplePlatform.Instagram:
+                    await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<global::Instagram.Messaging.Models.InstagramMessagingEvent>>()
+                        .Handle(new() { Sender = new("2"), Recipient = new("99"),
+                            Message = new() { Mid = "mid", Text = text } });
+                    break;
                 case SamplePlatform.Telegram:
                     await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<global::Telegram.Bot.Types.Update>>().Handle(new()
                     {
                         Message = new global::Telegram.Bot.Types.Message { Text = text,
                             From = new global::Telegram.Bot.Types.User { Id = 2 },
-                            Chat = new global::Telegram.Bot.Types.Chat { Id = 1, Type = global::Telegram.Bot.Types.Enums.ChatType.Private } }
+                            Chat = new global::Telegram.Bot.Types.Chat { Id = 2, Type = global::Telegram.Bot.Types.Enums.ChatType.Private } }
                     });
                     break;
                 case SamplePlatform.Max:
@@ -65,7 +82,7 @@ public class ThreePlatformSessionTests
                     {
                         update_type = "message_created",
                         message = new { sender = new { user_id = 2, name = "test" },
-                            recipient = new { chat_id = 1, chat_type = "dialog" }, body = new { mid = "mid", text } }
+                            recipient = new { chat_id = 2, chat_type = "dialog" }, body = new { mid = "mid", text } }
                     }));
                     await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<global::Max.Bot.Types.Update>>().Handle(max);
                     break;
@@ -73,7 +90,7 @@ public class ThreePlatformSessionTests
                     await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<VkNet.Model.GroupUpdate>>().Handle(new()
                     {
                         Type = new(VkNet.Enums.StringEnums.GroupUpdateType.MessageNew),
-                        Instance = new VkNet.Model.MessageNew { Message = new VkNet.Model.Message { PeerId = 1, FromId = 2, Text = text } }
+                        Instance = new VkNet.Model.MessageNew { Message = new VkNet.Model.Message { PeerId = 2, FromId = 2, Text = text } }
                     });
                     break;
             }
@@ -85,7 +102,7 @@ public class ThreePlatformSessionTests
             Select(platform);
             using var scope = provider.CreateScope();
             var saved = scope.ServiceProvider.GetRequiredService<ISessionsStore>()
-                .GetSessionInfoWithData<FluentObject<MyObject, States>>(DateTime.Now, 1, 2, "/myfluent");
+                .GetSessionInfoWithData<FluentObject<MyObject, States>>(DateTime.Now, 2, 2, "/myfluent");
             Assert.That(saved.Data.Object.FirstName, Is.EqualTo(platform.ToString()));
             Assert.That(saved.Data.CurrentStateId.Data, Is.EqualTo(States.Surname));
         }
@@ -95,11 +112,15 @@ public class ThreePlatformSessionTests
         {
             Select(platform);
             using var scope = provider.CreateScope();
-            var saved = scope.ServiceProvider.GetRequiredService<ISessionsStore>().GetSessionInfo(DateTime.Now, 1, 2);
+            var saved = scope.ServiceProvider.GetRequiredService<ISessionsStore>().GetSessionInfo(DateTime.Now, 2, 2);
             Assert.That(saved is null, Is.EqualTo(platform == SamplePlatform.Vk));
         }
         await Send(SamplePlatform.Telegram, "User");
         await Send(SamplePlatform.Max, "User");
+        await Send(SamplePlatform.Instagram, "User");
+        await Send(SamplePlatform.WhatsApp, "User");
+        Assert.That(sent, Does.Contain(("whatsapp_sample", "Your data: WhatsApp User")));
+        Assert.That(sent, Does.Contain(("instagram_sample", "Your data: Instagram User")));
         Assert.That(sent, Does.Contain(("vk_sample", "Your data: Vk User")));
         Assert.That(sent, Does.Contain(("telegram_sample", "Your data: Telegram User")));
         Assert.That(sent, Does.Contain(("max_sample", "Your data: Max User")));
@@ -110,9 +131,9 @@ public class ThreePlatformSessionTests
         while (await reader.ReadAsync())
         {
             names.Add(reader.GetString(0));
-            Assert.That(reader.GetInt64(1), Is.EqualTo(1));
+            Assert.That(reader.GetInt64(1), Is.EqualTo(2));
             Assert.That(reader.GetInt64(2), Is.EqualTo(2));
         }
-        Assert.That(names, Is.EquivalentTo(new[] { "telegram_sample", "max_sample", "vk_sample" }));
+        Assert.That(names, Is.EquivalentTo(new[] { "telegram_sample", "max_sample", "vk_sample", "instagram_sample", "whatsapp_sample" }));
     }
 }

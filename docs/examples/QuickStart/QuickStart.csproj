@@ -13,5 +13,7 @@
     <ProjectReference Include="../../../Telegram.Commands/src/Bot.Commands.Telegram/Bot.Commands.Telegram.csproj" />
     <ProjectReference Include="../../../Telegram.Commands/src/Bot.Commands.Max/Bot.Commands.Max.csproj" />
     <ProjectReference Include="..\..\..\Telegram.Commands\src\Bot.Commands.Vk\Bot.Commands.Vk.csproj" />
+    <ProjectReference Include="..\..\..\Telegram.Commands\src\Bot.Commands.Instagram\Bot.Commands.Instagram.csproj" />
+    <ProjectReference Include="..\..\..\Telegram.Commands\src\Bot.Commands.WhatsApp\Bot.Commands.WhatsApp.csproj" />
   </ItemGroup>
 </Project>

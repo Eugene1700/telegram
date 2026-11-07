@@ -18,15 +18,23 @@ public class SimpleHandlersPlatformTests
     [TestCase(SamplePlatform.Telegram)]
     [TestCase(SamplePlatform.Max)]
     [TestCase(SamplePlatform.Vk)]
+    [TestCase(SamplePlatform.Instagram)]
+    [TestCase(SamplePlatform.WhatsApp)]
     public async Task SharedCommandsHandleMessagesSessionsAndCallbacks(SamplePlatform platform)
     {
         var max = platform == SamplePlatform.Max;
         var vk = platform == SamplePlatform.Vk;
+        var instagram = platform == SamplePlatform.Instagram;
+        var whatsapp = platform == SamplePlatform.WhatsApp;
         var configuration = Configuration();
         var services = new ServiceCollection();
         new Startup(configuration).ConfigureServices(services);
         services.AddLogging();
-        var sent = new RecordingSender();
+        using var http = new HttpClient(new RecordingHttpHandler((_, _) =>
+            RecordingHttpHandler.Json("""{"messages":[{"id":"wamid"}]}""")));
+        var transport = whatsapp ? new WhatsAppSampleMessageSender(new global::WhatsApp.Messaging.WhatsAppClient(http,
+            new() { PhoneNumberId = "99", AccessToken = "dummy", ApiVersion = "v23.0" })) : null;
+        var sent = new RecordingSender(instagram || whatsapp ? 2 : 1, transport);
         services.AddSingleton<ISampleMessageSender>(sent);
         var executed = new List<Type>();
         services.AddScoped<ICommandFactory>(sp =>
@@ -51,13 +59,45 @@ public class SimpleHandlersPlatformTests
         using var provider = services.BuildServiceProvider();
         provider.GetRequiredService<IHttpContextAccessor>().HttpContext = new DefaultHttpContext();
         provider.GetRequiredService<IHttpContextAccessor>().HttpContext.Request.Path =
-            "/" + (vk ? Settings.VkRouteToUpdate : max ? Settings.MaxRouteToUpdate : Settings.RouteToUpdate);
+            "/" + (whatsapp ? Settings.WhatsAppRouteToUpdate : instagram ? Settings.InstagramRouteToUpdate : vk ? Settings.VkRouteToUpdate : max ? Settings.MaxRouteToUpdate : Settings.RouteToUpdate);
 
+        var whatsappCallbackIndex = 0;
         async Task Send(string text, bool callback = false, bool photo = false)
         {
             // Each update gets a fresh DI scope, just like a webhook request.
             using var scope = provider.CreateScope();
-            if (vk)
+            if (whatsapp)
+            {
+                var callbackKind = callback ? whatsappCallbackIndex++ % 3 : -1;
+                var json = JsonSerializer.Serialize(new {
+                    from = "2", id = "wamid",
+                    type = callback ? (callbackKind == 2 ? "button" : "interactive") : photo ? "image" : "text",
+                    text = callback || photo ? null : new { body = text },
+                    image = photo ? new { id = "media" } : null,
+                    context = callback ? new { id = "menu" } : null,
+                    button = callbackKind == 2 ? new { payload = text, text = "choose" } : null,
+                    interactive = callback && callbackKind != 2 ? new {
+                        type = callbackKind == 0 ? "button_reply" : "list_reply",
+                        button_reply = callbackKind == 0 ? new { id = text, title = "choose" } : null,
+                        list_reply = callbackKind == 1 ? new { id = text, title = "choose" } : null
+                    } : null
+                });
+                await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<global::WhatsApp.Messaging.Models.WhatsAppMessage>>()
+                    .Handle(JsonSerializer.Deserialize<global::WhatsApp.Messaging.Models.WhatsAppMessage>(json));
+            }
+            else if (instagram)
+            {
+                var json = JsonSerializer.Serialize(new
+                {
+                    sender = new { id = "2" }, recipient = new { id = "99" },
+                    message = callback ? null : new { mid = "mid", text,
+                        attachments = photo ? new[] { new { type = "image", payload = new { url = "https://example.com/photo.jpg" } } } : null },
+                    postback = callback ? new { mid = "mid", title = "choose", payload = text } : null
+                });
+                await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<global::Instagram.Messaging.Models.InstagramMessagingEvent>>()
+                    .Handle(JsonSerializer.Deserialize<global::Instagram.Messaging.Models.InstagramMessagingEvent>(json));
+            }
+            else if (vk)
             {
                 var json = callback
                     ? Newtonsoft.Json.JsonConvert.SerializeObject(new
@@ -107,6 +147,31 @@ public class SimpleHandlersPlatformTests
         await Send("/start");
         Assert.That(sent.Messages.Last().Text, Does.Contain("/profile"));
         await Send("/ask");
+        if (whatsapp)
+        {
+            var count = sent.Messages.Count;
+            foreach (var type in new[] { "reaction", "system", "unsupported", "interactive" })
+            {
+                using var ignored = provider.CreateScope();
+                await ignored.ServiceProvider.GetRequiredService<IBotCommandResolver<global::WhatsApp.Messaging.Models.WhatsAppMessage>>()
+                    .Handle(new() { From = "2", Id = "ignored", Type = type });
+            }
+            Assert.That(sent.Messages.Count, Is.EqualTo(count));
+        }
+        if (instagram)
+        {
+            var count = sent.Messages.Count;
+            foreach (var extra in new[] { "\"message\":{\"text\":\"echo\",\"is_echo\":true}",
+                         "\"message\":{\"mid\":\"mid\",\"is_deleted\":true}",
+                         "\"read\":{\"mid\":\"mid\"}", "\"reaction\":{\"reaction\":\"love\"}" })
+            {
+                using var ignored = provider.CreateScope();
+                var json = "{\"sender\":{\"id\":\"2\"},\"recipient\":{\"id\":\"99\"}," + extra + "}";
+                await ignored.ServiceProvider.GetRequiredService<IBotCommandResolver<global::Instagram.Messaging.Models.InstagramMessagingEvent>>()
+                    .Handle(JsonSerializer.Deserialize<global::Instagram.Messaging.Models.InstagramMessagingEvent>(json));
+            }
+            Assert.That(sent.Messages.Count, Is.EqualTo(count));
+        }
         await Send("Ada");
         Assert.That(sent.Messages.Last().Text, Is.EqualTo("Nice to meet you, Ada!"));
         await Send("/profile");
@@ -157,7 +222,7 @@ public class SimpleHandlersPlatformTests
         Assert.That(sent.Messages.Last().Text, Is.EqualTo("Cancelled. Try /sendphoto or /dropdown."));
         using (var cancelled = provider.CreateScope())
             Assert.That(cancelled.ServiceProvider.GetRequiredService<ISessionsStore>()
-                .GetSessionInfo(DateTime.Now, 1, 2), Is.Null);
+                .GetSessionInfo(DateTime.Now, instagram || whatsapp ? 2 : 1, 2), Is.Null);
         await Send("/global");
         await Send("toggle");
         await Send("intercept me");
@@ -166,9 +231,9 @@ public class SimpleHandlersPlatformTests
         // A message-only funnel must not consume a callback with the same text.
         await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(
             () => Send("register", callback: true));
-        Assert.That(executed.All(t => t.Name.StartsWith(vk ? "Vk" : max ? "Max" : "Telegram", StringComparison.Ordinal)), Is.True);
+        Assert.That(executed.All(t => t.Name.StartsWith(whatsapp ? "WhatsApp" : instagram ? "Instagram" : vk ? "Vk" : max ? "Max" : "Telegram", StringComparison.Ordinal)), Is.True);
         using var check = provider.CreateScope();
-        Assert.That(check.ServiceProvider.GetRequiredService<ISessionsStore>().GetSessionInfo(DateTime.Now, 1, 2), Is.Null);
+        Assert.That(check.ServiceProvider.GetRequiredService<ISessionsStore>().GetSessionInfo(DateTime.Now, instagram || whatsapp ? 2 : 1, 2), Is.Null);
 
     }
 
@@ -228,18 +293,26 @@ public class SimpleHandlersPlatformTests
         ["VkBotProfile:Enabled"] = "true", ["VkBotProfile:BotName"] = "vk_sample",
         ["VkBotProfile:Token"] = "dummy",
         ["VkBotProfile:GroupId"] = "1", ["VkBotProfile:WebhookSecret"] = "test-secret",
-        ["VkBotProfile:ConfirmationCode"] = "confirmation"
+        ["VkBotProfile:ConfirmationCode"] = "confirmation",
+        ["InstagramBotProfile:Enabled"] = "true", ["InstagramBotProfile:BotName"] = "instagram_sample",
+        ["InstagramBotProfile:AccountId"] = "99", ["InstagramBotProfile:Token"] = "dummy",
+        ["InstagramBotProfile:ApiVersion"] = "v23.0", ["InstagramBotProfile:AppSecret"] = "test-secret",
+        ["InstagramBotProfile:VerifyToken"] = "test-verify",
+        ["WhatsAppBotProfile:Enabled"] = "true", ["WhatsAppBotProfile:BotName"] = "whatsapp_sample",
+        ["WhatsAppBotProfile:PhoneNumberId"] = "99", ["WhatsAppBotProfile:BusinessAccountId"] = "88",
+        ["WhatsAppBotProfile:Token"] = "dummy", ["WhatsAppBotProfile:ApiVersion"] = "v23.0",
+        ["WhatsAppBotProfile:AppSecret"] = "secret", ["WhatsAppBotProfile:VerifyToken"] = "verify"
     }).Build();
 
-    private sealed class RecordingSender : ISampleMessageSender
+    private sealed class RecordingSender(long expectedChat = 1, ISampleMessageSender transport = null) : ISampleMessageSender
     {
         public List<IBotMessage> Messages { get; } = new();
         public Task Edit(long chatId, string messageId, IBotMessage message) => Send(chatId, message);
         public Task Send(long chatId, IBotMessage message)
         {
-            Assert.That(chatId, Is.EqualTo(1));
+            Assert.That(chatId, Is.EqualTo(expectedChat));
             Messages.Add(message);
-            return Task.CompletedTask;
+            return transport?.Send(chatId, message) ?? Task.CompletedTask;
         }
     }
 }

@@ -91,3 +91,25 @@ dotnet test Telegram.Commands/src/Telegram.Command.Tests/Bot.Commands.Core.Tests
 The Validation output directory avoids replacing assemblies used by a running
 sample. Cobertura XML is produced under .test-results, which is ignored by Git.
 The test fixtures do not load production bot credentials or the sample's dev.db.
+
+## WhatsApp coverage
+
+WhatsAppApiTests verifies native Cloud API requests, errors, reply contexts,
+keyboard limits and validation before sending menu chunks. WhatsAppWebhookTests
+covers raw-body signatures, disabled endpoints, WABA/phone filtering and a fresh
+scope per batched message. WhatsAppConfigurationTests covers profile selection,
+BotName validation and opt-in subscription after HTTP startup.
+SimpleHandlersPlatformTests exercises WhatsApp commands through the real sender
+and a fake HTTP handler. ThreePlatformSessionTests now includes five platforms
+with identical chat/user IDs in an isolated in-memory SQLite database. No live
+WhatsApp account, approved-template delivery, duplicate-event queue or distributed
+locking is tested.
+
+## In-memory storage and survey comparison
+
+InMemoryStorageTests checks UseInMemoryStorage registration, reuse across scopes,
+BotName/provider isolation, JSON snapshots of Fluent state, expiry, completion
+and chat moves. The standalone
+[SurveyComparison](examples/SurveyComparison/README.md) runs the same questionnaire
+through Bot.Commands and aiogram using actual subprocess restarts and compares
+visible output. Its verification script is separate from dotnet test.

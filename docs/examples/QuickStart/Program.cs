@@ -7,8 +7,8 @@ using Tg = global::Telegram.Bot.Types;
 using MaxTypes = global::Max.Bot.Types;
 
 var platform = args.FirstOrDefault()?.ToLowerInvariant() ?? "telegram";
-if (platform is not ("telegram" or "max" or "vk"))
-    throw new ArgumentException("Choose 'telegram', 'max', or 'vk'.");
+if (platform is not ("telegram" or "max" or "vk" or "instagram" or "whatsapp"))
+    throw new ArgumentException("Choose 'telegram', 'max', 'vk', 'instagram', or 'whatsapp'.");
 
 var services = new ServiceCollection();
 services.AddSingleton<IBotProfile, DemoProfile>();
@@ -18,7 +18,9 @@ services.AddSingleton<IAuthProvider, DemoAuthorization>();
 services.AddSingleton<ISessionsStore, DemoSessionStore>();
 if (platform == "telegram") services.UseTelegramCommandsServices();
 else if (platform == "max") services.UseMaxCommandsServices();
-else services.UseVkCommandsServices();
+else if (platform == "vk") services.UseVkCommandsServices();
+else if (platform == "instagram") services.UseInstagramCommandsServices();
+else services.UseWhatsAppCommandsServices();
 
 using var provider = services.BuildServiceProvider();
 foreach (var text in new[] { "/hello", "/ask", "Ada", "/profile", "Grace" })
@@ -51,7 +53,7 @@ foreach (var text in new[] { "/hello", "/ask", "Ada", "/profile", "Grace" })
         }));
         await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<MaxTypes.Update>>().Handle(update);
     }
-    else
+    else if (platform == "vk")
     {
         // VkNet uses Newtonsoft.Json for Callback API / Bots Long Poll updates.
         var update = Newtonsoft.Json.JsonConvert.DeserializeObject<VkNet.Model.GroupUpdate>(
@@ -65,5 +67,22 @@ foreach (var text in new[] { "/hello", "/ask", "Ada", "/profile", "Grace" })
                 }
             }));
         await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<VkNet.Model.GroupUpdate>>().Handle(update);
+    }
+    else if (platform == "instagram")
+    {
+        var update = new Instagram.Messaging.Models.InstagramMessagingEvent
+        {
+            Sender = new("2"), Recipient = new("99"),
+            Message = new() { Mid = Guid.NewGuid().ToString(), Text = text }
+        };
+        await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<Instagram.Messaging.Models.InstagramMessagingEvent>>().Handle(update);
+    }
+    else
+    {
+        var update = new WhatsApp.Messaging.Models.WhatsAppMessage
+        {
+            From = "2", Id = "wamid." + Guid.NewGuid(), Type = "text", Text = new() { Body = text }
+        };
+        await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<WhatsApp.Messaging.Models.WhatsAppMessage>>().Handle(update);
     }
 }

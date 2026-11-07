@@ -6,6 +6,8 @@ namespace SimpleHandlers.Services;
 public sealed class BotRuntime(IHttpContextAccessor accessor)
 {
     public SamplePlatform Platform =>
+        accessor.HttpContext?.Request.Path.StartsWithSegments("/api/whatsapp") == true ? SamplePlatform.WhatsApp :
+        accessor.HttpContext?.Request.Path.StartsWithSegments("/api/instagram") == true ? SamplePlatform.Instagram :
         accessor.HttpContext?.Request.Path.StartsWithSegments("/api/vk") == true ? SamplePlatform.Vk :
         accessor.HttpContext?.Request.Path.StartsWithSegments("/api/max") == true ? SamplePlatform.Max :
         SamplePlatform.Telegram;
@@ -13,6 +15,8 @@ public sealed class BotRuntime(IHttpContextAccessor accessor)
     public string ProfileSection => Section(Platform);
     public static string Section(SamplePlatform platform) => platform switch
     {
+        SamplePlatform.WhatsApp => "WhatsAppBotProfile",
+        SamplePlatform.Instagram => "InstagramBotProfile",
         SamplePlatform.Vk => "VkBotProfile",
         SamplePlatform.Max => "MaxBotProfile",
         _ => "BotProfile"
@@ -29,6 +33,8 @@ public sealed class BotRuntime(IHttpContextAccessor accessor)
             Key = section["Token"], BaseUrl = section["BaseUrl"], BotName = section["BotName"],
             UpdateRoute = platform switch
             {
+                SamplePlatform.WhatsApp => Settings.WhatsAppRouteToUpdate,
+                SamplePlatform.Instagram => Settings.InstagramRouteToUpdate,
                 SamplePlatform.Vk => Settings.VkRouteToUpdate,
                 SamplePlatform.Max => Settings.MaxRouteToUpdate,
                 _ => Settings.RouteToUpdate

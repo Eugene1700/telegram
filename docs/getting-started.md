@@ -167,3 +167,11 @@ Isolate profiles and sessions by bot/platform when hosting multiple bots. A sepa
 DI scope alone does not isolate singleton storage or select a different bot profile.
 
 Continue with [commands and sessions](commands.md) or [Fluent conversations](fluent.md).
+
+## Instagram
+
+Run `dotnet run --project docs/examples/QuickStart -- instagram` for the offline
+command example. Reference `Bot.Commands.Instagram` and register
+`UseInstagramCommandsServices()` for command routing. The separate
+`Instagram.Messaging` project provides the API client and native models.
+See [Instagram setup](instagram.md) before connecting a real account.

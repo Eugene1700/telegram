@@ -23,10 +23,17 @@ public static class SampleQuery
         IQueryContext<Tg.CallbackQuery> c => c.GetMessageId(),
         IQueryContext<Mx.CallbackQuery> c => c.GetMessageId(),
         IQueryContext<VkNet.Model.MessageEvent> c => c.GetMessageId(),
+        IQueryContext<Instagram.Messaging.Models.InstagramPostback> c => c.GetMessageId(),
+        IQueryContext<WhatsApp.Messaging.Models.WhatsAppReply> c => c.GetMessageId(),
         _ => null
     };
     public static PhotoSessionObject Photo(object query)
     {
+        if (query is WhatsApp.Messaging.Models.WhatsAppMessage { Type: "image", Image: not null } whatsapp)
+            return new PhotoSessionObject { MessageId = whatsapp.Id, PhotoSize = null };
+        if (query is Instagram.Messaging.Models.InstagramMessage instagram &&
+            instagram.Attachments?.Any(a => a.Type == "image") == true)
+            return new PhotoSessionObject { MessageId = instagram.Mid, PhotoSize = null };
         if (query is VkNet.Model.Message vk && vk.Attachments?.Any(a => a.Instance is VkNet.Model.Photo) == true)
             return new PhotoSessionObject { MessageId = vk.ConversationMessageId?.ToString(), PhotoSize = null };
         if (query is Tg.Message t && t.Photo?.Length > 0)

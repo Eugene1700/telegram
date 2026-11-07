@@ -30,5 +30,7 @@
     <ItemGroup>
         <ProjectReference Include="../../Bot.Commands.Telegram/Bot.Commands.Telegram.csproj"/>
         <ProjectReference Include="../../Bot.Commands.UI/Bot.Commands.UI.csproj"/>
+        <ProjectReference Include="..\..\Bot.Commands.Instagram\Bot.Commands.Instagram.csproj"/>
+        <ProjectReference Include="..\..\Bot.Commands.WhatsApp\Bot.Commands.WhatsApp.csproj"/>
     </ItemGroup>
 </Project>
