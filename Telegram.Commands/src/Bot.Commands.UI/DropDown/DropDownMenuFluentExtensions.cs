@@ -1,3 +1,4 @@
+using Bot.Commands.Abstract.Commands;
 using System;
 using System.Linq;
 using System.Text;
@@ -10,8 +11,8 @@ namespace Bot.Commands.UI.DropDown
     public static class DropDownMenuFluentExtensions
     {
         public static void AddDropDown<TItem, TObj, TStates, TQuery>(this ICallbacksBuilderBase<TObj, TStates> builder,
-            DropDown<TItem> dropDown, Func<TQuery, TStates, TObj, string, Task<TStates>> selectHandler = null,
-            Func<TQuery, TStates, TObj, string, Task<TStates>> showHandler = null) where TQuery : class
+            DropDown<TItem> dropDown, Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> selectHandler = null,
+            Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> showHandler = null) where TQuery : class
         {
             var devPrefix = dropDown.GetDropDownPrefix();
             var allDevs = dropDown.IsAllSelected();
@@ -34,7 +35,7 @@ namespace Bot.Commands.UI.DropDown
         }
 
         public static void AddDropDownItems<TItem, TStates, TObj, TQuery>(this ICallbacksBuilderBase<TObj, TStates> builder,
-            DropDown<TItem> dropDown, Func<TQuery, TStates, TObj, string, Task<TStates>> selectHandler = null) where TQuery : class
+            DropDown<TItem> dropDown, Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> selectHandler = null) where TQuery : class
         {
             if (!dropDown.Show) return;
             foreach (var item in dropDown.Items)

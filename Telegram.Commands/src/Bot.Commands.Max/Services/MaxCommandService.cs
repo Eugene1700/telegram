@@ -10,9 +10,9 @@ public class MaxCommandService(
     CommandExecutionService commandExecutionService,
     SessionManager sessionManager,
     IAuthProvider authProvider,
-    IBotProfile botProfile)
+    IBotProfile botProfile, IEnumerable<ICommandMatcher>? matchers = null)
     : CommandServiceBase(commandExecutionService,
-        sessionManager, authProvider, botProfile), IBotCommandResolver<Update>
+        sessionManager, authProvider, botProfile, matchers), IBotCommandResolver<Update>
 {
     public async Task Handle(Update update)
     {

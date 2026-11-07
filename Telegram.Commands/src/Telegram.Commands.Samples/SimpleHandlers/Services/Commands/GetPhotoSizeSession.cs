@@ -1,50 +1,38 @@
-using Bot.Commands.Telegram.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using SimpleHandlers.Services.Commands.Models;
-using global::Telegram.Bot;
-using global::Telegram.Bot.Types;
-using global::Telegram.Bot.Types.Enums;
 using Bot.Commands.Abstract.Attributes;
 using Bot.Commands.Abstract.Commands;
 using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Abstract.Messages;
 using Bot.Commands.Core;
-using Bot.Commands.Core.Exceptions;
 using Bot.Commands.Core.Models;
 using Bot.Commands.Core.Services;
+using Bot.Commands.Core.Exceptions;
+using Bot.Commands.UI.DropDown;
+using SimpleHandlers.Services.Commands.Models;
 
-namespace SimpleHandlers.Services.Commands
+namespace SimpleHandlers.Services.Commands;
+
+[Command(Name = "getphotosize_session", Authorized = true)]
+public abstract class GetPhotoSizeSession(ISampleMessageSender sender)
 {
-    [Command(Name = "getphotosize_session", Authorized = true)]
-    public class GetPhotoSizeSession: ISessionCommand<Message, List<PhotoSessionObject>>
+    public async Task<ICommandExecutionResult> Execute<TQuery>(QueryContext<TQuery> query,
+        List<PhotoSessionObject> data)
     {
-        private readonly ITelegramBotClient _telegramBotClient;
-
-        public GetPhotoSizeSession(ITelegramBotClient telegramBotClient)
+        var photo = SampleQuery.Photo(query.Query);
+        if (photo == null)
         {
-            _telegramBotClient = telegramBotClient;
+            await sender.Send(query.GetChatId(), SampleMessages.Text("Please send a photo."));
+            return CommandExecutionResult.Freeze();
         }
-        public async Task<ICommandExecutionResult> Execute(QueryContext<Message> context, List<PhotoSessionObject> sessionObject)
-        {
-            var query = context.Query;
-            if (query.Type != MessageType.Photo)
-                throw new BotDomainException("It's no photo");
 
-            var maxSize = query.Photo?.Max(x => x.FileSize);
-            sessionObject.Add(new PhotoSessionObject
-            {
-                MessageId = query.MessageId,
-                PhotoSize = maxSize.Value
-            });
-
-            var builder = new InlineMarkupQueryBuilder();
-            builder.AddMenu();
-            await _telegramBotClient.SendMessage(context.GetChatId(),
-                $"Your photo size=[{maxSize}]. What I should do next (only from menu)?",
-                replyMarkup: builder.GetResult());
-
-            return CommandExecutionResult.Ahead<GetPhotoMenuBehavior, List<PhotoSessionObject>>(sessionObject, null);
-        }
+        data.Add(photo);
+        await sender.Send(query.GetChatId(),
+            SampleMessages.WithKeyboard(
+                $"Your photo size=[{photo.PhotoSize?.ToString() ?? "not provided"}]. What should I do next?",
+                new InlineMarkupQueryBuilder().AddMenu()));
+        return SampleCommandResult.Next<GetPhotoMenuBehavior>(data, null);
     }
 }

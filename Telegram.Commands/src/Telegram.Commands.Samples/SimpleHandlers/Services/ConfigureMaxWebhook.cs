@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using global::Max.Bot;
 using global::Max.Bot.Types.Requests;
+using global::Max.Bot.Types.Enums;
 
 namespace SimpleHandlers.Services;
 
@@ -19,7 +20,7 @@ public sealed class ConfigureMaxWebhook(MaxClient client, IConfiguration configu
         return client.Subscriptions.SetWebhookAsync(new SetWebhookRequest
         {
             Url = url, Secret = configuration["MaxBotProfile:WebhookSecret"],
-            UpdateTypes = new() { "message_created", "message_callback", "bot_started" }
+            UpdateTypes = new() { UpdateType.MessageCreated, UpdateType.MessageCallback, UpdateType.BotStarted }
         }, cancellationToken);
     }
 

@@ -1,4 +1,4 @@
-﻿namespace SimpleHandlers
+namespace SimpleHandlers
 {
     public class Settings
     {

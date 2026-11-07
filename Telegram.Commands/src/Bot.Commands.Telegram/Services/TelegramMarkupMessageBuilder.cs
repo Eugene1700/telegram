@@ -7,7 +7,7 @@ namespace Bot.Commands.Telegram.Services;
 /// <summary>Builds messages using Telegram MarkdownV2 syntax.</summary>
 public class TelegramMarkupMessageBuilder : MessageBuilderBase
 {
-    protected override BotMessageParseMode ParseMode => BotMessageParseMode.MarkDown;
+    protected override IMessageTextFormat Format => new TelegramTextFormat(global::Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
     protected override string PrepareText(string text) => text.ReplaceMarkDownEscapeSymbols();
 
     /// <summary>Appends trusted, already formatted Markdown without escaping.</summary>

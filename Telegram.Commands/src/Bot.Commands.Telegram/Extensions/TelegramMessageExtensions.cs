@@ -25,18 +25,11 @@ namespace Bot.Commands.Telegram.Extensions{
             return telegramMessage.Photo != null && telegramMessage.Photo.Any();
             ;
         }
-        public static ParseMode ToParseMode(this BotMessageParseMode parseMode)
+        public static ParseMode ToParseMode(this IMessageTextFormat format) => format switch
         {
-            switch (parseMode)
-            {
-                case BotMessageParseMode.Plain: return ParseMode.None;
-                case BotMessageParseMode.MarkDown:
-                    return ParseMode.MarkdownV2;
-                case BotMessageParseMode.Html:
-                    return ParseMode.Html;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(parseMode), parseMode, null);
-            }
-        }
+            null => ParseMode.None,
+            TelegramTextFormat telegram => telegram.Mode,
+            _ => throw new NotSupportedException($"Text format '{format.GetType().Name}' is not supported by Telegram.")
+        };
     }
 }

@@ -12,7 +12,7 @@ A subclass supplies two methods:
 
 ```csharp
 protected override Task<(ProfileData, ProfileStep)> Entry<TQuery>(
-    TQuery query, ProfileData currentObject)
+    QueryContext<TQuery> query, ProfileData currentObject)
     => Task.FromResult((currentObject ?? new ProfileData(), ProfileStep.Name));
 
 protected override IStateMachine<ProfileStep> StateMachine(
@@ -40,9 +40,9 @@ The engine sends that state's prompt and persists a Fluent session. The next
 update reaches the state's handler. Returning the exit state runs `Finish`, whose
 execution result determines whether the session ends or continues elsewhere.
 
-`Entry` and `GlobalIntercept` receive the original SDK query. The generic `TQuery`
-does not guarantee a particular platform, so use pattern matching when sharing
-the flow across messengers.
+`Entry` and `GlobalIntercept` receive `QueryContext<TQuery>`. Read common metadata
+through `GetChatId()` and `GetData()`; the original SDK object is available as
+`Query`. Fluent handlers receive that same context through `IQueryContext<TQuery>`.
 
 ## Handler types: contexts versus SDK objects
 
@@ -51,16 +51,23 @@ The distinction below is part of the current API:
 | Callback | Receives |
 | --- | --- |
 | Command `Execute` / `DefaultExecute` | `QueryContext<TQuery>` |
-| Typed `WithMessage<TQuery>` sender | `QueryContext<TQuery>` |
-| Untyped `WithMessage` sender | Context boxed as `object` |
-| State-level batch sender | Context boxed as `object` |
-| Fluent `Entry`, `GlobalIntercept` | Native SDK query |
-| `Next<TQuery>`, `OnCallback<TQuery>`, `Exit<TQuery>` | Native SDK query |
+| Typed `WithMessage<TQuery>` sender | `IQueryContext<TQuery>` |
+| Shared `WithMessage` sender | `IQueryContext<object>` |
+| State-level batch sender | `IQueryContext<object>` |
+| Fluent `Entry`, `GlobalIntercept` | `QueryContext<TQuery>` |
+| `Next<TQuery>`, `OnCallback<TQuery>`, `Exit<TQuery>` | `IQueryContext<TQuery>` |
 
-A `Next<Telegram.Bot.Types.Message>` handler expects a Telegram message. It does
-not automatically adapt a Max message or a Telegram callback. Use `object` with
-explicit pattern matching for mixed-query flows. Do not assume all handlers receive
-the same representation merely because their parameter is named `query`.
+A `Next<Telegram.Bot.Types.Message>` handler expects a context containing a
+Telegram message. It does not adapt Max messages or Telegram callbacks.
+The covariant generic interface lets shared handlers accept `IQueryContext<object>`
+without creating wrappers or losing context metadata. There is no non-generic
+`IQueryContext` interface.
+
+For a shared flow with distinct message and callback handlers, make the command
+generic: `MyFluentCommandFluent<TMessage, TCallback>`, with both parameters
+constrained to `class`. Use `Next<TMessage>` and `OnCallback<TCallback>` inside it.
+Concrete Telegram and Max subclasses supply their SDK types. Senders and exit
+handlers that accept either update kind can use `IQueryContext<object>`.
 
 ## State operations
 
@@ -75,7 +82,7 @@ the same representation merely because their parameter is named `query`.
 | `WithCallbacks().Row()` | Start a row of buttons for the current message |
 | `OnCallback(...)` | Run a button handler that chooses the next state |
 | `NextFromCallback(...)` | Choose a fixed state from a button |
-| `ExitFromCallback(...)` | Associate a button with an external command |
+| `ExitFromCallback<TCommand>(...)` | Associate a button with an external command by its attributed name |
 | `Exit(id, finalizer)` | Define a terminal state whose handler returns a command result |
 | `FireAndForget()` | Send the state's messages and finish without waiting for input |
 
@@ -90,6 +97,20 @@ unsupported `ExecuteResult.Fire` result. Do not confuse it with
 
 ## Send messages
 
+To leave a flow through a command button, specify the target type directly:
+
+```csharp
+.WithCallbacks().Row()
+.ExitFromCallback<CancelCallback>("Cancel", "someData")
+```
+
+The overloads also accept `CallbackData` or a `(state, data) => CallbackData`
+provider. They are available for regular rows, generated keyboards, and dynamic
+message rows. The target must have `CommandAttribute`; an attributed abstract
+base is valid. Only its command descriptor is captured, so the current bot's
+swarm still selects the concrete implementation. Existing descriptor-based
+overloads remain available.
+
 Message providers return `ITextMessage`; senders receive the constructed `IBotMessage`
 including callbacks. You can supply a sender per message or one batch sender on
 the state. When a batch sender is configured, the state gathers messages and uses
@@ -100,10 +121,10 @@ For a Telegram-only typed sender:
 
 ```csharp
 // Fragment inside a class with an injected ITelegramBotClient named client.
-Task Send(QueryContext<Telegram.Bot.Types.Message> context,
+Task Send(IQueryContext<Telegram.Bot.Types.Message> context,
     ProfileStep state, ProfileData data, IBotMessage message)
     => client.SendMessage(context.GetChatId(), message.Text,
-        parseMode: message.ParseMode.ToParseMode(),
+        parseMode: message.Format.ToParseMode(),
         replyMarkup: message.ToReplyMarkup());
 ```
 
@@ -149,7 +170,7 @@ For selective command interception, override `TryQueryCommandIntercept` and retu
 - `ResultCallback` runs after a nonterminal executed command.
 
 See [FluentCommand](../Telegram.Commands/src/Bot.Commands.Core/Fluent/FluentCommand.cs)
-for the exact hook signatures and [the global-interception sample](../Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/FluentCommandWithGlobalInterept.cs)
+for the exact hook signatures and [the global-interception sample](../Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/FluentCommandWithGlobalIntercept.cs)
 for a concrete implementation.
 
 ## Persistence and lifetime

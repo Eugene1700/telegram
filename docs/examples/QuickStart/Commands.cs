@@ -84,7 +84,7 @@ public sealed class ProfileData
 [Command(Name = "profile", Authorized = false)]
 public sealed class ProfileCommand : FluentCommand<ProfileData, ProfileStep>
 {
-    protected override Task<(ProfileData, ProfileStep)> Entry<TQuery>(TQuery query, ProfileData currentObject)
+    protected override Task<(ProfileData, ProfileStep)> Entry<TQuery>(QueryContext<TQuery> query, ProfileData currentObject)
         => Task.FromResult((currentObject ?? new ProfileData(), ProfileStep.Name));
 
     protected override IStateMachine<ProfileStep> StateMachine(IStateMachineBuilder<ProfileData, ProfileStep> builder)
@@ -101,7 +101,7 @@ public sealed class ProfileCommand : FluentCommand<ProfileData, ProfileStep>
             .Build();
     }
 
-    private static Task Send(object context, ProfileStep state, ProfileData data, IBotMessage message)
+    private static Task Send(IQueryContext<object> context, ProfileStep state, ProfileData data, IBotMessage message)
     {
         // An untyped sender receives QueryContext<T>, not the native SDK object.
         // A real sender can select a messenger client by matching this context.
@@ -109,14 +109,9 @@ public sealed class ProfileCommand : FluentCommand<ProfileData, ProfileStep>
         return Task.CompletedTask;
     }
 
-    private static string ReadText(object query) => query switch
-    {
-        Tg.Message telegram => telegram.Text,
-        MaxTypes.Message max => max.Text,
-        _ => null
-    };
+    private static string ReadText(IQueryContext<object> query) => query.GetData();
 
-    private static Task<ICommandExecutionResult> Finish(object query, ProfileStep state, ProfileData data)
+    private static Task<ICommandExecutionResult> Finish(IQueryContext<object> query, ProfileStep state, ProfileData data)
     {
         Console.WriteLine($"bot: Profile saved for {data.Name}.");
         return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Break());

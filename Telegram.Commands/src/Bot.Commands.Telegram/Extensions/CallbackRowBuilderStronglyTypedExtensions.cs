@@ -1,3 +1,4 @@
+using Bot.Commands.Abstract.Commands;
 using global::Telegram.Bot.Types;
 using Bot.Commands.Abstract.Messages;
 using Bot.Commands.Core.Fluent.Builders;
@@ -13,7 +14,7 @@ namespace Bot.Commands.Telegram.Extensions
             this ICallbackRowBuilder<TObj, TStates> builder,
             string text,
             string data,
-            Func<CallbackQuery, TStates, TObj, string, Task<TStates>> handler,
+            Func<IQueryContext<CallbackQuery>, TStates, TObj, string, Task<TStates>> handler,
             bool force)
         {
             return builder.OnCallback(new CallbackDataWithCommand
@@ -27,7 +28,7 @@ namespace Bot.Commands.Telegram.Extensions
             this ICallbackRowBuilderBase<TObj, TStates> builder,
             string text,
             string data,
-            Func<CallbackQuery, TStates, TObj, string, Task<TStates>> handler,
+            Func<IQueryContext<CallbackQuery>, TStates, TObj, string, Task<TStates>> handler,
             bool force)
         {
             return builder.OnCallback(new CallbackDataWithCommand

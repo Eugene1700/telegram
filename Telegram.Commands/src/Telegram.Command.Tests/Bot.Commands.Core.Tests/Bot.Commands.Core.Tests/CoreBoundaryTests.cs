@@ -24,7 +24,7 @@ public class CoreBoundaryTests
 
     private sealed class PlainBuilder : MessageBuilderBase
     {
-        protected override BotMessageParseMode ParseMode => BotMessageParseMode.Plain;
+        protected override IMessageTextFormat Format => null;
         protected override string PrepareText(string text) => text;
     }
 

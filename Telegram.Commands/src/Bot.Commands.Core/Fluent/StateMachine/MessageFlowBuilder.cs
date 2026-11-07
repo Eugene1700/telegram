@@ -21,7 +21,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
         }
 
         internal MessageFlowBuilder(string prefix, Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<object, TStates, TObj, IBotMessage, Task> sendMessageProvider, IState<TObj, TStates> currentState)
+            Func<IQueryContext<object>, TStates, TObj, IBotMessage, Task> sendMessageProvider, IState<TObj, TStates> currentState)
         {
             _provider = null;
             _container =
@@ -34,7 +34,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
         }
 
         public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
+            Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
         {
             _container.CallbackBuilder.AddOnCallback(callbackProvider, handler, force);
         }

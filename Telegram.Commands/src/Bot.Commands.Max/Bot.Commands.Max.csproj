@@ -13,7 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="MaxMessenger.Bot" Version="0.4.1-alpha" />
+      <PackageReference Include="MaxMessenger.Bot" Version="0.8.0-alpha" />
     </ItemGroup>
 
     <ItemGroup>

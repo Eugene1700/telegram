@@ -1,3 +1,4 @@
+using Bot.Commands.Abstract.Commands;
 using System;
 using System.Threading.Tasks;
 using Bot.Commands.Abstract.Interfaces;
@@ -9,6 +10,6 @@ namespace Bot.Commands.Core.Fluent.Builders.StateMachineBuilders
     {
         IStateMachine<TStates> Build();
         IStateMachineBuilder<TObj, TStates> Exit<TQuery>(TStates stateId,
-            Func<TQuery, TStates, TObj, Task<ICommandExecutionResult>> finalizer) where TQuery: class;
+            Func<IQueryContext<TQuery>, TStates, TObj, Task<ICommandExecutionResult>> finalizer) where TQuery: class;
     }
 }

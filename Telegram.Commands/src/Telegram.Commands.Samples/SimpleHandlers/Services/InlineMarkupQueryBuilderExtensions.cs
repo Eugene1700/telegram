@@ -1,33 +1,16 @@
-using global::Telegram.Bot.Types;
-using System.Collections.Generic;
-using SimpleHandlers.Services.Commands;
-using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Messages;
+using Bot.Commands.Core;
 using Bot.Commands.Core.Services;
-
-namespace SimpleHandlers.Services
+using SimpleHandlers.Services.Commands;
+namespace SimpleHandlers.Services;
+public static class InlineMarkupQueryBuilderExtensions
 {
-    public static class InlineMarkupQueryBuilderExtensions
+    public static InlineMarkupQueryBuilder AddCommand<T>(this InlineMarkupQueryBuilder builder, string text, string data = "")
     {
-        public static InlineMarkupQueryBuilder AddMenu(this InlineMarkupQueryBuilder builder)
-        {
-            builder.AddInlineKeyboardButton<NextPhotoCallback, List<PhotoSessionObject>, CallbackQuery>(new CallbackData
-            {
-                Text = "Next photo",
-                CallbackText = "this is callback text"
-            });
-            builder.AddInlineKeyboardButton<ShowResultCallback, List<PhotoSessionObject>, CallbackQuery>(new CallbackData
-            {
-                Text = "Show result",
-                CallbackText = "this is callback text"
-            });
-            builder.AddInlineKeyboardButton<CancelCallback, CallbackQuery>(new CallbackData
-            {
-                Text = "Cancel",
-                CallbackText = ""
-            });
-
-            return builder;
-        }
+        builder.InlineKeyboardButtonsRow(new[] { new CallbackDataWithCommand { Text = text, CallbackText = data,
+            CommandDescriptor = BotCommandExtensions.GetCommandInfo(typeof(T)) } });
+        return builder;
     }
+    public static InlineMarkupQueryBuilder AddMenu(this InlineMarkupQueryBuilder builder) => builder
+        .AddCommand<NextPhotoCallback>("Next photo").AddCommand<ShowResultCallback>("Show result").AddCommand<CancelCallback>("Cancel");
 }

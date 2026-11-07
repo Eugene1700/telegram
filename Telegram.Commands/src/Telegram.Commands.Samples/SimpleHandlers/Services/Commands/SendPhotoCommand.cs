@@ -1,31 +1,23 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using SimpleHandlers.Services.Commands.Models;
-using global::Telegram.Bot;
-using global::Telegram.Bot.Types;
 using Bot.Commands.Abstract.Attributes;
 using Bot.Commands.Abstract.Commands;
 using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Abstract.Messages;
 using Bot.Commands.Core;
 using Bot.Commands.Core.Models;
-
-namespace SimpleHandlers.Services.Commands
+using Bot.Commands.Core.Services;
+using Bot.Commands.Core.Exceptions;
+using Bot.Commands.UI.DropDown;
+using SimpleHandlers.Services.Commands.Models;
+namespace SimpleHandlers.Services.Commands;
+[Command(Name = "sendphoto", Authorized = true)]
+public abstract class SendPhotoCommand(ISampleMessageSender sender) : MessageCommandBase
 {
-    [Command(Name = "sendphoto", Authorized = true)]
-    public class SendPhotoCommand : IQueryCommand<Message>
+    protected override async Task<ICommandExecutionResult> ExecuteCore<TQuery>(QueryContext<TQuery> query)
     {
-        private readonly ITelegramBotClient _telegramBotClient;
-
-        public SendPhotoCommand(ITelegramBotClient telegramBotClient)
-        {
-            _telegramBotClient = telegramBotClient;
-        }
-        public async Task<ICommandExecutionResult> Execute(QueryContext<Message> context)
-        {
-            var query = context.Query;
-            await _telegramBotClient.SendMessage(context.GetChatId(), $"Ok, send me photo");
-            return CommandExecutionResult.Ahead<GetPhotoSizeSession, Message, List<PhotoSessionObject>>(
-                new List<PhotoSessionObject>(), null);
-        }
+        await sender.Send(query.GetChatId(), SampleMessages.Text("Ok, send me photo")); return SampleCommandResult.Next<GetPhotoSizeSession>(new List<PhotoSessionObject>(), null);
     }
 }

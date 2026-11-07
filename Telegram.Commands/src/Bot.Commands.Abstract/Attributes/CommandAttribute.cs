@@ -16,13 +16,4 @@ namespace Bot.Commands.Abstract.Attributes
             Area = ChatArea.Private;
         }
     }
-
-    [Flags]
-    public enum ChatArea
-    {
-        Private = 1,
-        Group = 2,
-        Channel = 4,
-        SuperGroup = 8
-    }
 }

@@ -45,10 +45,4 @@ namespace Bot.Commands.UI.DropDown
             return Items.Where(x=>x.Selected).ToArray();
         }
     }
-
-    public enum DropDownMode
-    {
-        Single,
-        Multiple
-    }
 }

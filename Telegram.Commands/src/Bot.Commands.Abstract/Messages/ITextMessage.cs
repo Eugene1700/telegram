@@ -6,13 +6,10 @@ namespace Bot.Commands.Abstract.Messages
     {
         string Text { get; }
         public byte[] Photo { get; }
-        public BotMessageParseMode ParseMode { get;}
+        /// <summary>Send the attachment as a file instead of displaying it as a photo.</summary>
+        bool SendAsFile => false;
+        /// <summary>Optional attachment filename, including its extension.</summary>
+        string FileName => null;
+        public IMessageTextFormat Format { get;}
     }
-
-    public interface IBotMessage : ITextMessage
-    {
-        public ReadOnlyCollection<CallbackDataWithCommand> Callbacks { get;}
-    }
-    
-    public record BotMessage(string Text, byte[] Photo, BotMessageParseMode ParseMode, ReadOnlyCollection<CallbackDataWithCommand> Callbacks): IBotMessage;
 }

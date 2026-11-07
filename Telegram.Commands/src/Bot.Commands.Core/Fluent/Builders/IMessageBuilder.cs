@@ -8,9 +8,4 @@ namespace Bot.Commands.Core.Fluent.Builders
     {
         ICallbacksBuilder<TObj, TStates> WithCallbacks();
     }
-
-    public interface IMessageBuilderBase<TObj, TStates>: IStateBuilderBase<TObj, TStates>
-    {
-        ICallbacksBuilderForMessage<TObj, TStates> WithCallbacks();
-    }
 }

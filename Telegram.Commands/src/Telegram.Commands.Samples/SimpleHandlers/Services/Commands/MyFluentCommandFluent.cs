@@ -2,9 +2,6 @@ using Bot.Commands.Abstract.Commands;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using global::Telegram.Bot;
-using global::Telegram.Bot.Types;
-using global::Telegram.Bot.Types.ReplyMarkups;
 using Bot.Commands.Abstract.Attributes;
 using Bot.Commands.Abstract.Interfaces;
 using Bot.Commands.Abstract.Messages;
@@ -14,43 +11,30 @@ using Bot.Commands.Core.Fluent.Builders.CallbackBuilders;
 using Bot.Commands.Core.Fluent.Builders.CallbackBuilders.Extensions;
 using Bot.Commands.Core.Fluent.Builders.Extensions;
 using Bot.Commands.Core.Fluent.Builders.StateBuilders;
-using Bot.Commands.Telegram.Extensions;
 using Bot.Commands.Core.Fluent.Builders.StateMachineBuilders;
 using Bot.Commands.Core.Fluent.StateMachine;
-using Bot.Commands.Telegram;
 using Bot.Commands.Core.Models;
 using Bot.Commands.Core.Services;
 using Bot.Commands.UI.Pagination;
 
 namespace SimpleHandlers.Services.Commands
 {
-    public enum States
-    {
-        Name,
-        Surname,
-        Validate,
-        Exit,
-        Break
-    }
 
-    [Command(Swarms = new[] { "telegram" }, Name = "myfluent")]
-    public class MyFluentCommandFluent : FluentCommand<MyObject, States>
+    [Command(Name = "myfluent")]
+    public abstract class MyFluentCommandFluent<TMessage, TCallback> : FluentCommand<MyObject, States>
+        where TMessage : class
+        where TCallback : class
     {
-        private readonly ITelegramBotClient _telegramBotClient;
+        private readonly ISampleMessageSender _sender;
 
-        public MyFluentCommandFluent(ITelegramBotClient telegramBotClient)
+        public MyFluentCommandFluent(ISampleMessageSender telegramBotClient)
         {
-            _telegramBotClient = telegramBotClient;
+            _sender = telegramBotClient;
         }
 
-        protected override Task<(MyObject, States)> Entry<TQuery>(TQuery query, MyObject myObject)
+        protected override Task<(MyObject, States)> Entry<TQuery>(QueryContext<TQuery> query, MyObject myObject)
         {
-            var chatId = query switch
-            {
-                Message message => message.Chat.Id,
-                CallbackQuery callbackQuery => callbackQuery.Message.Chat.Id,
-                _ => throw new InvalidOperationException()
-            };
+            var chatId = SampleQuery.ChatId(query);
             var o = myObject ?? new MyObject();
             o.ChatId = chatId;
 
@@ -63,32 +47,31 @@ namespace SimpleHandlers.Services.Commands
             var a = builder.State(States.Name)
                 .WithMessage((s,o) => Task.FromResult("Hi! What's your name?"), Send)
                 .WithCallbacks()
-                .Row().OnCallback("Default Name (Jack)", "Jack", FirstNameCallbackHandler,
+                .Row().OnCallback<MyObject, States, TCallback>("Default Name (Jack)", "Jack", FirstNameCallbackHandler,
                     true)
                 .Row().NextFromCallback("Skip", "data", States.Surname, true)
                 .Row().NextFromCallback( "Exit", "data", States.Exit, true)
-                .Row().OnCallback("Send TEXT", "TEXT", SendUserDataHandler, false)
+                .Row().OnCallback<MyObject, States, TCallback>("Send TEXT", "TEXT", SendUserDataHandler, false)
                 .Row().NextFromCallback("Message with break", "", States.Break, false)
-                .Row().ExitFromCallback<MyObject, States, CancelCallback>("Cancel", "someData")
-                .Row().ExitFromCallback<MyObject, States, CancelCallback>("Cancel", "someData")
-                .Row().ExitFromCallback(KeyBoardBuild,
-                    BotCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>())
-                .ExitFromCallback(CallbackDataWithCommand())
+                .Row().ExitFromCallback<CancelCallback>("Cancel", "someData")
+                .Row().ExitFromCallback<CancelCallback>("Cancel", "someData")
+                .Row().ExitFromCallback<CancelCallback>(KeyBoardBuild)
+                .ExitFromCallback<CancelCallback>(CancelButton())
                 .KeyBoard(SameCallbackKey)
-                .KeyboardWithPagination<MyObject, States, CallbackQuery>(Paginator)
+                .KeyboardWithPagination<MyObject, States, TCallback>(Paginator)
                 .WithMessages(OtherMessages)
                 // .WithMessage(GetMessageWithParseMode, SendWithParseMode)
                 .WithMessage(GetMessageWithParseMode2, SendWithParseMode)
-                .Next(FirstNameMessageHandler, true)
+                .Next<TMessage>(FirstNameMessageHandler, true)
                 .State(States.Surname)
                 .WithMessage((state, obj) => Task.FromResult($"Ok, send me your surname, {obj.FirstName}"), Send)
                 .WithCallbacks().KeyBoard(GetSurnameKeyboard)
-                .Next(SecondNameHandler, true)
+                .Next<TMessage>(SecondNameHandler, true)
                 .State(States.Validate)
                 .WithMessage("Your name is too short! Please, send me again", Send)
                 .WithCallbacks()
                 .Row().NextFromCallback("Skip", "data", States.Surname, true)
-                .Next(FirstNameMessageHandler, true)
+                .Next<TMessage>(FirstNameMessageHandler, true)
                 .State(States.Break)
                 .WithMessage("Message without waiting answer", Send)
                 .FireAndForget()
@@ -96,28 +79,16 @@ namespace SimpleHandlers.Services.Commands
 
             return a.Build();
         }
-        private Task SendWithParseMode(object currentQuery, States arg2, MyObject obj, IBotMessage message)
-        {
-            if (currentQuery is QueryContext<CallbackQuery> callbackContext)
-            {
-                return _telegramBotClient.EditMessageText(obj.ChatId, callbackContext.Query.Message.MessageId, message.Text,
-                    message.ParseMode.ToParseMode(),
-                    replyMarkup: (InlineKeyboardMarkup)message.ToReplyMarkup());
-            }
-
-            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
-                message.ParseMode.ToParseMode(),
-                replyMarkup: message.ToReplyMarkup());
-        }
-
+        private Task SendWithParseMode(IQueryContext<object> currentQuery, States state, MyObject obj, IBotMessage message)
+            => Send(currentQuery, state, obj, message);
         private Task<ITextMessage> GetMessageWithParseMode(States arg1, MyObject arg2)
         {
-            throw new NotImplementedException();
+            return GetMessageWithParseMode2(arg1, arg2);
         }
         
         private Task<ITextMessage> GetMessageWithParseMode2(States arg1, MyObject arg2)
         {
-            return Task.FromResult<ITextMessage>(new BotMessage("*MarkDownText*", null, BotMessageParseMode.MarkDown, null));
+            return Task.FromResult<ITextMessage>(new BotMessage("Additional message", null, null, null));
         }
 
         private Task BackHandler<TQuery>(TQuery arg1, MyObject arg2, string arg3) where TQuery : class
@@ -151,10 +122,9 @@ namespace SimpleHandlers.Services.Commands
             };
         }
 
-        private Task SendSubMessage(object currentQuery, States state, MyObject obj, IBotMessage message)
+        private Task SendSubMessage(IQueryContext<object> currentQuery, States state, MyObject obj, IBotMessage message)
         {
-            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
-                replyMarkup: message.ToReplyMarkup());
+            return _sender.Send(obj.ChatId, message);
         }
 
         private Task<IFluentPaginationMenu> Paginator(MyObject arg1, uint arg2,
@@ -166,7 +136,7 @@ namespace SimpleHandlers.Services.Commands
             var from = (int)(5 * (arg2 - 1));
             foreach (var num in Enumerable.Range(from, 5))
             {
-                b.OnCallback($"{num}", $"{num}", SendUserDataHandler, false);
+                b.OnCallback<MyObject, States, TCallback>($"{num}", $"{num}", SendUserDataHandler, false);
             }
 
             return Task.FromResult<IFluentPaginationMenu>(arg1);
@@ -177,7 +147,7 @@ namespace SimpleHandlers.Services.Commands
             var b = arg2.Row();
             foreach (var num in Enumerable.Range(0, 5))
             {
-                b.OnCallback($"{num}", $"{num}", SendUserDataHandler, false);
+                b.OnCallback<MyObject, States, TCallback>($"{num}", $"{num}", SendUserDataHandler, false);
             }
 
             return Task.CompletedTask;
@@ -188,56 +158,54 @@ namespace SimpleHandlers.Services.Commands
         {
             arg2.Row().NextFromCallback($"Skip for {state}", arg1.FirstName, States.Exit, true)
                 .NextFromCallback("Back", arg1.FirstName, States.Name, true)
-                .OnCallback("Default SecondName Smith", "Smith",
+                .OnCallback<MyObject, States, TCallback>("Default SecondName Smith", "Smith",
                     SecondNameCallbackHandler, true)
                 .Row().NextFromCallback("Finish", arg1.FirstName, States.Exit, true);
             return Task.CompletedTask;
         }
 
-        private static CallbackDataWithCommand CallbackDataWithCommand()
+        private static CallbackData CancelButton()
         {
-            return new CallbackDataWithCommand
+            return new CallbackData
             {
                 Text = "Another another cancel",
-                CallbackText = "data",
-                CommandDescriptor = BotCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+                CallbackText = "data"
             };
         }
 
         private static CallbackData KeyBoardBuild(States state, MyObject obj)
         {
-            return new CallbackDataWithCommand
+            return new CallbackData
             {
                 Text = "Another cancel",
-                CallbackText = "data",
-                CommandDescriptor = BotCommandExtensions.GetCommandInfo<CancelCallback, CallbackQuery>()
+                CallbackText = "data"
             };
         }
 
-        private async Task<States> SendUserDataHandler(CallbackQuery arg1, States states, MyObject arg2, string userData)
+        private async Task<States> SendUserDataHandler(IQueryContext<TCallback> arg1, States states, MyObject arg2, string userData)
         {
-            await _telegramBotClient.SendMessage(arg2.ChatId, userData);
+            await _sender.Send(arg2.ChatId, SampleMessages.Text(userData));
             return States.Name;
         }
 
-        private static async Task<States> FirstNameCallbackHandler(CallbackQuery query, States state, MyObject obj, string userData)
+        private static async Task<States> FirstNameCallbackHandler(IQueryContext<TCallback> query, States state, MyObject obj, string userData)
         {
             return await FirstNameHandler(userData, obj);
         }
 
-        private async Task<States> SecondNameCallbackHandler(CallbackQuery query, States state, MyObject obj, string userData)
+        private async Task<States> SecondNameCallbackHandler(IQueryContext<TCallback> query, States state, MyObject obj, string userData)
         {
             return await SecondNameHandler(userData, obj);
         }
 
-        private static async Task<States> FirstNameMessageHandler(Message query, States state, MyObject obj)
+        private static async Task<States> FirstNameMessageHandler(IQueryContext<TMessage> query, States state, MyObject obj)
         {
-            return await FirstNameHandler(query.Text, obj);
+            return await FirstNameHandler(query.GetData(), obj);
         }
 
         private static async Task<States> FirstNameHandler(string text, MyObject obj)
         {
-            if (text.Length < 2)
+            if (string.IsNullOrWhiteSpace(text) || text.Length < 2)
             {
                 return States.Validate;
             }
@@ -247,9 +215,9 @@ namespace SimpleHandlers.Services.Commands
         }
 
 
-        public async Task<States> SecondNameHandler(Message message, States states, MyObject obj)
+        public async Task<States> SecondNameHandler(IQueryContext<TMessage> message, States states, MyObject obj)
         {
-            return await SecondNameHandler(message.Text, obj);
+            return await SecondNameHandler(message.GetData(), obj);
         }
 
         public async Task<States> SecondNameHandler(string text, MyObject obj)
@@ -258,49 +226,20 @@ namespace SimpleHandlers.Services.Commands
             return States.Exit;
         }
 
-        private async Task<ICommandExecutionResult> Finalize(object currentQuery, States  state, MyObject obj)
+        private async Task<ICommandExecutionResult> Finalize(IQueryContext<object> currentQuery, States  state, MyObject obj)
         {
-            long chatId = 0;
-            if (currentQuery is Message message)
-            {
-                chatId = message.Chat.Id;
-            }
-
-            if (currentQuery is CallbackQuery callbackQuery)
-            {
-                chatId = callbackQuery.Message.Chat.Id;
-            }
-
-            await _telegramBotClient.SendMessage(chatId, $"Your data: {obj.FirstName} {obj.SecondName}");
+            await _sender.Send(obj.ChatId, SampleMessages.Text($"Your data: {obj.FirstName} {obj.SecondName}"));
             return CommandExecutionResult.Break();
         }
 
-        public Task Send(object currentQuery, States state, MyObject obj, IBotMessage message)
+        public Task Send(IQueryContext<object> currentQuery, States state, MyObject obj, IBotMessage message)
         {
-            if (currentQuery is QueryContext<CallbackQuery> callbackContext)
-            {
-                return _telegramBotClient.EditMessageText(obj.ChatId, callbackContext.Query.Message.MessageId, message.Text,
-                    replyMarkup: (InlineKeyboardMarkup)message.ToReplyMarkup());
-            }
-
-            return _telegramBotClient.SendMessage(obj.ChatId, message.Text,
-                replyMarkup: message.ToReplyMarkup());
+            var messageId = SampleQuery.CallbackMessageId(currentQuery);
+            return messageId == null ? _sender.Send(obj.ChatId, message) : _sender.Edit(obj.ChatId, messageId, message);
         }
-
         public Task Send<TQuery>(TQuery currentQuery, MyObject obj, IBotMessage[] message)
         {
-            throw new NotImplementedException();
+            return Task.WhenAll(message.Select(item => _sender.Send(obj.ChatId, item)));
         }
-    }
-
-    public class MyObject : IFluentPagination, IFluentPaginationMenu
-    {
-        public string SecondName { get; set; }
-        public string FirstName { get; set; }
-
-        public long ChatId { get; set; }
-        public ulong TotalCount { get; set; }
-        public uint Limit { get; set; }
-        public uint PageNumber { get; set; }
     }
 }

@@ -1,3 +1,5 @@
+using Bot.Commands.Telegram.Extensions;
+using Bot.Commands.Max.Models;
 using Bot.Commands.Abstract.Messages;
 using Bot.Commands.Max;
 using Bot.Commands.Max.Services;
@@ -9,12 +11,46 @@ namespace Bot.Commands.Core.Tests;
 public class MarkupBuilderTests
 {
     [Test]
+    public void BuilderSelectsFileOrPhotoWithoutRetainingPreviousMode()
+    {
+        var bytes = new byte[] { 1, 2, 3 };
+        var builder = new MaxMarkupMessageBuilder().AddFile(bytes, "report.pdf");
+        var file = builder.GetMessages().Single();
+        Assert.That(file.SendAsFile, Is.True);
+        Assert.That(file.FileName, Is.EqualTo("report.pdf"));
+        Assert.That(file.Photo, Is.SameAs(bytes));
+        var photo = builder.AddPhoto(bytes).GetMessages().Single();
+        Assert.That(photo.SendAsFile, Is.False);
+        Assert.That(photo.FileName, Is.Null);
+    }
+
+    [Test]
+    public void MaxMessageWithoutButtonsHasNoKeyboard()
+    {
+        Assert.That(new BotMessage("Additional message", null, null, null).ToInlineKeyboard(), Is.Null);
+        Assert.That(MaxMessageExtensions.GetResult(new Bot.Commands.Core.Services.InlineMarkupQueryBuilder()), Is.Null);
+    }
+
+    [Test]
+    public void FormatsAreOwnedByTheirAdapters()
+    {
+        IMessageTextFormat plain = null;
+        Assert.That(plain.ToParseMode(), Is.EqualTo(global::Telegram.Bot.Types.Enums.ParseMode.None));
+        Assert.That(plain.ToTextFormat(), Is.Null);
+        var telegram = new TelegramTextFormat(global::Telegram.Bot.Types.Enums.ParseMode.Html);
+        var max = new MaxTextFormat(global::Max.Bot.Types.Enums.TextFormat.Html);
+        Assert.That(telegram.ToParseMode(), Is.EqualTo(telegram.Mode));
+        Assert.That(max.ToTextFormat(), Is.EqualTo(max.Mode));
+        Assert.Throws<NotSupportedException>(() => telegram.ToTextFormat());
+        Assert.Throws<NotSupportedException>(() => max.ToParseMode());
+    }
+    [Test]
     public void TelegramEscapesPlainTextButPreservesFormatting()
     {
         var message = new TelegramMarkupMessageBuilder().AppendPlain("a_b! ")
             .AppendBold("x*y").AppendUnderline("z").GetMessages().Single();
         Assert.That(message.Text, Is.EqualTo(@"a\_b\! *x\*y*__z__"));
-        Assert.That(message.ParseMode, Is.EqualTo(BotMessageParseMode.MarkDown));
+        Assert.That(message.Format, Is.EqualTo(new TelegramTextFormat(global::Telegram.Bot.Types.Enums.ParseMode.MarkdownV2)));
     }
 
     [Test]
@@ -23,7 +59,7 @@ public class MarkupBuilderTests
         var message = new MaxMarkupMessageBuilder().AppendPlain("a_b! ")
             .AppendBold("x*y").AppendUnderline("z").GetMessages().Single();
         Assert.That(message.Text, Is.EqualTo(@"a\_b\! **x\*y**++z++"));
-        Assert.That(message.ParseMode, Is.EqualTo(BotMessageParseMode.MarkDown));
+        Assert.That(message.Format, Is.EqualTo(new MaxTextFormat(global::Max.Bot.Types.Enums.TextFormat.Markdown)));
     }
 
     [Test]

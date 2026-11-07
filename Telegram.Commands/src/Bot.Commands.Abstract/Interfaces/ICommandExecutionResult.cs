@@ -8,12 +8,4 @@ namespace Bot.Commands.Abstract.Interfaces
         public long? WaitFromChatId { get; }
         public uint? SessionDurationInSec { get; }
     }
-
-    public enum ExecuteResult
-    {
-        Freeze,
-        Ahead,
-        Break,
-        Fire
-    }
 }

@@ -1,5 +1,6 @@
 using EntityStorage;
 using EntityStorage.DependencyInjection;
+using EntityStorage.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,14 @@ namespace SimpleHandlers
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            var telegramEnabled = Configuration.GetValue("BotProfile:Enabled", true);
+            var maxEnabled = Configuration.GetValue<bool>("MaxBotProfile:Enabled");
+            if ((telegramEnabled && string.IsNullOrWhiteSpace(Configuration["BotProfile:BotName"])) ||
+                (maxEnabled && string.IsNullOrWhiteSpace(Configuration["MaxBotProfile:BotName"])))
+                throw new System.InvalidOperationException("Every enabled bot must have a BotName for session isolation.");
+            if (telegramEnabled && maxEnabled && string.Equals(Configuration["BotProfile:BotName"],
+                Configuration["MaxBotProfile:BotName"], System.StringComparison.OrdinalIgnoreCase))
+                throw new System.InvalidOperationException("Enabled bots must have distinct BotName values.");
             services.AddCors();
             services.AddControllers();
             services.AddHttpContextAccessor();
@@ -35,7 +44,7 @@ namespace SimpleHandlers
             services.AddScoped<MaxSampleMessageSender>();
             services.AddScoped<ISampleMessageSender>(sp => sp.GetRequiredService<BotRuntime>().IsMax
                 ? sp.GetRequiredService<MaxSampleMessageSender>() : sp.GetRequiredService<TelegramSampleMessageSender>());
-            var sessionsConnection = Configuration.GetConnectionString("Sessions") ?? "Data Source=dev.db";
+            var sessionsConnection = Configuration.GetConnectionString("Sessions") ?? "Data Source=dev2.db";
             services.AddEntityStorage(builder => builder.UseSqlite(sessionsConnection));
             services.UseEFOnlyTranslator();
 
@@ -49,6 +58,7 @@ namespace SimpleHandlers
 
             services.AddScoped<IAuthProvider, AuthProvider>();
             services.AddScoped<ISessionsStore, SessionStore>();
+            services.AddScoped<ICommandMatcher, ProfileFunnelMatcher>();
             services.AddSingleton<global::Telegram.Bot.ITelegramBotClient>(_ =>
                 new global::Telegram.Bot.TelegramBotClient(Configuration["BotProfile:Token"]));
             services.UseTelegramCommandsServices();
@@ -64,8 +74,12 @@ namespace SimpleHandlers
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, EfDbContext dbContext)
         {
+            // This sample starts with an empty database on every run.
+            dbContext.Database.EnsureDeleted();
+            dbContext.Database.EnsureCreated();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

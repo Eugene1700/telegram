@@ -111,7 +111,7 @@ Core's `MessageBuilderBase.GetMessages` no longer defaults to a 4096-character l
 | --- | --- |
 | Telegram-specific outgoing message abstractions | `ITextMessage`, `IBotMessage`, `BotMessage` |
 | SDK markup on a common message | `Callbacks`, converted by the selected adapter |
-| `TelegramParseMode` | `BotMessageParseMode` |
+| `TelegramParseMode` / `BotMessageParseMode` | Adapter-owned `TelegramTextFormat` or `MaxTextFormat`; null for plain text |
 | `message.ReplyMarkup` | Telegram `message.ToReplyMarkup()` or Max `message.ToInlineKeyboard()` |
 
 Preserve `CallbackDataWithCommand.Row` when adapting keyboards. Core keyboard command helpers include the SDK query type among their generic arguments.

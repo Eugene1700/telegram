@@ -24,7 +24,7 @@ public class MessageCallbackContext(Chat? chat, CallbackQuery query, Message? me
 
     public override bool IsGroupMessage()
     {
-        return (chat?.Type ?? MaxChatExtensions.ParseChatType(Message.Recipient?.ChatType)).IsGroupMessage();
+        return (chat?.Type ?? Message.Recipient?.ChatType ?? throw new InvalidOperationException("Callback message has no chat type")).IsGroupMessage();
     }
 
     public override bool IsEvent()
@@ -39,7 +39,7 @@ public class MessageCallbackContext(Chat? chat, CallbackQuery query, Message? me
 
     public override ChatArea GetChatType()
     {
-        return (chat?.Type ?? MaxChatExtensions.ParseChatType(Message.Recipient?.ChatType)).ToChatArea();
+        return (chat?.Type ?? Message.Recipient?.ChatType ?? throw new InvalidOperationException("Callback message has no chat type")).ToChatArea();
     }
 
     public override string? GetMessageId()

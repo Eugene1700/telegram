@@ -18,17 +18,4 @@ namespace Bot.Commands.Core.Fluent
         public FireType? FireType { get; set; }
         public Initiable<TStates> ParentStateId { get; set; }
     }
-
-    public enum FireType
-    {
-        Entry,
-        HandleCurrent
-    }
-
-    public class Initiable<T>
-    {
-        public T Data { get; set; }
-
-        public bool IsInit { get; set; }
-    }
 }

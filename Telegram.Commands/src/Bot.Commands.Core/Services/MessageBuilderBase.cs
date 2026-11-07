@@ -11,9 +11,11 @@ namespace Bot.Commands.Core.Services
     {
         private readonly List<(string, EndItemType, bool)> _items;
         private byte[] _photo;
+        private bool _sendAsFile;
+        private string _fileName;
         private readonly InlineMarkupQueryBuilder _inlineMarkupBuilder;
 
-        protected abstract BotMessageParseMode ParseMode { get; }
+        protected abstract IMessageTextFormat Format { get; }
         
         protected MessageBuilderBase()
         {
@@ -35,6 +37,18 @@ namespace Bot.Commands.Core.Services
         public MessageBuilderBase AddPhoto(byte[] photo)
         {
             _photo = photo;
+            _sendAsFile = false;
+            _fileName = null;
+            return this;
+        }
+
+        public MessageBuilderBase AddFile(byte[] content, string fileName)
+        {
+            if (content == null || content.Length == 0) throw new ArgumentException("File content is required.", nameof(content));
+            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("File name is required.", nameof(fileName));
+            _photo = content;
+            _sendAsFile = true;
+            _fileName = fileName;
             return this;
         }
         
@@ -86,7 +100,7 @@ namespace Bot.Commands.Core.Services
 
                 if (messageLenghtConstraint.HasValue && sb.Length + textNew.Length > messageLenghtConstraint.Value)
                 {
-                    res.Add(new BotMessage(sb.ToString(), _photo, ParseMode, new ReadOnlyCollection<CallbackDataWithCommand>(Array.Empty<CallbackDataWithCommand>())));
+                    res.Add(new BotMessage(sb.ToString(), _photo, Format, new ReadOnlyCollection<CallbackDataWithCommand>(Array.Empty<CallbackDataWithCommand>())) { SendAsFile = _sendAsFile, FileName = _fileName });
                     sb.Clear();
                 }
                 switch (endItemType)
@@ -104,7 +118,7 @@ namespace Bot.Commands.Core.Services
                         throw new ArgumentOutOfRangeException();
                 }
             }
-            res.Add(new BotMessage(sb.ToString(), _photo, ParseMode, _inlineMarkupBuilder.GetCallbacks()));
+            res.Add(new BotMessage(sb.ToString(), _photo, Format, _inlineMarkupBuilder.GetCallbacks()) { SendAsFile = _sendAsFile, FileName = _fileName });
 
             return res.ToArray();
         }
@@ -120,13 +134,5 @@ namespace Bot.Commands.Core.Services
         {
             return _inlineMarkupBuilder.GetCallbacks();
         }
-    }
-    
-    
-    internal enum EndItemType
-    {
-        NewLine,
-        Space,
-        AppEnd
     }
 }

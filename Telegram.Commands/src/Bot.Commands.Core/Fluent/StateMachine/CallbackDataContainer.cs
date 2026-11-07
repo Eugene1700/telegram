@@ -13,14 +13,14 @@ namespace Bot.Commands.Core.Fluent.StateMachine
     {
         private readonly Func<TStates, TObj, CallbackDataWithCommand> _builder;
         private readonly ICommandDescriptor _commandDescriptor;
-        private readonly Func<object, TStates, TObj, string, Task<TStates>> _handler;
+        private readonly Func<IQueryContext<object>, TStates, TObj, string, Task<TStates>> _handler;
         private readonly bool _forceNext;
         private const string _fcudKey = "fud";
         private const string _fcbidKey = "fid";
         public string CallbackKey { get; }
 
         public CallbackDataContainer(string callbackId, Func<TStates, TObj, CallbackData> provider,
-            Func<object, TStates, TObj, string, Task<TStates>> handler = null, bool force = false)
+            Func<IQueryContext<object>, TStates, TObj, string, Task<TStates>> handler = null, bool force = false)
         {
             CallbackDataWithCommand NewProvider(TStates s, TObj o)
             {
@@ -30,7 +30,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
                     {
                         CallbackMode = callbackData.CallbackMode,
                         CallbackText =
-                            $"{_fcbidKey}={callbackId}&{_fcudKey}={callbackData.CallbackText}",
+                            $"{_fcbidKey}={callbackId}&{_fcudKey}={Uri.EscapeDataString(callbackData.CallbackText ?? string.Empty)}",
                         Text = callbackData.Text
                     };
             }
@@ -73,9 +73,9 @@ namespace Bot.Commands.Core.Fluent.StateMachine
             throw new InvalidOperationException("Callback builder was not set");
         }
 
-        public async Task<(TStates, bool)> Handle<TQuery>(TQuery query, TStates state, TObj obj, string callbackUserData)
+        public async Task<(TStates, bool)> Handle<TQuery>(IQueryContext<TQuery> query, TStates state, TObj obj, string callbackUserData)
         {
-            return (await _handler?.Invoke(query, state, obj, callbackUserData), _forceNext);
+            return (await _handler?.Invoke((IQueryContext<object>)query, state, obj, callbackUserData), _forceNext);
         }
 
         public bool HasCommand(ICommandDescriptor descriptor)
@@ -83,18 +83,18 @@ namespace Bot.Commands.Core.Fluent.StateMachine
             return _commandDescriptor != null && _commandDescriptor.MatchCommand(descriptor);
         }
 
-        public static bool IsCallback<TQuery>(QueryContext<TQuery> query)
+        public static bool IsCallback<TQuery>(IQueryContext<TQuery> query)
         {
             var data = query.GetData();
-            return !string.IsNullOrWhiteSpace(data) && data.Split("&").Any(x => x.StartsWith(_fcbidKey));
+            return !string.IsNullOrWhiteSpace(data) && data.Split("&").Any(x => x.StartsWith(_fcbidKey + "=", StringComparison.Ordinal));
         }
 
-        public static (string, string) ExtractData<TQuery>(QueryContext<TQuery> query)
+        public static (string, string) ExtractData<TQuery>(IQueryContext<TQuery> query)
         {
             var data = query.GetData();
             var parametrs = data.Split("&").Select(x =>
             {
-                var parts = x.Split("=");
+                var parts = x.Split('=', 2);
                 if (parts.Length < 2)
                 {
                     throw new InvalidOperationException("Callback data format is incorrect");
@@ -104,7 +104,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
             }).ToArray();
             var callbackId = parametrs.SingleOrDefault(x => x.Key == _fcbidKey).Value;
             var userData = parametrs.SingleOrDefault(x => x.Key == _fcudKey).Value;
-            return (callbackId, userData);
+            return (callbackId, userData == null ? null : Uri.UnescapeDataString(userData));
         }
     }
 }

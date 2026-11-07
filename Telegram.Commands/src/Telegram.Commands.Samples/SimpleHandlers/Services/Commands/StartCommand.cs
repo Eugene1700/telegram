@@ -1,35 +1,23 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using global::Telegram.Bot;
-using global::Telegram.Bot.Types;
 using Bot.Commands.Abstract.Attributes;
 using Bot.Commands.Abstract.Commands;
 using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Abstract.Messages;
 using Bot.Commands.Core;
 using Bot.Commands.Core.Models;
-
-namespace SimpleHandlers.Services.Commands
+using Bot.Commands.Core.Services;
+using Bot.Commands.Core.Exceptions;
+using Bot.Commands.UI.DropDown;
+using SimpleHandlers.Services.Commands.Models;
+namespace SimpleHandlers.Services.Commands;
+[Command(Name = "start", Authorized = false)]
+public abstract class StartCommand(ISampleMessageSender sender) : MessageCommandBase
 {
-    [Command(Name = "start", Authorized = false)]
-    public class StartCommand: IQueryCommand<Message>, IQueryCommand<global::Max.Bot.Types.Message>
+    protected override async Task<ICommandExecutionResult> ExecuteCore<TQuery>(QueryContext<TQuery> query)
     {
-        private readonly ISampleMessageSender _sender;
-
-        public StartCommand(ISampleMessageSender sender)
-        {
-            _sender = sender;
-        }
-        public async Task<ICommandExecutionResult> Execute(QueryContext<Message> context)
-        {
-            var query = context.Query;
-            await _sender.Send(context.GetChatId(), SampleMessages.Text(
-                $"Hello, {query.From?.Username ?? "User"}! Try /ask or /profile."));
-            return CommandExecutionResult.Break();
-        }
-
-        public async Task<ICommandExecutionResult> Execute(QueryContext<global::Max.Bot.Types.Message> context)
-        {
-            await _sender.Send(context.GetChatId(), SampleMessages.Text("Hello! Try /ask or /profile."));
-            return CommandExecutionResult.Break();
-        }
+        await sender.Send(query.GetChatId(), SampleMessages.Text("Hello! Try /ask, /profile, /sendphoto, /dropdown, /dropdownmultiple, /myfluent or /global.")); return CommandExecutionResult.Break();
     }
 }

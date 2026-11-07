@@ -1,3 +1,4 @@
+using Bot.Commands.Abstract.Commands;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -25,11 +26,11 @@ namespace Bot.Commands.Core.Fluent.StateMachine
         }
 
         public CallbackDataContainer<TObj, TStates> AddContainer<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, 
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
+            Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> handler,
             bool force)
             where TQuery : class
         {
-            Task<TStates> Handle(object q, TStates s, TObj o, string d) => handler(q as TQuery, s, o, d);
+            Task<TStates> Handle(IQueryContext<object> q, TStates s, TObj o, string d) => handler(((IQueryContext<TQuery>)q), s, o, d);
 
             var callbackId = $"{_prefix}c{_containers.Count}";
             var newContainer = new CallbackDataContainer<TObj, TStates>(callbackId, callbackProvider, Handle, force);

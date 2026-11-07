@@ -1,8 +1,6 @@
-﻿namespace SimpleHandlers.Services.Commands.Models
+namespace SimpleHandlers.Services.Commands.Models;
+public class PhotoSessionObject
 {
-    public class PhotoSessionObject
-    {
-        public int MessageId { get; set; }
-        public long PhotoSize { get; set; }
-    }
+    public string MessageId { get; set; }
+    public long? PhotoSize { get; set; }
 }

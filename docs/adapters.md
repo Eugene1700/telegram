@@ -90,9 +90,19 @@ setting it to `All` or `Ignore` does not override the Telegram adapter's routing
 The common model is `IBotMessage`:
 
 - `Text`: outgoing text.
-- `Photo`: optional bytes; upload/send them with the platform SDK.
-- `ParseMode`: `Plain`, `MarkDown`, or `Html`.
+- `Photo`: optional attachment bytes (the existing property name is retained).
+- `SendAsFile`: false sends the bytes as a photo; true sends them as a file/document.
+- `FileName`: optional filename including its extension. Sample senders default to
+  `photo.jpg` for photos or `attachment.bin` for files.
+- `Format`: an optional adapter-owned `IMessageTextFormat`; null means plain text.
 - `Callbacks`: common callback descriptors, including their `Row` index.
+
+To send an attachment as a file, use `new BotMessage("Caption", bytes, null, null)
+{ SendAsFile = true, FileName = "report.pdf" }`. Builders also expose
+`AddFile(bytes, "report.pdf")` and `AddPhoto(bytes)`. Fluent preserves these fields.
+The sample Telegram and Max senders upload the attachment using the selected mode,
+with `Text` as its caption and the configured keyboard. Without attachment bytes,
+they send an ordinary text message.
 
 Use the Core `InlineMarkupQueryBuilder` to retain row boundaries. For example:
 
@@ -116,7 +126,7 @@ keyboard.InlineKeyboardButtonsRow(new[]
     }
 });
 var message = new BotMessage("Choose an action", null,
-    BotMessageParseMode.Plain, keyboard.GetCallbacks());
+    null, keyboard.GetCallbacks());
 ```
 
 The command names in this example require corresponding application handlers.
@@ -129,7 +139,7 @@ Import `Bot.Commands.Telegram.Extensions`:
 
 ```csharp
 var markup = message.ToReplyMarkup();
-var parseMode = message.ParseMode.ToParseMode();
+var parseMode = message.Format.ToParseMode();
 // Pass markup and parseMode to Telegram.Bot send/edit methods.
 ```
 
@@ -143,20 +153,20 @@ Import `Bot.Commands.Max.Models`:
 
 ```csharp
 var markup = message.ToInlineKeyboard();
-var format = message.ParseMode.ToTextFormat();
+var format = message.Format.ToTextFormat();
 // Attach markup and format using the Max SDK's message request API.
 ```
 
 Conversion creates SDK values; it does not send a message or upload a photo.
 
-| Common mode | Telegram | Max |
-| --- | --- | --- |
-| `Plain` | `ParseMode.None` | null format |
-| `MarkDown` | `ParseMode.MarkdownV2` | `TextFormat.Markdown` |
-| `Html` | `ParseMode.Html` | `TextFormat.Html` |
+Formatting belongs to adapters. Core preserves the format without interpreting it.
+Use `TelegramTextFormat(Telegram.Bot.Types.Enums.ParseMode)` for Telegram and
+`MaxTextFormat(Max.Bot.Types.Enums.TextFormat)` for Max. Passing a format to the
+wrong adapter throws `NotSupportedException`.
 
-Formatting syntax and escaping differ between platforms. Converting an enum does
-not make an arbitrary Markdown string valid on both services.
+`TelegramMarkupMessageBuilder` and `MaxMarkupMessageBuilder` set their own format
+automatically and escape text for their platform. Select the appropriate builder
+in your application adapter. Raw Markdown text is not portable between messengers.
 
 | Button mode | Telegram | Max |
 | --- | --- | --- |

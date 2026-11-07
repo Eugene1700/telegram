@@ -1,10 +1,7 @@
 using Bot.Commands.Abstract.Commands;
 using Bot.Commands.Core.Fluent.Builders.Extensions;
-using Bot.Commands.Telegram.Extensions;
 using System;
 using System.Threading.Tasks;
-using global::Telegram.Bot;
-using global::Telegram.Bot.Types;
 using Bot.Commands.Abstract.Attributes;
 using Bot.Commands.Abstract.Interfaces;
 using Bot.Commands.Abstract.Messages;
@@ -16,23 +13,23 @@ using Bot.Commands.Core.Models;
 
 namespace SimpleHandlers.Services.Commands
 {
-    [Command(Swarms = new[] { "telegram" }, Name = "global")]
-    public class FluentCommandWithGlobalIntercept : FluentCommand<FluentCommandWithGlobalInterceptObject,
+    [Command(Name = "global")]
+    public abstract class FluentCommandWithGlobalIntercept : FluentCommand<FluentCommandWithGlobalInterceptObject,
         FluentCommandWithGlobalInterceptStates>
     {
-        private readonly ITelegramBotClient _telegramBotClient;
+        private readonly ISampleMessageSender _sender;
 
-        public FluentCommandWithGlobalIntercept(ITelegramBotClient telegramBotClient)
+        public FluentCommandWithGlobalIntercept(ISampleMessageSender telegramBotClient)
         {
-            _telegramBotClient = telegramBotClient;
+            _sender = telegramBotClient;
         }
 
         protected override Task<(FluentCommandWithGlobalInterceptObject, FluentCommandWithGlobalInterceptStates)>
-            Entry<TQuery>(TQuery query, FluentCommandWithGlobalInterceptObject currentObject)
+            Entry<TQuery>(QueryContext<TQuery> query, FluentCommandWithGlobalInterceptObject currentObject)
         {
             return Task.FromResult((new FluentCommandWithGlobalInterceptObject
             {
-                IsIntercept = false
+                IsIntercept = false, ChatId = SampleQuery.ChatId(query)
             }, FluentCommandWithGlobalInterceptStates.Entry));
         }
 
@@ -44,7 +41,7 @@ namespace SimpleHandlers.Services.Commands
                 .WithMessage(GetEntryMessage, Send)
                 .WithCallbacks()
                 .Row().NextFromCallback("Stop", "", FluentCommandWithGlobalInterceptStates.Stop, true)
-                .Next(HandleMessage, true)
+                .Next<object>(HandleMessage, true)
                 .Exit<object>(FluentCommandWithGlobalInterceptStates.Stop, Stop).Build();
         }
 
@@ -64,15 +61,9 @@ namespace SimpleHandlers.Services.Commands
         public Task Send(object query, FluentCommandWithGlobalInterceptStates state,
             FluentCommandWithGlobalInterceptObject obj, IBotMessage message)
         {
-            var chatId = query switch
-            {
-                QueryContext<Message> m => m.GetChatId(),
-                QueryContext<CallbackQuery> callbackQuery => callbackQuery.GetChatId(),
-                _ => throw new InvalidOperationException()
-            };
+            var chatId = obj.ChatId;
 
-            return _telegramBotClient.SendMessage(chatId, message.Text,
-                replyMarkup: message.ToReplyMarkup());
+            return _sender.Send(chatId, message);
         }
 
         private Task<string> GetEntryMessage(FluentCommandWithGlobalInterceptStates arg1,
@@ -81,33 +72,17 @@ namespace SimpleHandlers.Services.Commands
             return Task.FromResult("General message");
         }
 
-        protected override async Task<GlobalInterceptResult> GlobalIntercept<TQuery>(TQuery query, FluentCommandWithGlobalInterceptObject sessionObject)
+        protected override async Task<GlobalInterceptResult> GlobalIntercept<TQuery>(QueryContext<TQuery> query, FluentCommandWithGlobalInterceptObject sessionObject)
         {
-            var chatId = query switch
-            {
-                Message m => m.Chat.Id,
-                CallbackQuery callbackQuery => callbackQuery.Message.Chat.Id,
-                _ => throw new InvalidOperationException()
-            };
+            var chatId = sessionObject.ChatId;
             if (sessionObject.IsIntercept)
             {
-                await _telegramBotClient.SendMessage(chatId, "Intercepted message");
+                await _sender.Send(chatId, SampleMessages.Text("Intercepted message"));
                 sessionObject.IsIntercept = !sessionObject.IsIntercept;
                 return GlobalInterceptResult.Freeze;
             }
 
             return GlobalInterceptResult.Next;
         }
-    }
-
-    public enum FluentCommandWithGlobalInterceptStates
-    {
-        Entry,
-        Stop
-    }
-
-    public class FluentCommandWithGlobalInterceptObject
-    {
-        public bool IsIntercept { get; set; }
     }
 }

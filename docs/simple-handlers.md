@@ -71,9 +71,10 @@ Sessions are looked up by `(Platform, ChatId, UserId)`. `PLATFORM` is an enum co
 `Telegram = 0` (the default) and `Max = 1`. Creation records the current platform;
 reads and updates are restricted to that platform. Payloads use `System.Text.Json`.
 
-This sample has no schema migrations. Use a sample database whose schema includes
-`PLATFORM`; an older database without that column must be recreated or adjusted
-manually. Existing records assigned the default value belong to Telegram.
+On every startup, `Startup.Configure` uses EntityStorage's `EfDbContext` to call
+`Database.EnsureDeleted()` followed by `Database.EnsureCreated()`. The configured
+session database is recreated empty with the current schema, including `PLATFORM`.
+All previous sessions are discarded. No migrations or seed sessions are used.
 EntityStorage itself is unchanged.
 
 This is a teaching sample: authorization permits all users, and it does not provide

@@ -12,23 +12,23 @@ namespace Bot.Commands.Core.Fluent.StateMachine
 {
     internal class State<TObj, TStates> : IState<TObj, TStates>
     {
-        private Func<object, TStates, TObj, Task<TStates>> _handler;
+        private Func<IQueryContext<object>, TStates, TObj, Task<TStates>> _handler;
         private bool _forceNext = false;
 
-        private readonly Func<object, TStates, TObj, Task<ICommandExecutionResult>> _finalizer;
+        private readonly Func<IQueryContext<object>, TStates, TObj, Task<ICommandExecutionResult>> _finalizer;
         private readonly StateType _stateType;
         public TStates Id { get; }
         public uint? DurationInSec { get; }
 
         private readonly StateMessagesBuilder<TObj, TStates> _messagesBuilder;
-        private readonly Func<object, TStates, TObj, IBotMessage[], Task> _sender;
+        private readonly Func<IQueryContext<object>, TStates, TObj, IBotMessage[], Task> _sender;
         private bool _withoutAnswer;
 
         public State(TStates id,
             StateType stateType,
-            Func<object, TStates, TObj, IBotMessage[], Task> sender,
+            Func<IQueryContext<object>, TStates, TObj, IBotMessage[], Task> sender,
             uint? durationInSec,
-            Func<object, TStates, TObj, Task<ICommandExecutionResult>> finalizer = null)
+            Func<IQueryContext<object>, TStates, TObj, Task<ICommandExecutionResult>> finalizer = null)
         {
             _stateType = stateType;
             Id = id;
@@ -39,7 +39,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
             _withoutAnswer = false;
         }
 
-        public async Task SendMessages<TQuery>(QueryContext<TQuery> currentQuery, TObj obj)
+        public async Task SendMessages<TQuery>(IQueryContext<TQuery> currentQuery, TObj obj)
         {
             var messageContainers = await _messagesBuilder.Build(Id, obj);
             var groupSending = _sender != null;
@@ -51,18 +51,18 @@ namespace Bot.Commands.Core.Fluent.StateMachine
 
             if (groupSending)
             {
-                await _sender(currentQuery, Id, obj, messages.ToArray());
+                await _sender((IQueryContext<object>)currentQuery, Id, obj, messages.ToArray());
             }
         }
 
-        public async Task<(TStates, bool)> HandleQuery<TQuery>(QueryContext<TQuery> query, TObj obj)
+        public async Task<(TStates, bool)> HandleQuery<TQuery>(IQueryContext<TQuery> query, TObj obj)
         {
             if (CallbackDataContainer<TObj, TStates>.IsCallback(query))
             {
                 var (callbackId, _) = CallbackDataContainer<TObj, TStates>.ExtractData(query);
                 if (!callbackId.StartsWith(_messagesBuilder.GetPrefix()))
                 {
-                    return (await _handler(query.Query, Id, obj), _forceNext);
+                    return (await _handler((IQueryContext<object>)query, Id, obj), _forceNext);
                 }
 
                 var messageContainers = await _messagesBuilder.Build(Id, obj);
@@ -78,7 +78,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
                 throw new InvalidOperationException("Could not handle query");
             }
 
-            return (await _handler(query.Query, Id, obj), _forceNext);
+            return (await _handler((IQueryContext<object>)query, Id, obj), _forceNext);
         }
 
         public async Task<bool> IsCommandHandle<TQuery>(TObj obj, IQueryCommand<TQuery> currentCommand)
@@ -95,7 +95,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
             return false;
         }
 
-        public void SetHandler(Func<object, TStates, TObj, Task<TStates>> handler, bool force)
+        public void SetHandler(Func<IQueryContext<object>, TStates, TObj, Task<TStates>> handler, bool force)
         {
             _handler = handler;
             _forceNext = force;
@@ -106,15 +106,15 @@ namespace Bot.Commands.Core.Fluent.StateMachine
             return _stateType;
         }
 
-        public Task<ICommandExecutionResult> Finalize<TQuery>(QueryContext<TQuery> query, TObj sessionObjectObject)
+        public Task<ICommandExecutionResult> Finalize<TQuery>(IQueryContext<TQuery> query, TObj sessionObjectObject)
         {
-            return _finalizer?.Invoke(query.Query, Id, sessionObjectObject);
+            return _finalizer?.Invoke((IQueryContext<object>)query, Id, sessionObjectObject);
         }
 
         public bool NeedAnswer => !_withoutAnswer;
 
         public void AddMessage<TQuery>(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<QueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
+            Func<IQueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
         {
             _messagesBuilder.AddMessage(messageProvider, sender);
         }
@@ -126,7 +126,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
         }
 
         public void AddMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<object, TStates, TObj, IBotMessage, Task> sender)
+            Func<IQueryContext<object>, TStates, TObj, IBotMessage, Task> sender)
         {
             _messagesBuilder.AddMessage(messageProvider, sender);
         }
@@ -137,7 +137,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
         }
 
         public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
+            Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> handler, bool force) where TQuery : class
         {
             _messagesBuilder.AddOnCallback(callbackProvider, handler, force);
         }

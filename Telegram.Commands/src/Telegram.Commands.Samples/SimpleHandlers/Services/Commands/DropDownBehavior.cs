@@ -1,40 +1,25 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using SimpleHandlers.Services.Commands.Models;
-using global::Telegram.Bot.Types;
 using Bot.Commands.Abstract.Attributes;
 using Bot.Commands.Abstract.Commands;
 using Bot.Commands.Abstract.Interfaces;
+using Bot.Commands.Abstract.Messages;
+using Bot.Commands.Core;
+using Bot.Commands.Core.Models;
+using Bot.Commands.Core.Services;
 using Bot.Commands.Core.Exceptions;
-
-namespace SimpleHandlers.Services.Commands
+using Bot.Commands.UI.DropDown;
+using SimpleHandlers.Services.Commands.Models;
+namespace SimpleHandlers.Services.Commands;
+[Command(Name = "dropdown_behavior")]
+public abstract class DropDownBehavior : IBehaviorCommand<DropDownSessionObject>
 {
-    [Command(Swarms = new[] { "telegram" }, Name = "dropdown_behavior")]
-    public class DropDownBehavior : IBehaviorCommand<DropDownSessionObject>
-    {
-        public Task<ICommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, DropDownSessionObject sessionObject)
-        {
-            throw new BotDomainException("From menu, please");
-        }
-
-        public async Task<ICommandExecutionResult> Execute<TQuery>(IQueryCommand<TQuery> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)
-        {
-            return currentCommand switch
-            {
-                CancelCallback cancelCallback => await cancelCallback.Execute(query as QueryContext<CallbackQuery>),
-                _ => await DefaultExecute(query, sessionObject)
-            };
-        }
-
-        public async Task<ICommandExecutionResult> Execute<TQuery>(ISessionCommand<TQuery, DropDownSessionObject> currentCommand, QueryContext<TQuery> query, DropDownSessionObject sessionObject)
-        {
-            return currentCommand switch
-            {
-                SelectDropDownItemCallback selectDropDownItemCallback => await selectDropDownItemCallback.Execute(
-                    query as QueryContext<CallbackQuery>, sessionObject),
-                ShowDropDownCallback showDropDownCallback => await showDropDownCallback.Execute(query as QueryContext<CallbackQuery>,
-                    sessionObject),
-                _ => await DefaultExecute(query, sessionObject)
-            };
-        }
-    }
+    public Task<ICommandExecutionResult> DefaultExecute<TQuery>(QueryContext<TQuery> query, DropDownSessionObject data)
+        => throw new BotDomainException("Please choose an action from the menu.");
+    public Task<ICommandExecutionResult> Execute<TQuery>(IQueryCommand<TQuery> currentCommand, QueryContext<TQuery> query, DropDownSessionObject data)
+        => currentCommand is CancelCallback ? currentCommand.Execute(query) : DefaultExecute(query, data);
+    public Task<ICommandExecutionResult> Execute<TQuery>(ISessionCommand<TQuery, DropDownSessionObject> currentCommand, QueryContext<TQuery> query, DropDownSessionObject data)
+        => currentCommand is ShowDropDownCallback or SelectDropDownItemCallback ? currentCommand.Execute(query, data) : DefaultExecute(query, data);
 }

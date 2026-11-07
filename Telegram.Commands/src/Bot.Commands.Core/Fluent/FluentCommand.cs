@@ -19,7 +19,7 @@ namespace Bot.Commands.Core.Fluent
             var stateMachine = StateMachineInternal;
             if (sessionObject == null)
             {
-                var (obj, nextState) = await Entry(query.Query, default);
+                var (obj, nextState) = await Entry(query, default);
                 sessionObject = new FluentObject<TObject, TStates>(obj, null)
                 {
                     CurrentStateId =
@@ -30,7 +30,7 @@ namespace Bot.Commands.Core.Fluent
                 };
 
                 var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
-                var resGlobalIntercept1 = await GlobalIntercept(query.Query, sessionObject.Object);
+                var resGlobalIntercept1 = await GlobalIntercept(query, sessionObject.Object);
                 if (resGlobalIntercept1 == GlobalInterceptResult.Freeze)
                     return  CommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
 
@@ -47,12 +47,12 @@ namespace Bot.Commands.Core.Fluent
 
             if (!sessionObject.CurrentStateId.IsInit)
             {
-                var (obj, nextState) = await Entry(query.Query, sessionObject.Object);
+                var (obj, nextState) = await Entry(query, sessionObject.Object);
                 sessionObject.Object = obj;
                 sessionObject.CurrentStateId.Data = nextState;
                 sessionObject.CurrentStateId.IsInit = true;
                 var entryState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
-                var resGlobalIntercept2 = await GlobalIntercept(query.Query, sessionObject.Object);
+                var resGlobalIntercept2 = await GlobalIntercept(query, sessionObject.Object);
                 if (resGlobalIntercept2 == GlobalInterceptResult.Freeze)
                     return CommandExecutionResult.AheadFluent(this, sessionObject, entryState.DurationInSec);
                 if (sessionObject.FireType == FireType.Entry)
@@ -70,7 +70,7 @@ namespace Bot.Commands.Core.Fluent
             }
 
             var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
-            var resGlobalIntercept = await GlobalIntercept(query.Query, sessionObject.Object);
+            var resGlobalIntercept = await GlobalIntercept(query, sessionObject.Object);
             if (resGlobalIntercept == GlobalInterceptResult.Freeze)
                 return CommandExecutionResult.AheadFluent(this, sessionObject, currentState.DurationInSec);
             
@@ -109,7 +109,7 @@ namespace Bot.Commands.Core.Fluent
                 return await DefaultExecute(query, sessionObject);
             var currentState = stateMachine.GetStateInternal(sessionObject.CurrentStateId.Data);
             
-            var resGlobalIntercept = await GlobalIntercept(query.Query, sessionObject.Object);
+            var resGlobalIntercept = await GlobalIntercept(query, sessionObject.Object);
             if (resGlobalIntercept == GlobalInterceptResult.Freeze)
                 return CommandExecutionResult.AheadFluent(this, sessionObject, currentState.DurationInSec);
             
@@ -152,7 +152,7 @@ namespace Bot.Commands.Core.Fluent
             };
         }
 
-        protected virtual Task<GlobalInterceptResult> GlobalIntercept<TQuery>(TQuery query,
+        protected virtual Task<GlobalInterceptResult> GlobalIntercept<TQuery>(QueryContext<TQuery> query,
             TObject sessionObject)
         {
             return Task.FromResult(GlobalInterceptResult.Next);
@@ -165,22 +165,8 @@ namespace Bot.Commands.Core.Fluent
             return await DefaultExecute(query, sessionObject);
         }
 
-        protected abstract Task<(TObject, TStates)> Entry<TQuery>(TQuery query, TObject currentObject);
+        protected abstract Task<(TObject, TStates)> Entry<TQuery>(QueryContext<TQuery> query, TObject currentObject);
 
         protected abstract IStateMachine<TStates> StateMachine(IStateMachineBuilder<TObject, TStates> builder);
-    }
-
-    public enum GlobalInterceptResult
-    {
-        Freeze,
-        Next
-    }
-
-    public class InterceptResult<TQuery, TObject>
-    {
-        public bool MustIntercept { get; set; }
-        public bool MustInterceptWithoutExecute { get; set; }
-        public bool IsTerminalResult { get; set; }
-        public Func<QueryContext<TQuery>, TObject, ICommandExecutionResult, Task> ResultCallback { get; set; }
     }
 }

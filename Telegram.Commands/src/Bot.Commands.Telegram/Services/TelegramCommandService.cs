@@ -14,9 +14,9 @@ namespace Bot.Commands.Telegram.Services
         IAuthProvider authProvider,
         SessionManager sessionManager,
         IBotProfile botProfile,
-        CommandExecutionService commandExecutionService)
+        CommandExecutionService commandExecutionService, IEnumerable<ICommandMatcher>? matchers = null)
         : CommandServiceBase(commandExecutionService, sessionManager,
-            authProvider, botProfile), IBotCommandResolver<Update>
+            authProvider, botProfile, matchers), IBotCommandResolver<Update>
     {
         protected override bool TryGetQueryCommandStr<TQuery>(QueryContext<TQuery> query, out string commandStr)
         {

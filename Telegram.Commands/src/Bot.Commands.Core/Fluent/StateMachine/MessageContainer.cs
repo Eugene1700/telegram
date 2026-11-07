@@ -12,19 +12,19 @@ namespace Bot.Commands.Core.Fluent.StateMachine
     internal class MessageContainer<TObj, TStates>
     {
         private readonly Func<TStates, TObj, Task<ITextMessage>> _message;
-        private readonly Func<object, TStates, TObj, IBotMessage, Task>  _sendMessageProvider;
+        private readonly Func<IQueryContext<object>, TStates, TObj, IBotMessage, Task>  _sendMessageProvider;
         internal CallbackBuilder<TObj, TStates> CallbackBuilder { get; }
 
         public MessageContainer(string prefix, 
             Func<TStates, TObj, Task<ITextMessage>> messageProvider, 
-            Func<object, TStates, TObj, IBotMessage, Task>  sendMessageProvider,
+            Func<IQueryContext<object>, TStates, TObj, IBotMessage, Task>  sendMessageProvider,
             IState<TObj, TStates> currentState) :
             this(messageProvider, sendMessageProvider, new CallbackBuilder<TObj, TStates>($"{prefix}mc", currentState))
         {
         }
 
         private MessageContainer(Func<TStates, TObj, Task<ITextMessage>> messageProvider, 
-            Func<object, TStates, TObj, IBotMessage, Task>  sendMessageProvider,
+            Func<IQueryContext<object>, TStates, TObj, IBotMessage, Task>  sendMessageProvider,
             CallbackBuilder<TObj, TStates> callbackBuilder)
         {
             _message = messageProvider;
@@ -32,7 +32,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
             CallbackBuilder = callbackBuilder;
         }
 
-        public async Task<IBotMessage> SendMessage<TQuery>(TQuery currentQuery, TStates state, TObj obj, bool useOwnSender)
+        public async Task<IBotMessage> SendMessage<TQuery>(IQueryContext<TQuery> currentQuery, TStates state, TObj obj, bool useOwnSender)
         {
             var textMessage = await _message(state, obj);
             var callbackBuilder = new InlineMarkupQueryBuilder();
@@ -49,14 +49,14 @@ namespace Bot.Commands.Core.Fluent.StateMachine
                     }
                 }
             }
-            var mes = new BotMessage(textMessage.Text, textMessage.Photo, textMessage.ParseMode,
-                callbackBuilder.GetCallbacks());
+            var mes = new BotMessage(textMessage.Text, textMessage.Photo, textMessage.Format,
+                callbackBuilder.GetCallbacks()) { SendAsFile = textMessage.SendAsFile, FileName = textMessage.FileName };
             if (useOwnSender)
-                await _sendMessageProvider(currentQuery, state, obj, mes);
+                await _sendMessageProvider((IQueryContext<object>)currentQuery, state, obj, mes);
             return mes;
         }
 
-        public async Task<(bool, (TStates, bool))> TryHandleCallback<TQuery>(QueryContext<TQuery> query, TStates state, TObj obj)
+        public async Task<(bool, (TStates, bool))> TryHandleCallback<TQuery>(IQueryContext<TQuery> query, TStates state, TObj obj)
         {
             var callbacks = await CallbackBuilder.Build(state, obj);
             var (callbackKey, callbackUserData) =
@@ -64,7 +64,7 @@ namespace Bot.Commands.Core.Fluent.StateMachine
             CallbackDataContainer<TObj, TStates> container = null;
             if (callbacks.Any(x => x.TryGetByKey(callbackKey, obj, out container)))
             {
-                return (true, await container.Handle(query.Query, state, obj, callbackUserData));
+                return (true, await container.Handle(query, state, obj, callbackUserData));
             }
 
             return (false, default);

@@ -1,3 +1,4 @@
+using Bot.Commands.Abstract.Commands;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -72,7 +73,7 @@ namespace Bot.Commands.Core.Fluent.Builders.CallbackBuilders
         }
 
         public ICallbackRowBuilderBase<TObj, TStates> OnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, 
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
+            Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> handler,
             bool force) where TQuery : class
         {
             _currentRow.AddContainer(callbackProvider, handler, force);
@@ -81,8 +82,8 @@ namespace Bot.Commands.Core.Fluent.Builders.CallbackBuilders
 
         public ICallbackRowBuilderBase<TObj, TStates> NextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool force)
         {
-            Task<TStates> CommitExpr(object x, TStates s, TObj y, string z) => Task.FromResult(stateId);
-            _currentRow.AddContainer(callbackProvider, (Func<object, TStates, TObj, string, Task<TStates>>)CommitExpr, force);
+            Task<TStates> CommitExpr(IQueryContext<object> x, TStates s, TObj y, string z) => Task.FromResult(stateId);
+            _currentRow.AddContainer(callbackProvider, (Func<IQueryContext<object>, TStates, TObj, string, Task<TStates>>)CommitExpr, force);
             return this;
         }
 
@@ -107,7 +108,7 @@ namespace Bot.Commands.Core.Fluent.Builders.CallbackBuilders
             _currentRowBuilder = newRowBuilder;
         }
 
-        public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, Func<TQuery, TStates, TObj,string,Task<TStates>> handler, bool force) where TQuery : class
+        public void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider, Func<IQueryContext<TQuery>, TStates, TObj,string,Task<TStates>> handler, bool force) where TQuery : class
         {
             _currentRowBuilder.AddOnCallback(callbackProvider, handler, force);
         }
@@ -118,9 +119,9 @@ namespace Bot.Commands.Core.Fluent.Builders.CallbackBuilders
 
         public void AddNextFromCallback(Func<TStates, TObj, CallbackData> callbackProvider, TStates stateId, bool force)
         {
-            Task<TStates> Handle(object q, TStates state, TObj obj, string s) => Task.FromResult(stateId);
+            Task<TStates> Handle(IQueryContext<object> q, TStates state, TObj obj, string s) => Task.FromResult(stateId);
             _currentRowBuilder.AddOnCallback(callbackProvider,
-                (Func<object, TStates, TObj, string, Task<TStates>>)Handle, force);
+                (Func<IQueryContext<object>, TStates, TObj, string, Task<TStates>>)Handle, force);
         }
     }
 }

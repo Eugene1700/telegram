@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -6,6 +6,8 @@ using EntityStorage;
 using EntityStorage.Extensions;
 using SimpleHandlers.Domain;
 using Bot.Commands.Abstract.Interfaces;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using IClock = Bot.Commands.Abstract.Interfaces.IClock;
 
 namespace SimpleHandlers.Services
@@ -13,14 +15,18 @@ namespace SimpleHandlers.Services
     public class SessionStore : ISessionsStore
     {
         private readonly IEntityStorage _entityStorage;
-        private readonly BotPlatform _platform;
+        private readonly string _botName;
         private readonly IClock _clock;
+        private readonly ILogger<SessionStore> _logger;
 
-        public SessionStore(IEntityStorage entityStorage, IClock clock, BotRuntime runtime)
+        public SessionStore(IEntityStorage entityStorage, IClock clock, IBotProfile profile,
+            ILogger<SessionStore> logger = null)
         {
             _entityStorage = entityStorage;
-            _platform = runtime.Platform;
+            _botName = !string.IsNullOrWhiteSpace(profile.BotName) ? profile.BotName
+                : throw new ArgumentException("BotName is required for session isolation.", nameof(profile));
             _clock = clock;
+            _logger = logger ?? NullLogger<SessionStore>.Instance;
         }
 
         public ISessionInfo GetSessionInfo(DateTime now, long chatId, long userId)
@@ -76,7 +82,7 @@ namespace SimpleHandlers.Services
         {
             var comSes = new CommandSession
             {
-                Platform = _platform,
+                BotName = _botName,
                 CommandQuery = getCommandQuery.CommandQuery,
                 SessionData = JsonSerializer.Serialize(getCommandQuery.Data),
                 ExpiredAt = getCommandQuery.ExpiredAt,
@@ -85,49 +91,37 @@ namespace SimpleHandlers.Services
                 ChatId = getCommandQuery.ChatId
             };
             await _entityStorage.CreateEntity(comSes);
+            _logger.LogInformation("Created session for bot {BotName}, command {Command}, chat {ChatId}, user {UserId}",
+                _botName, comSes.CommandQuery, comSes.ChatId, comSes.UserId);
         }
 
         public async Task UpdateSession(ISessionInfoWithData session, long chatIdFrom)
         {
             var now = _clock.Now;
             var currentSession = GetCurrentDomainSession(now, chatIdFrom, session.UserId)
-                ?? throw new InvalidOperationException("The session no longer exists on this platform.");
+                ?? throw new InvalidOperationException("The session no longer exists for this bot.");
             await _entityStorage.UpdateSingle(currentSession, _ => new CommandSession
             {
+                BotName = _botName,
+                UserId = currentSession.UserId,
+                OpenedAt = currentSession.OpenedAt,
                 ChatId = session.ChatId,
                 CommandQuery = session.CommandQuery,
                 ExpiredAt = session.ExpiredAt,
                 SessionData = JsonSerializer.Serialize(session.Data)
             });
+            _logger.LogInformation("Updated session for bot {BotName}, command {Command}, chat {ChatId}, user {UserId}",
+                _botName, session.CommandQuery, session.ChatId, session.UserId);
         }
 
         private CommandSession GetCurrentDomainSession(DateTime now, long chatId, long userId)
         {
             return (from session in _entityStorage.Select<CommandSession>()
-                where session.Platform == _platform
+                where session.BotName == _botName
                 where session.UserId == userId
                 where session.ChatId == chatId
                 where session.ExpiredAt == null || session.ExpiredAt > now
                 select session).SingleOrDefault();
-        }
-    }
-
-    public class CourseSessionDescriptorBase : ISessionInfoWithData
-    {
-        public string CommandQuery { get; set; }
-        public DateTime OpenedAt { get; set; }
-        public DateTime? ExpiredAt { get; set; }
-        public long ChatId { get; set; }
-        public long UserId { get; set; }
-        public object Data { get; set; }
-    }
-
-    public class CourseSessionDescriptor<TData> : CourseSessionDescriptorBase, ISessionInfoWithData<TData>
-    {
-        public new TData Data
-        {
-            get => base.Data == null ? default : (TData)base.Data;
-            set => base.Data = value;
         }
     }
 }

@@ -25,6 +25,17 @@ public class SimpleHandlersPlatformTests
         services.AddLogging();
         var sent = new RecordingSender();
         services.AddSingleton<ISampleMessageSender>(sent);
+        var executed = new List<Type>();
+        services.AddScoped<ICommandFactory>(sp =>
+        {
+            var factory = new Moq.Mock<ICommandFactory>();
+            factory.Setup(f => f.GetCommand(Moq.It.IsAny<Type>())).Returns((Type type) =>
+            {
+                executed.Add(type);
+                return sp.GetRequiredService(type);
+            });
+            return factory.Object;
+        });
         {
             ISessionInfoWithData saved = null;
             var store = new SessionStoreMock();
@@ -39,7 +50,7 @@ public class SimpleHandlersPlatformTests
         provider.GetRequiredService<IHttpContextAccessor>().HttpContext.Request.Path =
             "/" + (max ? Settings.MaxRouteToUpdate : Settings.RouteToUpdate);
 
-        async Task Send(string text, bool callback = false)
+        async Task Send(string text, bool callback = false, bool photo = false)
         {
             // Each update gets a fresh DI scope, just like a webhook request.
             using var scope = provider.CreateScope();
@@ -53,11 +64,17 @@ public class SimpleHandlersPlatformTests
                     : JsonSerializer.Serialize(new { update_type = "message_created",
                         message = new { sender = new { user_id = 2, name = "test" },
                             recipient = new { chat_id = 1, chat_type = "dialog" }, body = new { mid = "mid", text } } });
+                if (photo) json = """
+                    {"update_type":"message_created","message":{"sender":{"user_id":2,"name":"test"},
+                    "recipient":{"chat_id":1,"chat_type":"dialog"},"body":{"mid":"photo-mid","attachments":[
+                    {"type":"image","payload":{"photo_id":12,"url":"https://example.com/photo.jpg"}}]}}}
+                    """;
                 await scope.ServiceProvider.GetRequiredService<IBotCommandResolver<Mx.Update>>().Handle(JsonSerializer.Deserialize<Mx.Update>(json));
             }
             else
             {
                 var message = new Tg.Message { Chat = new Tg.Chat { Id = 1, Type = global::Telegram.Bot.Types.Enums.ChatType.Private }, From = new Tg.User { Id = 2 }, Text = text };
+                if (photo) message.Photo = new[] { new Tg.PhotoSize { FileId = "photo", FileUniqueId = "photo", Width = 10, Height = 10, FileSize = 100 } };
                 var update = callback
                     ? new Tg.Update { CallbackQuery = new Tg.CallbackQuery { Id = "cb", From = message.From, Message = message, Data = text } }
                     : new Tg.Update { Message = message };
@@ -77,10 +94,57 @@ public class SimpleHandlersPlatformTests
         var payload = sent.Messages.Last().Callbacks.Single().CallbackText;
         await Send(payload, callback: true);
         Assert.That(sent.Messages.Last().Text, Is.EqualTo("Profile saved: Alex"));
+        async Task Click(string label)
+        {
+            var button = sent.Messages.AsEnumerable().Reverse().SelectMany(m => m.Callbacks ?? Enumerable.Empty<CallbackDataWithCommand>())
+                .First(c => c.Text == label);
+            await Send(button.CommandDescriptor == null ? button.CallbackText : $"/{button.CommandDescriptor.Name} {button.CallbackText}", callback: true);
+        }
+        await Send("register");
+        await Send("Funnel User");
+        Assert.That(sent.Messages.Last().Text, Is.EqualTo("Profile saved: Funnel User"));
+        foreach (var command in new[] { "/dropdown", "/dropdownmultiple" })
+        {
+            await Send(command);
+            var dropdown = sent.Messages.Last().Callbacks.First();
+            await Send($"/{dropdown.CommandDescriptor.Name} {dropdown.CallbackText}", callback: true);
+            await Click("Item1");
+            Assert.That(sent.Messages.Last().Callbacks.Any(c => c.Text == "✓ Item1"), Is.True);
+            await Click("Cancel");
+        }
+        await Send("/sendphoto");
+        await Send(null, photo: true);
+        await Click("Next photo");
+        await Send(null, photo: true);
+        await Click("Show result");
+        Assert.That(sent.Messages.Last().Text.Split("MessageId:").Length, Is.EqualTo(3));
+        await Click("Cancel");
+        foreach (var command in new[] { "/myfluent", "/otherfluent" })
+        {
+            await Send(command);
+            await Send("Ada");
+            await Send("Lovelace");
+            Assert.That(sent.Messages.Last().Text, Is.EqualTo("Your data: Ada Lovelace"));
+        }
+        await Send("/myfluent");
+        await Click("Default Name (Jack)");
+        await Send("Smith");
+        Assert.That(sent.Messages.Last().Text, Is.EqualTo("Your data: Jack Smith"));
+        await Send("/myfluent");
+        await Click("Cancel");
+        Assert.That(sent.Messages.Last().Text, Is.EqualTo("Cancelled. Try /sendphoto or /dropdown."));
+        using (var cancelled = provider.CreateScope())
+            Assert.That(cancelled.ServiceProvider.GetRequiredService<ISessionsStore>()
+                .GetSessionInfo(DateTime.Now, 1, 2), Is.Null);
+        await Send("/global");
+        await Send("toggle");
+        await Send("intercept me");
+        Assert.That(sent.Messages.Last().Text, Is.EqualTo("Intercepted message"));
+        await Click("Stop");
+        Assert.That(executed.All(t => t.Name.StartsWith(max ? "Max" : "Telegram", StringComparison.Ordinal)), Is.True);
         using var check = provider.CreateScope();
         Assert.That(check.ServiceProvider.GetRequiredService<ISessionsStore>().GetSessionInfo(DateTime.Now, 1, 2), Is.Null);
-        if (max)
-            await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(() => Send("/myfluent"));
+
     }
 
     [TestCase(false, false, 404)]
@@ -125,11 +189,9 @@ public class SimpleHandlersPlatformTests
         Assert.That(profile.BotName, Is.EqualTo("max_sample"));
         Assert.That(profile.UpdateRoute, Is.EqualTo(Settings.MaxRouteToUpdate));
         Assert.That(services.Single(s => s.ServiceType == typeof(ISessionsStore)).ImplementationType, Is.EqualTo(typeof(SessionStore)));
-        Assert.That(scope.ServiceProvider.GetRequiredService<BotRuntime>().Platform, Is.EqualTo(SimpleHandlers.Domain.BotPlatform.Max));
         accessor.HttpContext.Request.Path = "/" + Settings.RouteToUpdate;
         using var telegram = provider.CreateScope();
         Assert.That(telegram.ServiceProvider.GetRequiredService<IBotProfile>().BotName, Is.EqualTo("telegram_sample"));
-        Assert.That(telegram.ServiceProvider.GetRequiredService<BotRuntime>().Platform, Is.EqualTo(SimpleHandlers.Domain.BotPlatform.Telegram));
     }
 
     private static IConfiguration Configuration() => new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
@@ -143,6 +205,7 @@ public class SimpleHandlersPlatformTests
     private sealed class RecordingSender : ISampleMessageSender
     {
         public List<IBotMessage> Messages { get; } = new();
+        public Task Edit(long chatId, string messageId, IBotMessage message) => Send(chatId, message);
         public Task Send(long chatId, IBotMessage message)
         {
             Assert.That(chatId, Is.EqualTo(1));

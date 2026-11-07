@@ -10,9 +10,4 @@ namespace Bot.Commands.Core.Exceptions
         }
         public long ChatId { get; }
     }
-
-    public interface ICommandException
-    {
-        public long ChatId { get; }
-    }
 }

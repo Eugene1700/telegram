@@ -20,10 +20,10 @@ namespace Bot.Commands.Core.Fluent.Builders.StateBuilders
             _stateMachineBuilder = stateMachineBuilder;
         }
 
-        public IStateMachineBuilder<TObj, TStates> Next<TQuery>(Func<TQuery, TStates, TObj, Task<TStates>> handler,
+        public IStateMachineBuilder<TObj, TStates> Next<TQuery>(Func<IQueryContext<TQuery>, TStates, TObj, Task<TStates>> handler,
             bool force) where TQuery : class
         {
-            _state.SetHandler((q, s, o) => handler(q as TQuery, s, o), force);
+            _state.SetHandler((q, s, o) => handler(((IQueryContext<TQuery>)q), s, o), force);
             return _stateMachineBuilder;
         }
 
@@ -68,7 +68,7 @@ namespace Bot.Commands.Core.Fluent.Builders.StateBuilders
         }
 
         public ICallbackRowBuilder<TObj, TStates> OnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
+            Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> handler,
             bool force) where TQuery : class
         {
             _state.AddOnCallback(callbackProvider, handler, force);
@@ -97,14 +97,14 @@ namespace Bot.Commands.Core.Fluent.Builders.StateBuilders
         }
 
         public IMessageBuilder<TObj, TStates> WithMessage<TQuery>(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<QueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
+            Func<IQueryContext<TQuery>, TStates, TObj, IBotMessage, Task> sender)
         {
             _state.AddMessage(messageProvider, sender);
             return this;
         }
 
         public IMessageBuilder<TObj, TStates> WithMessage(Func<TStates, TObj, Task<ITextMessage>> messageProvider,
-            Func<object, TStates, TObj, IBotMessage, Task> sender)
+            Func<IQueryContext<object>, TStates, TObj, IBotMessage, Task> sender)
         {
             _state.AddMessage(messageProvider, sender);
             return this;

@@ -1,3 +1,4 @@
+using Bot.Commands.Abstract.Commands;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -16,8 +17,8 @@ namespace Bot.Commands.Core.Fluent.StateMachine
         }
 
         public State<TObj, TStates> AddState(TStates stateId, StateType stateType,
-            Func<object, TStates, TObj, IBotMessage[], Task> sender, uint? durationInSec,
-            Func<object, TStates, TObj, Task<ICommandExecutionResult>> finalizer)
+            Func<IQueryContext<object>, TStates, TObj, IBotMessage[], Task> sender, uint? durationInSec,
+            Func<IQueryContext<object>, TStates, TObj, Task<ICommandExecutionResult>> finalizer)
         {
             var newState = stateType switch
             {
@@ -31,9 +32,9 @@ namespace Bot.Commands.Core.Fluent.StateMachine
         }
 
         public State<TObj, TStates> AddExit<TQuery>(TStates stateId,
-            Func<TQuery, TStates, TObj, Task<ICommandExecutionResult>> finalizer) where TQuery : class
+            Func<IQueryContext<TQuery>, TStates, TObj, Task<ICommandExecutionResult>> finalizer) where TQuery : class
         {
-            Task<ICommandExecutionResult> FinalizerObj(object q, TStates s, TObj o) => finalizer(q as TQuery, s, o);
+            Task<ICommandExecutionResult> FinalizerObj(IQueryContext<object> q, TStates s, TObj o) => finalizer(((IQueryContext<TQuery>)q), s, o);
             return AddState(stateId, StateType.Finish, null, null, FinalizerObj);
         }
 

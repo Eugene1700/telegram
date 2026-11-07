@@ -2,7 +2,7 @@ using Bot.Commands.Abstract.Attributes;
 
 namespace Bot.Commands.Abstract.Commands;
 
-public abstract class QueryContext<TQuery>(TQuery query)
+public abstract class QueryContext<TQuery>(TQuery query) : IQueryContext<TQuery>
 {
     public TQuery Query { get; } = query;
     public abstract long GetChatId();

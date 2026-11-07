@@ -78,7 +78,7 @@ Abstract, Core, UI, and common DependencyInjection do not reference a messenger 
 
 ## Current scope
 
-The code targets .NET 10 and currently references Telegram.Bot **22.9.0** and MaxMessenger.Bot **0.4.1-alpha**. These are the versions in this repository, not a claim about the latest upstream releases.
+The code targets .NET 10 and currently references Telegram.Bot **22.10.3.3** and MaxMessenger.Bot **0.8.0-alpha**. These are the versions in this repository, not a claim about the latest upstream releases.
 
 Not every update or SDK feature is exposed by the adapters. Sessions are keyed by chat and user, so applications running multiple bots must isolate their stores and profiles. The engine does not provide update deduplication, per-session locking, or automatic retries. Read the [operational notes](docs/architecture.md#operational-boundaries) before connecting a persistent store or multiple workers.
 

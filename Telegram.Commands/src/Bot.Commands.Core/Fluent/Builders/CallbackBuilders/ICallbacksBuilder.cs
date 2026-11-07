@@ -9,10 +9,4 @@ namespace Bot.Commands.Core.Fluent.Builders.CallbackBuilders
         ICallbackRowBuilder<TObj, TStates> Row();
         ICallbacksBuilder<TObj, TStates> KeyBoard(Func<TStates, TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider);
     }
-
-    public interface ICallbacksBuilderForMessage<TObj, TStates>: IStateBuilderBase<TObj, TStates>
-    {
-        ICallbackRowBuilderForMessage<TObj, TStates> Row();
-        ICallbacksBuilderForMessage<TObj, TStates> KeyBoard(Func<TStates, TObj, ICallbacksBuilderBase<TObj, TStates>, Task> provider);
-    }
 }

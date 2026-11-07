@@ -24,7 +24,7 @@ public class MessageCreatedQueryContext(Chat? chat, Message query) : QueryContex
 
     public override bool IsGroupMessage()
     {
-        return (chat?.Type ?? MaxChatExtensions.ParseChatType(Query.Recipient?.ChatType)).IsGroupMessage();
+        return (chat?.Type ?? Query.Recipient?.ChatType ?? throw new InvalidOperationException("Message has no chat type")).IsGroupMessage();
     }
 
     public override bool IsEvent()
@@ -39,7 +39,7 @@ public class MessageCreatedQueryContext(Chat? chat, Message query) : QueryContex
 
     public override ChatArea GetChatType()
     {
-        return (chat?.Type ?? MaxChatExtensions.ParseChatType(Query.Recipient?.ChatType)).ToChatArea();
+        return (chat?.Type ?? Query.Recipient?.ChatType ?? throw new InvalidOperationException("Message has no chat type")).ToChatArea();
     }
 
     public override string? GetMessageId()

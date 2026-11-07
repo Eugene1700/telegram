@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using SimpleHandlers.Domain;
 
 namespace SimpleHandlers.Services;
 
 public sealed class BotRuntime(IHttpContextAccessor accessor)
 {
     public bool IsMax => accessor.HttpContext?.Request.Path.StartsWithSegments("/api/max") == true;
-    public BotPlatform Platform => IsMax ? BotPlatform.Max : BotPlatform.Telegram;
 
     public static BotProfile ReadProfile(IConfiguration configuration, bool max)
     {

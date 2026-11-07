@@ -10,14 +10,4 @@ namespace Bot.Commands.Abstract.Interfaces
         public long ChatId { get; set; }
         public long UserId { get; set; }
     }
-
-    public interface ISessionInfoWithData : ISessionInfo
-    {
-        public object Data { get; }
-    }
-    
-    public interface ISessionInfoWithData<out T> : ISessionInfo
-    {
-        public T Data { get; }
-    }
 }

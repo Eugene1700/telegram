@@ -1,3 +1,4 @@
+using Bot.Commands.Abstract.Commands;
 using System;
 using System.Threading.Tasks;
 using Bot.Commands.Core.Fluent.Builders.CallbackBuilders;
@@ -35,7 +36,7 @@ namespace Bot.Commands.UI.Pagination
         {
             var rowBuilder = arg2.Row();
 
-            Task<TStates> Mover(TQuery _, TStates state, TObj o, string cd)
+            Task<TStates> Mover(IQueryContext<TQuery> _, TStates state, TObj o, string cd)
             {
                 var pageNum = uint.Parse(cd);
                 o.PageNumber = pageNum;
@@ -70,19 +71,5 @@ namespace Bot.Commands.UI.Pagination
                 }
             }
         }
-    }
-
-    internal class FluentPaginator: IPaginationMenu
-    {
-        public FluentPaginator(IFluentPaginationMenu pagination, uint currentPage)
-        {
-            PageNumber = currentPage;
-            TotalCount = pagination.TotalCount;
-            Limit = pagination.Limit;
-        }
-
-        public uint PageNumber { get; }
-        public ulong TotalCount { get; }
-        public uint Limit { get; }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -16,15 +17,17 @@ public abstract class CommandServiceBase
     private readonly SessionManager _sessionManager;
     private readonly IAuthProvider _authProvider;
     private readonly IBotProfile _botProfile;
+    private readonly IEnumerable<ICommandMatcher> _matchers;
     protected IBotProfile BotProfile => _botProfile;
 
     protected CommandServiceBase(CommandExecutionService commandExecutionService, SessionManager sessionManager,
-        IAuthProvider authProvider, IBotProfile botProfile)
+        IAuthProvider authProvider, IBotProfile botProfile, IEnumerable<ICommandMatcher> matchers = null)
     {
         _commandExecutionService = commandExecutionService;
         _sessionManager = sessionManager;
         _authProvider = authProvider;
         _botProfile = botProfile;
+        _matchers = matchers ?? Array.Empty<ICommandMatcher>();
     }
 
     protected async Task QueryHandler<TQuery>(QueryContext<TQuery> query)
@@ -123,13 +126,40 @@ public abstract class CommandServiceBase
         }
 
         if (!TryGetQueryCommandStr(query, out commandStr))
+        {
+            // A rejected slash command (for example, addressed to another bot) must not start a funnel.
+            if (query.GetData()?.StartsWith("/", StringComparison.Ordinal) != true)
+            {
+                var matched = FindMatchedCommand(query);
+                if (matched != null) return CommandDescriptorComposition.CreateQueryResult(matched);
+            }
             if (query.IsGroupMessage())
                 return null;
             else
                 throw new CommandExtractionException("Could not extract command", chatId);
+        }
 
         var queryComDesc = FindCommand<TQuery>(commandStr, chatId);
         return CommandDescriptorComposition.CreateQueryResult(queryComDesc);
+    }
+
+    private FullCommandDescriptor FindMatchedCommand<TQuery>(QueryContext<TQuery> query)
+    {
+        var matched = new List<FullCommandDescriptor>();
+        foreach (var matcher in _matchers)
+        {
+            var descriptor = BotCommandExtensions.GetCommandInfo(matcher.CommandType);
+            var candidates = FindCommandByName("/" + descriptor.Name)
+                .Where(d => d.SupportsQuery(typeof(TQuery)) && (d.IsQueryCommand || d.IsBehaviorCommand))
+                .Where(d => _botProfile.Swarms == null || _botProfile.Swarms.Length == 0 ||
+                    d.Descriptor.Swarms == null || d.Descriptor.Swarms.Any(s => _botProfile.Swarms.Contains(s)))
+                .ToArray();
+            if (candidates.Length > 0 && matcher.IsMatch(query)) matched.AddRange(candidates);
+        }
+        var distinct = matched.GroupBy(d => d.Type).Select(g => g.First()).ToArray();
+        if (distinct.Length > 1)
+            throw new CommandExtractionException("Multiple commands matched this update", query.GetChatId());
+        return distinct.SingleOrDefault();
     }
 
     private static CommandDescriptorComposition GetEvent<TQuery>(QueryContext<TQuery> query)

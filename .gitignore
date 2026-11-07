@@ -350,3 +350,6 @@ MigrationBackup/
 .ionide/
 
 .idea/
+
+# Local test runs and coverage reports
+.test-results/

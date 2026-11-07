@@ -6,7 +6,7 @@ namespace Bot.Commands.Max.Services;
 /// <summary>Builds messages using Max Markdown syntax.</summary>
 public class MaxMarkupMessageBuilder : MessageBuilderBase
 {
-    protected override BotMessageParseMode ParseMode => BotMessageParseMode.MarkDown;
+    protected override IMessageTextFormat Format => new MaxTextFormat(global::Max.Bot.Types.Enums.TextFormat.Markdown);
     protected override string PrepareText(string text) => System.Text.RegularExpressions.Regex.Replace(text ?? string.Empty, @"([\\\\`*_{}\[\]()#+\-.!>~|^=])", @"\$1");
 
     /// <summary>Appends trusted, already formatted Markdown without escaping.</summary>

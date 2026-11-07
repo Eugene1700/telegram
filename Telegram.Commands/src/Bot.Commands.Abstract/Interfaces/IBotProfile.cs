@@ -9,11 +9,4 @@ namespace Bot.Commands.Abstract.Interfaces
         GroupMessageHandlingStrategy GroupMessageHandlingStrategy { get; }
         string[] Swarms { get; }
     }
-
-    public enum GroupMessageHandlingStrategy
-    {
-        Direct,
-        Ignore,
-        All
-    }
 }

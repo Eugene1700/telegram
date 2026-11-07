@@ -1,3 +1,4 @@
+using Bot.Commands.Abstract.Commands;
 using System;
 using System.Threading.Tasks;
 using Bot.Commands.Abstract.Interfaces;
@@ -41,7 +42,7 @@ namespace Bot.Commands.Core.Fluent.Builders.CallbackBuilders
         }
 
         internal void AddOnCallback<TQuery>(Func<TStates, TObj, CallbackData> callbackProvider,
-            Func<TQuery, TStates, TObj, string, Task<TStates>> handler,
+            Func<IQueryContext<TQuery>, TStates, TObj, string, Task<TStates>> handler,
             bool force) where TQuery : class
         {
             _container.AddContainer(callbackProvider, handler, force);
