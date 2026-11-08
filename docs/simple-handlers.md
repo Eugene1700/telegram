@@ -87,17 +87,36 @@ so Max cannot accidentally execute a handler requiring a Telegram client.
 
 ## Profiles and sessions
 
+Set `Sessions:UseInMemory=true` (or `Sessions__UseInMemory=true` in the environment)
+to select `services.UseInMemoryStorage()` instead of EntityStorage. This skips
+the sample database reset. The default remains EntityStorage.
+
+The in-memory store isolates sessions by `(BotName, ChatId, UserId)` and takes
+JSON snapshots, including Fluent state. State is shared across DI scopes and
+disappears when the process exits. An `IBotProfile` with a nonempty `BotName`
+and an `IClock` must be registered.
+
+For a process-local update boundary, resolve `InMemorySessionsStore` in a fresh
+scope and call `ExecuteUpdateAsync(eventId, fingerprint, chatId, userId, handler)`.
+It serializes updates to the same session, suppresses successful duplicate
+deliveries and commits session changes only after the handler succeeds. Failed
+updates may be retried with the same event ID. All writers must use this boundary.
+The sample controllers do not enable it automatically. Separate service providers
+can share an `InMemorySessionStorage` instance; separate processes cannot. Receipts
+and locks remain for its lifetime. This provides neither distributed durability
+nor rollback of external sends.
+
 Every webhook request has its own DI scope. `BotRuntime` selects the profile and
-sender and supplies the platform to the shared `SessionStore`. Both bots use
-EntityStorage and the same `COMMAND_SESSION` table in `dev.db`.
+sender. By default both bots use EntityStorage and the same `COMMAND_SESSION`
+table in the configured database (default `dev2.db`).
 
-Sessions are looked up by `(Platform, ChatId, UserId)`. `PLATFORM` is an enum column:
-`Telegram = 0` (the default) and `Max = 1`. Creation records the current platform;
-reads and updates are restricted to that platform. Payloads use `System.Text.Json`.
+Sessions are looked up by `(BotName, ChatId, UserId)`. Creation records the
+current bot name; reads and updates are restricted to that bot.
+Payloads use `System.Text.Json`.
 
-On every startup, `Startup.Configure` uses EntityStorage's `EfDbContext` to call
+With default storage, `Startup.Configure` uses EntityStorage's `EfDbContext` to call
 `Database.EnsureDeleted()` followed by `Database.EnsureCreated()`. The configured
-session database is recreated empty with the current schema, including `PLATFORM`.
+session database is recreated empty with the current schema, including `BOT_NAME`.
 All previous sessions are discarded. No migrations or seed sessions are used.
 EntityStorage itself is unchanged.
 

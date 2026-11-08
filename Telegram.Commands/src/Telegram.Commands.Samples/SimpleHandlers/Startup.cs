@@ -57,7 +57,10 @@ namespace SimpleHandlers
                 sp.GetRequiredService<BotRuntime>().IsMax));
 
             services.AddScoped<IAuthProvider, AuthProvider>();
-            services.AddScoped<ISessionsStore, SessionStore>();
+            if (Configuration.GetValue<bool>("Sessions:UseInMemory"))
+                services.UseInMemoryStorage();
+            else
+                services.AddScoped<ISessionsStore, SessionStore>();
             services.AddScoped<ICommandMatcher<global::Telegram.Bot.Types.Message>, ProfileFunnelMatcher<global::Telegram.Bot.Types.Message>>();
             services.AddScoped<ICommandMatcher<global::Max.Bot.Types.Message>, ProfileFunnelMatcher<global::Max.Bot.Types.Message>>();
             services.AddSingleton<global::Telegram.Bot.ITelegramBotClient>(_ =>
@@ -77,9 +80,12 @@ namespace SimpleHandlers
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, EfDbContext dbContext)
         {
-            // This sample starts with an empty database on every run.
-            dbContext.Database.EnsureDeleted();
-            dbContext.Database.EnsureCreated();
+            if (!Configuration.GetValue<bool>("Sessions:UseInMemory"))
+            {
+                // This sample starts with an empty database on every run.
+                dbContext.Database.EnsureDeleted();
+                dbContext.Database.EnsureCreated();
+            }
 
             if (env.IsDevelopment())
             {

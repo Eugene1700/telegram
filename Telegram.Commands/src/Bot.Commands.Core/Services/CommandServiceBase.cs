@@ -28,7 +28,11 @@ public abstract class CommandServiceBase
         _botProfile = botProfile;
     }
 
-    protected async Task QueryHandler<TQuery>(IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers = null)
+    protected Task QueryHandler<TQuery>(IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers = null)
+        => QueryHandler(query, matchers, 0);
+
+    private async Task QueryHandler<TQuery>(IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers,
+        int immediateTransitions)
     {
         try
         {
@@ -41,7 +45,7 @@ public abstract class CommandServiceBase
             await ApplyExecuteFilters(query, commandDesc);
             var commandExecutionResult =
                 await _commandExecutionService.Execute(commandDesc, query);
-            await Next(query, commandExecutionResult);
+            await Next(query, commandExecutionResult, immediateTransitions);
         }
         catch (CommandExtractionInternalException ex)
         {
@@ -66,7 +70,7 @@ public abstract class CommandServiceBase
         }
     }
 
-    private async Task Next<TQuery>(IQueryContext<TQuery> query, ICommandExecutionResult commandExecutionResult)
+    private async Task Next<TQuery>(IQueryContext<TQuery> query, ICommandExecutionResult commandExecutionResult, int immediateTransitions)
     {
         var chatId = query.GetChatId();
         var userId = query.GetFromId();
@@ -80,22 +84,22 @@ public abstract class CommandServiceBase
             return;
         }
 
-        var activeSession = _sessionManager.GetCurrentSession(chatId, userId);
-        if (commandExecutionResult.Result == ExecuteResult.Ahead)
+        if (commandExecutionResult.Result == ExecuteResult.Ahead || commandExecutionResult.Result == ExecuteResult.Fire)
         {
+            var fire = commandExecutionResult.Result == ExecuteResult.Fire;
+            if (fire && ++immediateTransitions > 64)
+                throw new InvalidOperationException("Too many immediate command transitions in one update.");
+            if (fire && commandExecutionResult.WaitFromChatId != null)
+                throw new InvalidOperationException("Immediate execution cannot move to another chat.");
+            var data = commandExecutionResult.Data;
+            var activeSession = _sessionManager.GetCurrentSession(chatId, userId);
             if (activeSession == null)
-            {
                 await _sessionManager.OpenSession(commandExecutionResult.NextCommandDescriptor,
-                    sessionChatId,
-                    userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
-                return;
-            }
-
-            await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
-                chatId,
-                sessionChatId,
-                userId, commandExecutionResult.Data, commandExecutionResult.SessionDurationInSec);
-
+                    sessionChatId, userId, data, commandExecutionResult.SessionDurationInSec);
+            else
+                await _sessionManager.ContinueSession(commandExecutionResult.NextCommandDescriptor,
+                    chatId, sessionChatId, userId, data, commandExecutionResult.SessionDurationInSec);
+            if (fire) await QueryHandler(query, null, immediateTransitions);
             return;
         }
 
@@ -138,6 +142,8 @@ public abstract class CommandServiceBase
             if (!TryGetQueryCommandStr(query, out var currentCommandStr))
                 return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
             var queryCommandDesc = FindCommand<TQuery>(currentCommandStr, chatId);
+            if (queryCommandDesc.IsBehaviorCommand)
+                return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
             return CommandDescriptorComposition.CreateBehaviorResult(comDesc, queryCommandDesc);
         }
 

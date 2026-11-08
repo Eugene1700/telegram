@@ -1,5 +1,13 @@
 # Test coverage review
 
+`InMemoryStorageTests` covers registration, sample configuration, BotName
+isolation, detached JSON snapshots, expiry, completion, moves, rollback/retry and
+duplicate delivery across two providers sharing a memory backend.
+`ImmediatePipelineTests` covers a Fluent command firing another Fluent command,
+preservation of its session on the next update, and bounded immediate cycles
+with rollback. `Fire` saves the destination in `Next` and re-enters the ordinary
+`QueryHandler`, including authorization, chat checks and execution filters.
+
 Measured on 2026-11-04 using the installed Coverlet collector and the full NUnit
 suite. The baseline had 63 passing cases; the updated suite has 89. No test makes
 a real HTTP request: SDK clients use a recording HttpMessageHandler with synthetic
