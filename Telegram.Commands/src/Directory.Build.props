@@ -1,0 +1,32 @@
+<Project>
+  <PropertyGroup>
+    <Version Condition="'$(Version)' == ''">1.0.0-beta.1</Version>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Bot.Commands.Abstract' Or '$(MSBuildProjectName)' == 'Bot.Commands.Core' Or '$(MSBuildProjectName)' == 'Bot.Commands.UI' Or '$(MSBuildProjectName)' == 'Bot.Commands.DependencyInjection' Or '$(MSBuildProjectName)' == 'Bot.Commands.Telegram' Or '$(MSBuildProjectName)' == 'Bot.Commands.Max'">
+    <IsPackable>true</IsPackable>
+    <PackageId>$(MSBuildProjectName)</PackageId>
+    <Authors>eugene1700</Authors>
+    <PackageProjectUrl>https://github.com/Eugene1700/telegram</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Eugene1700/telegram</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>bots;commands;conversations;telegram;max</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <Description Condition="'$(MSBuildProjectName)' == 'Bot.Commands.Abstract'">Messenger-independent command, session and message contracts for Bot.Commands.</Description>
+    <Description Condition="'$(MSBuildProjectName)' == 'Bot.Commands.UI'">Shared dropdown and pagination helpers for Bot.Commands.</Description>
+    <Description Condition="'$(MSBuildProjectName)' == 'Bot.Commands.Telegram'">Telegram.Bot adapter and dependency injection integration for Bot.Commands.</Description>
+    <Description Condition="'$(MSBuildProjectName)' == 'Bot.Commands.Max'">MaxMessenger.Bot adapter and dependency injection integration for Bot.Commands.</Description>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)../../docs/nuget-readme.md" Pack="true" PackagePath="/README.md" />
+    <None Include="$(MSBuildThisFileDirectory)../../LICENSE" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
