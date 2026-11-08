@@ -91,6 +91,13 @@ dotnet test Telegram.Commands/src/Telegram.Command.Tests/Bot.Commands.Core.Tests
 
 Tests cover command results, messenger-specific routing, shared session commands, Fluent query handling, and keyboard rows. They do not replace live SDK integration tests.
 
-## License status
+## NuGet release preparation
 
-The project metadata references MIT, but this checkout does not include a standalone `LICENSE` file. The repository owner should confirm the intended license and add its full text before publishing a release. This README does not grant a license itself.
+Run `./scripts/pack.ps1` in PowerShell to test the Release configuration and build
+all six packages. The default preview version is `1.0.0-beta.1`; override it with
+`-Version`. Packages are written to `artifacts/nuget/<version>`.
+See [publishing to NuGet](docs/publishing.md) for validation and upload steps.
+
+## License
+
+[MIT](LICENSE).

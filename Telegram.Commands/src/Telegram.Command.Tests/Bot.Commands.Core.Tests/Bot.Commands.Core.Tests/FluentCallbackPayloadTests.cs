@@ -32,7 +32,7 @@ public class FluentCallbackPayloadTests
             new TelegramMessageQueryContext(new Message { Chat = new Chat { Id = 12 } }), null);
         var callback = new CallbackQuery
         {
-            Data = sent.Callbacks.Single().CallbackText,
+            Data = sent.Callbacks.SelectMany(row => row).Single().CallbackText,
             Message = new Message { Chat = new Chat { Id = 12 } }
         };
         var (next, _) = await machine.GetStateInternal(0).HandleQuery(new CallbackQueryContext(callback), null);

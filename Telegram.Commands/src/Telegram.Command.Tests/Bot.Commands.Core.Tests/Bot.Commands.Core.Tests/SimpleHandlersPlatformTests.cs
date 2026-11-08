@@ -91,12 +91,12 @@ public class SimpleHandlersPlatformTests
         await Send("Grace");
         Assert.That(sent.Messages.Last().Text, Is.EqualTo("Profile saved: Grace"));
         await Send("/profile");
-        var payload = sent.Messages.Last().Callbacks.Single().CallbackText;
+        var payload = sent.Messages.Last().Callbacks.SelectMany(row => row).Single().CallbackText;
         await Send(payload, callback: true);
         Assert.That(sent.Messages.Last().Text, Is.EqualTo("Profile saved: Alex"));
         async Task Click(string label)
         {
-            var button = sent.Messages.AsEnumerable().Reverse().SelectMany(m => m.Callbacks ?? Enumerable.Empty<CallbackDataWithCommand>())
+            var button = sent.Messages.AsEnumerable().Reverse().SelectMany(m => m.Callbacks?.SelectMany(row => row) ?? Enumerable.Empty<CallbackDataWithCommand>())
                 .First(c => c.Text == label);
             await Send(button.CommandDescriptor == null ? button.CallbackText : $"/{button.CommandDescriptor.Name} {button.CallbackText}", callback: true);
         }
@@ -106,10 +106,10 @@ public class SimpleHandlersPlatformTests
         foreach (var command in new[] { "/dropdown", "/dropdownmultiple" })
         {
             await Send(command);
-            var dropdown = sent.Messages.Last().Callbacks.First();
+            var dropdown = sent.Messages.Last().Callbacks.SelectMany(row => row).First();
             await Send($"/{dropdown.CommandDescriptor.Name} {dropdown.CallbackText}", callback: true);
             await Click("Item1");
-            Assert.That(sent.Messages.Last().Callbacks.Any(c => c.Text == "✓ Item1"), Is.True);
+            Assert.That(sent.Messages.Last().Callbacks.SelectMany(row => row).Any(c => c.Text == "✓ Item1"), Is.True);
             await Click("Cancel");
         }
         await Send("/sendphoto");

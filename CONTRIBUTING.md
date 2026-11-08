@@ -56,14 +56,14 @@ store lifetime, expiry behavior, and whether multiple bots/workers share storage
 
 ## Preparing a public release
 
-The current source tree is not by itself a complete distribution plan. Before a release:
+Follow [the publishing guide](docs/publishing.md). Before a release:
 
-- Confirm the intended license and add its full text. Metadata currently references MIT,
-  but this checkout has no standalone license file.
+- Review the MIT license and release metadata.
 - Choose package IDs and coordinated versions for the shared projects and adapters.
   Core now uses the package ID `Bot.Commands.Core`; do not assume every project
   name is already available as a published package.
-- Review package metadata, repository links, license metadata, and inclusion of a package README.
+- Build all six packages with `./scripts/pack.ps1 -Version <version>`; common
+  metadata lives in `Telegram.Commands/src/Directory.Build.props`.
 - Build and test the release configuration, run both documentation examples, and
   validate the actual packages in a clean consumer project.
 - Exercise live Telegram and Max integrations for the features claimed by the release.

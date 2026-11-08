@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Text;
 using System.Text.Json;
 using Bot.Commands.Abstract.Messages;
@@ -15,10 +14,9 @@ public class MessageSenderTests
 
     private static BotMessage Message(string kind, bool keyboard, string filename = "sample.png")
         => new("caption", kind == "text" ? null : Content, null,
-            keyboard ? new ReadOnlyCollection<CallbackDataWithCommand>(new[]
-            {
+            keyboard ? new[] { new[] {
                 new CallbackDataWithCommand { Text = "Next", CallbackText = "payload" }
-            }) : null)
+            } } : null)
         {
             SendAsFile = kind == "file", FileName = filename
         };

@@ -12,7 +12,6 @@ public abstract class AdapterInlineMarkupQueryBuilder<TBuilder, TQuery, TButton,
     private TBuilder Self => (TBuilder)this;
     protected abstract TButton ToButton(CallbackDataWithCommand callback);
     protected abstract TMarkup ToMarkup(TButton[][] rows);
-    protected virtual void ValidateButtons(CallbackData[] callbacks, ICommandDescriptor descriptor) { }
 
     protected override void ValidateRow(CallbackDataWithCommand[] row)
     {
@@ -24,7 +23,7 @@ public abstract class AdapterInlineMarkupQueryBuilder<TBuilder, TQuery, TButton,
         where TCommand : IQueryCommand<TQuery>
         => AddNativeButtons(callbacks, BotCommandExtensions.GetCommandInfo<TCommand, TQuery>());
 
-    public TBuilder AddInlineKeyboardButtons<TCommand, TSessionObject>(CallbackData[] callbacks)
+    public new TBuilder AddInlineKeyboardButtons<TCommand, TSessionObject>(CallbackData[] callbacks)
         where TCommand : ISessionCommand<TQuery, TSessionObject>
         => AddNativeButtons(callbacks, BotCommandExtensions.GetCommandInfo<TCommand, TQuery, TSessionObject>());
 
@@ -35,9 +34,9 @@ public abstract class AdapterInlineMarkupQueryBuilder<TBuilder, TQuery, TButton,
         where TCommand : ISessionCommand<TQuery, TSessionObject>
         => AddInlineKeyboardButtons<TCommand, TSessionObject>(new[] { callback });
 
-    public TBuilder AddInlineKeyboardButton(CallbackData[] callbacks) => AddNativeButtons(callbacks, null);
-    public TBuilder AddInlineKeyboardButton(CallbackData callback) => AddInlineKeyboardButton(new[] { callback });
-    public TBuilder AddInlineKeyboardButton(CallbackDataWithCommand callback) => InlineKeyboardButtonsRow(new[] { callback });
+    public new TBuilder AddInlineKeyboardButton(CallbackData[] callbacks) => AddNativeButtons(callbacks, null);
+    public new TBuilder AddInlineKeyboardButton(CallbackData callback) => AddInlineKeyboardButton(new[] { callback });
+    public new TBuilder AddInlineKeyboardButton(CallbackDataWithCommand callback) => InlineKeyboardButtonsRow(new[] { callback });
 
     public new TBuilder InlineKeyboardButtonsRow(CallbackDataWithCommand[] callbacks)
     {
@@ -49,7 +48,6 @@ public abstract class AdapterInlineMarkupQueryBuilder<TBuilder, TQuery, TButton,
 
     private TBuilder AddNativeButtons(CallbackData[] callbacks, ICommandDescriptor descriptor)
     {
-        ValidateButtons(callbacks, descriptor);
         AddButtons(callbacks, descriptor);
         return Self;
     }

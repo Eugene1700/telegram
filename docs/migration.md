@@ -114,7 +114,14 @@ Core's `MessageBuilderBase.GetMessages` no longer defaults to a 4096-character l
 | `TelegramParseMode` / `BotMessageParseMode` | Adapter-owned `TelegramTextFormat` or `MaxTextFormat`; null for plain text |
 | `message.ReplyMarkup` | Telegram `message.ToReplyMarkup()` or Max `message.ToInlineKeyboard()` |
 
-Preserve `CallbackDataWithCommand.Row` when adapting keyboards. Core keyboard command helpers include the SDK query type among their generic arguments.
+`BotMessage.Callbacks`, `IBotMessage.Callbacks` and `GetCallbacks()` now use
+`CallbackDataWithCommand[][]` instead of a flat collection. `CallbackDataWithCommand.Row`
+has been removed: the outer array defines row order and the inner arrays define
+button order, including empty rows. Custom senders should iterate the rows directly;
+code that searches all buttons can use `SelectMany(row => row)`. This is a source
+and serialized-message format change; convert any stored flat keyboards using their
+previous row indices. Session contracts are unchanged. Core keyboard command helpers
+include the SDK query type among their generic arguments.
 
 Commands, matchers, and all Fluent hooks now receive `IQueryContext<TQuery>`.
 Use `context.Query` when access to the native SDK object is needed. Shared senders

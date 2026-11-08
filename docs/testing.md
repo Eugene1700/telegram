@@ -5,8 +5,9 @@ Core, Telegram and Max: row layout, command metadata, typed overloads, atomic
 validation of batches, empty rows and Telegram-specific button modes and legacy
 length checks. Adapter builders inherit the shared metadata/layout implementation;
 native button and markup conversion remains in each adapter.
-`GetCallbacks()` now returns a snapshot in row order; extending a builder no
-longer modifies the keyboard collection of an already constructed message.
+`GetCallbacks()` returns a snapshot as `CallbackDataWithCommand[][]`; extending a
+builder no longer modifies the keyboard of an already constructed message.
+The row arrays preserve empty rows through `BotMessage` and adapter conversion.
 
 `InMemoryStorageTests` covers registration, sample configuration, BotName
 isolation, detached JSON snapshots, expiry, completion, moves, rollback/retry and

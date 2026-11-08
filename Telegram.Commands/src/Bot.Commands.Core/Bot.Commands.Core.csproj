@@ -2,13 +2,8 @@
 
     <PropertyGroup>
         <RootNamespace>Bot.Commands.Core</RootNamespace>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageId>Bot.Commands.Core</PackageId>
-        <Authors>eugene1700</Authors>
         <Description>Messenger-independent command and conversation engine</Description>
-        <PackageProjectUrl>https://github.com/Eugene1700/telegram</PackageProjectUrl>
-        <PackageLicenseUrl>MIT</PackageLicenseUrl>
-        <PackageTags>bots commands conversations</PackageTags>
         <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 

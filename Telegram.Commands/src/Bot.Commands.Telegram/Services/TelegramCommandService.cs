@@ -14,8 +14,8 @@ namespace Bot.Commands.Telegram.Services
         IAuthProvider authProvider,
         SessionManager sessionManager,
         IBotProfile botProfile,
-        CommandExecutionService commandExecutionService, IEnumerable<ICommandMatcher<Message>>? messageMatchers = null,
-        IEnumerable<ICommandMatcher<CallbackQuery>>? callbackMatchers = null)
+        CommandExecutionService commandExecutionService,
+        IEnumerable<ICommandMatcher<Message>>? messageMatchers = null)
         : CommandServiceBase(commandExecutionService, sessionManager,
             authProvider, botProfile), IBotCommandResolver<Update>
     {
@@ -43,7 +43,7 @@ namespace Bot.Commands.Telegram.Services
                     break;
                 case UpdateType.CallbackQuery:
                     var callbackQueryContext = new CallbackQueryContext(update.CallbackQuery);
-                    await QueryHandler(callbackQueryContext, callbackMatchers);
+                    await QueryHandler(callbackQueryContext);
                     break;
                 case UpdateType.PreCheckoutQuery:
                     var preCheckoutQueryContext = new PreCheckoutQueryContext(update.PreCheckoutQuery);

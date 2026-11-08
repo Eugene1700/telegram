@@ -353,3 +353,7 @@ MigrationBackup/
 
 # Local test runs and coverage reports
 .test-results/
+
+# Release packages and local validation
+artifacts/
+pack-validation.log

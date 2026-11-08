@@ -64,7 +64,7 @@ public class FluentAdapterTests
             });
         var machine = (StateMachine<object, int>)builder.Build();
         await machine.GetStateInternal(0).SendMessages(new TelegramMessageQueryContext(new Message { Chat = new Chat { Id = 12 } }), null);
-        var buttons = messages.SelectMany(message => message.Callbacks).ToArray();
+        var buttons = messages.SelectMany(message => message.Callbacks.SelectMany(row => row)).ToArray();
         Assert.That(buttons.Select(button => button.CallbackText), Is.EqualTo(new[] { "static", "data", "0", "keyboard", "dynamic" }));
         Assert.That(buttons.All(button => button.CommandDescriptor.Name == BotCommandExtensions.GetCommandInfo(typeof(SimpleHandlers.Services.Commands.CancelCallback)).Name), Is.True);
     }
@@ -112,7 +112,7 @@ public class FluentAdapterTests
         var native = new CallbackQuery { Message = new Message { Chat = new Chat { Id = 1 } }, From = new User { Id = 2 } };
         var context = new CallbackQueryContext(native);
         await machine.GetStateInternal(0).SendMessages(context, null);
-        native.Data = sentMessage.Callbacks.Single().CallbackText;
+        native.Data = sentMessage.Callbacks.SelectMany(row => row).Single().CallbackText;
         var (next, _) = await machine.GetStateInternal(0).HandleQuery(context, null);
         Assert.That(next, Is.EqualTo(1));
         Assert.That(handled, Is.SameAs(context));

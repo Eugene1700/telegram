@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+
 using System.Text;
 using Bot.Commands.Abstract.Messages;
 
@@ -100,7 +100,7 @@ namespace Bot.Commands.Core.Services
 
                 if (messageLenghtConstraint.HasValue && sb.Length + textNew.Length > messageLenghtConstraint.Value)
                 {
-                    res.Add(new BotMessage(sb.ToString(), _photo, Format, new ReadOnlyCollection<CallbackDataWithCommand>(Array.Empty<CallbackDataWithCommand>())) { SendAsFile = _sendAsFile, FileName = _fileName });
+                    res.Add(new BotMessage(sb.ToString(), _photo, Format, Array.Empty<CallbackDataWithCommand[]>()) { SendAsFile = _sendAsFile, FileName = _fileName });
                     sb.Clear();
                 }
                 switch (endItemType)
@@ -124,6 +124,39 @@ namespace Bot.Commands.Core.Services
         }
 
         protected abstract string PrepareText(string text);
+
+        public IInlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackData callbackData)
+        {
+            _inlineMarkupBuilder.AddInlineKeyboardButton(callbackData);
+            return this;
+        }
+
+        public IInlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackDataWithCommand callbackData)
+        {
+            _inlineMarkupBuilder.AddInlineKeyboardButton(callbackData);
+            return this;
+        }
+
+        public IInlineMarkupQueryBuilder AddInlineKeyboardButton(CallbackData[] callbacks)
+        {
+            _inlineMarkupBuilder.AddInlineKeyboardButton(callbacks);
+            return this;
+        }
+
+        public IInlineMarkupQueryBuilder AddInlineKeyboardButtons<TCommand, TQuery>(CallbackData[] callbacks)
+            where TCommand : Bot.Commands.Abstract.Commands.IQueryCommand<TQuery>
+        {
+            _inlineMarkupBuilder.AddInlineKeyboardButtons<TCommand, TQuery>(callbacks);
+            return this;
+        }
+
+        public IInlineMarkupQueryBuilder AddInlineKeyboardButtons<TCommand, TSessionObject, TQuery>(CallbackData[] callbacks)
+            where TCommand : Bot.Commands.Abstract.Commands.ISessionCommand<TQuery, TSessionObject>
+        {
+            _inlineMarkupBuilder.AddInlineKeyboardButtons<TCommand, TSessionObject, TQuery>(callbacks);
+            return this;
+        }
+
         public IInlineMarkupQueryBuilder AddInlineKeyboardButton<TCommand, TQuery>(CallbackData callbackData)
             where TCommand : Bot.Commands.Abstract.Commands.IQueryCommand<TQuery>
         {
@@ -144,7 +177,7 @@ namespace Bot.Commands.Core.Services
             return this;
         }
 
-        public ReadOnlyCollection<CallbackDataWithCommand> GetCallbacks()
+        public CallbackDataWithCommand[][] GetCallbacks()
         {
             return _inlineMarkupBuilder.GetCallbacks();
         }

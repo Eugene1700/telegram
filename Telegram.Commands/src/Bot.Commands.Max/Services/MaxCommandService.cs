@@ -10,8 +10,8 @@ public class MaxCommandService(
     CommandExecutionService commandExecutionService,
     SessionManager sessionManager,
     IAuthProvider authProvider,
-    IBotProfile botProfile, IEnumerable<ICommandMatcher<Message>>? messageMatchers = null,
-        IEnumerable<ICommandMatcher<CallbackQuery>>? callbackMatchers = null)
+    IBotProfile botProfile,
+    IEnumerable<ICommandMatcher<Message>>? messageMatchers = null)
     : CommandServiceBase(commandExecutionService,
         sessionManager, authProvider, botProfile), IBotCommandResolver<Update>
 {
@@ -25,7 +25,7 @@ public class MaxCommandService(
                 break;
             case UpdateType.MessageCallback:
                 var callbackQueryContext = new MessageCallbackContext(update.Chat, update.Callback, update.Message);
-                await QueryHandler(callbackQueryContext, callbackMatchers);
+                await QueryHandler(callbackQueryContext);
                 break;
             case UpdateType.UserAdded:
                 var chatMemberUpdateQueryContext = new UserAddedUpdateContext(update.UserAddedUpdate, update.ChatId);

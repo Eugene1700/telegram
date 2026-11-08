@@ -14,13 +14,12 @@ public static class MaxMessageExtensions
     public static InlineKeyboard? GetResult(this global::Bot.Commands.Core.Services.InlineMarkupQueryBuilder builder)
         => BuildMarkup(builder.GetCallbacks());
 
-    private static InlineKeyboard? BuildMarkup(IEnumerable<CallbackDataWithCommand>? callbacks)
+    private static InlineKeyboard? BuildMarkup(CallbackDataWithCommand[][]? callbacks)
     {
-        var buttons = callbacks?.ToArray();
-        if (buttons == null || buttons.Length == 0) return null;
+        if (callbacks == null || callbacks.Length == 0) return null;
         var builder = new MaxInlineMarkupQueryBuilder();
-        foreach (var row in buttons.GroupBy(c => c.Row))
-            builder.InlineKeyboardButtonsRow(row.ToArray());
+        foreach (var row in callbacks)
+            builder.InlineKeyboardButtonsRow(row);
         return builder.GetResult();
     }
 

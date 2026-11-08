@@ -99,7 +99,7 @@ The common model is `IBotMessage`:
 - `FileName`: optional filename including its extension. Sample senders default to
   `photo.jpg` for photos or `attachment.bin` for files.
 - `Format`: an optional adapter-owned `IMessageTextFormat`; null means plain text.
-- `Callbacks`: common callback descriptors, including their `Row` index.
+- `Callbacks`: an array of rows (`CallbackDataWithCommand[][]`); each inner array contains that row's buttons.
 
 To send an attachment as a file, use `new BotMessage("Caption", bytes, null, null)
 { SendAsFile = true, FileName = "report.pdf" }`. Builders also expose
@@ -190,6 +190,15 @@ does not choose a platform format or default message-length limit. Pass a limit
 explicitly when your adapter/application requires one.
 
 ### Message and keyboard builders
+
+`IInlineMarkupQueryBuilder` exposes plain buttons (`CallbackData`), buttons with
+command metadata (`CallbackDataWithCommand`), and arrays of buttons. The array
+overload `AddInlineKeyboardButton(CallbackData[])` adds one button per row.
+Use `InlineKeyboardButtonsRow` for multiple buttons on the same row.
+Typed batches use `AddInlineKeyboardButtons<TCommand, TQuery>` or
+`AddInlineKeyboardButtons<TCommand, TSessionObject, TQuery>`. These operations
+are also available on message builders. Adapter keyboard builders retain their
+platform validation when called through the common interface.
 
 The adapters expose matching builder APIs:
 

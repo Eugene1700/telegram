@@ -12,11 +12,11 @@ namespace Bot.Commands.Telegram.Extensions{
             this global::Bot.Commands.Core.Services.InlineMarkupQueryBuilder builder) => BuildMarkup(builder.GetCallbacks());
 
         private static global::Telegram.Bot.Types.ReplyMarkups.InlineKeyboardMarkup BuildMarkup(
-            IEnumerable<CallbackDataWithCommand>? callbacks)
+            CallbackDataWithCommand[][]? callbacks)
         {
             var builder = new TelegramInlineMarkupQueryBuilder();
-            foreach (var row in (callbacks ?? Enumerable.Empty<CallbackDataWithCommand>()).GroupBy(c => c.Row))
-                builder.InlineKeyboardButtonsRow(row.ToArray());
+            foreach (var row in callbacks ?? Array.Empty<CallbackDataWithCommand[]>())
+                builder.InlineKeyboardButtonsRow(row);
             return builder.GetResult();
         }
 
