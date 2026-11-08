@@ -18,6 +18,6 @@ public abstract class StartCommand(ISampleMessageSender sender)
 {
     public async Task<ICommandExecutionResult> Execute<TQuery>(IQueryContext<TQuery> query)
     {
-        await sender.Send(query.GetChatId(), SampleMessages.Text("Hello! Try /ask, /profile, /sendphoto, /dropdown, /dropdownmultiple, /myfluent or /global.")); return CommandExecutionResult.Break();
+        await sender.Send(query.GetChatId(), SampleMessages.Text("Hello! Try /ask, /profile, /sendphoto, /dropdown, /dropdownmultiple, /myfluent, /routeorder or /global.")); return CommandExecutionResult.Break();
     }
 }

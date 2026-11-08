@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable></PropertyGroup>
+<ItemGroup>
+<ProjectReference Include="../../../Telegram.Commands/src/Bot.Commands.Telegram/Bot.Commands.Telegram.csproj" />
+<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
+<Compile Include="../SurveyComparison/dotnet/Output.cs" Link="Infrastructure/Output.cs" />
+<Compile Include="../SurveyComparison/dotnet/DemoProfile.cs" Link="Infrastructure/DemoProfile.cs" />
+<Compile Include="../SurveyComparison/dotnet/DemoClock.cs" Link="Infrastructure/DemoClock.cs" />
+<Compile Include="../SurveyComparison/dotnet/DemoAuth.cs" Link="Infrastructure/DemoAuth.cs" />
+<Compile Include="../SurveyComparison/dotnet/FileSessionsStore.cs" Link="Infrastructure/FileSessionsStore.cs" />
+</ItemGroup></Project>

@@ -11,6 +11,7 @@ namespace Bot.Commands.Abstract.Attributes
         ChatMemberAdded,
         ChatMemberLeft,
         SuccessfulPayment,
-        ChatJoinRequest
+        ChatJoinRequest,
+        BotStarted
     }
 }

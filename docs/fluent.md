@@ -6,6 +6,16 @@
 It separates the conversation definition from data carried between updates.
 Use an enum for `TState` and a small application-owned class for `TData`.
 
+For splitting a conversation into nested flows, see the experimental
+[Fluent routing example](examples/FluentRouting/README.md). It demonstrates typed
+return destinations, cancellation and restoring the caller chain after restart
+without changing the session storage contracts.
+
+The same scenario is available as `/routeorder` in
+[SimpleHandlers](../Telegram.Commands/src/Telegram.Commands.Samples/SimpleHandlers/Services/Commands/Routing/README.md),
+with generic flows and descendants for all five adapters. That guide also covers
+the optional in-memory update boundary and its process-local limitations.
+
 ## Define the entry point and states
 
 A subclass supplies two methods:

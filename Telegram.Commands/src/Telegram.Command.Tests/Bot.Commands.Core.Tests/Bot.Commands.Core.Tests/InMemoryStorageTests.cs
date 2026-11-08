@@ -4,6 +4,7 @@ using Bot.Commands.Core.Models;
 using Bot.Commands.Core.Services;
 using Bot.Commands.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using SimpleHandlers.Services;
 
@@ -11,6 +12,21 @@ namespace Bot.Commands.Core.Tests;
 
 public class InMemoryStorageTests
 {
+    [Test]
+    public void SimpleHandlersCanSelectInMemoryStorageFromConfiguration()
+    {
+        var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddConfiguration(VkWebhookTests.Config())
+            .AddInMemoryCollection(new Dictionary<string, string> { ["Sessions:UseInMemory"] = "true" }).Build();
+        var services = new ServiceCollection();
+        new SimpleHandlers.Startup(config).ConfigureServices(services);
+        services.AddLogging();
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        Assert.That(scope.ServiceProvider.GetRequiredService<ISessionsStore>(),
+            Is.SameAs(scope.ServiceProvider.GetRequiredService<InMemorySessionsStore>()));
+    }
+
     private static readonly DateTime Now = new(2026, 11, 8, 0, 0, 0, DateTimeKind.Utc);
     private static CommandSession Session(object data, DateTime? expires = null) => new()
     {

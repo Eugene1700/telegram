@@ -81,6 +81,8 @@ namespace SimpleHandlers
 
             services.AddScoped<IAuthProvider, AuthProvider>();
             services.AddScoped<ISessionsStore, SessionStore>();
+            if (Configuration.GetValue<bool>("Sessions:UseInMemory"))
+                services.UseInMemoryStorage();
             services.AddScoped<ICommandMatcher<global::Telegram.Bot.Types.Message>, ProfileFunnelMatcher<global::Telegram.Bot.Types.Message>>();
             services.AddScoped<ICommandMatcher<global::Max.Bot.Types.Message>, ProfileFunnelMatcher<global::Max.Bot.Types.Message>>();
             services.AddScoped<ICommandMatcher<VkNet.Model.Message>, ProfileFunnelMatcher<VkNet.Model.Message>>();
@@ -155,9 +157,12 @@ namespace SimpleHandlers
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, EfDbContext dbContext)
         {
-            // This sample starts with an empty database on every run.
-            dbContext.Database.EnsureDeleted();
-            dbContext.Database.EnsureCreated();
+            if (!Configuration.GetValue<bool>("Sessions:UseInMemory"))
+            {
+                // The existing EntityStorage demo starts with an empty database on every run.
+                dbContext.Database.EnsureDeleted();
+                dbContext.Database.EnsureCreated();
+            }
 
             if (env.IsDevelopment())
             {

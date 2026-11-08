@@ -156,6 +156,15 @@ namespace Bot.Commands.Core.Models
             };
         }
         
+        internal static CommandExecutionResult ResumeRoute(Fluent.Routing.FluentRouteResume resume)
+            => new()
+            {
+                Result = ExecuteResult.Fire,
+                NextCommandDescriptor = new Bot.Commands.Abstract.Attributes.CommandAttribute { Name = resume.Frame.CallerCommand },
+                Data = resume,
+                SessionDurationInSec = null
+            };
+
         public static CommandExecutionResult Freeze()
         {
             return new CommandExecutionResult

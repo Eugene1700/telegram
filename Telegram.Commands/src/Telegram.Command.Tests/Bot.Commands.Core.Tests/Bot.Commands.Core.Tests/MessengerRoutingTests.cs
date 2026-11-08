@@ -141,6 +141,43 @@ public class MessengerRoutingTests
         From = new Tg.User { Id = 2 }, Text = text
     };
 
+    [TestCase(null)]
+    [TestCase("invite=a&name=b")]
+    [TestCase("/adapter_test should remain payload")]
+    public async Task MaxBotStartedDispatchesTypedEventAndPreservesPayload(string payload)
+    {
+        var update = JsonSerializer.Deserialize<MaxTypes.Update>(JsonSerializer.Serialize(new {
+            update_type = "bot_started", timestamp = 123456L, chat_id = 17,
+            user = new { user_id = 23, name = "Reader" }, user_locale = "ru", payload
+        }));
+        var context = new BotStartedUpdateContext(update.BotStartedUpdate);
+        Assert.That(context.GetChatId(), Is.EqualTo(17));
+        Assert.That(context.GetFromId(), Is.EqualTo(23));
+        Assert.That(context.GetData(), Is.EqualTo(payload ?? string.Empty));
+        Assert.That(context.GetEventType(), Is.EqualTo(EventType.BotStarted));
+        Assert.That(context.IsEvent(), Is.True);
+        Assert.That(context.IsGroupMessage(), Is.False);
+        Assert.That(context.GetChatType(), Is.EqualTo(ChatArea.Private));
+        Assert.That(context.GetMessageId(), Is.Null);
+        await _scope.ServiceProvider.GetRequiredService<IBotCommandResolver<MaxTypes.Update>>().Handle(update);
+        var handler = _scope.ServiceProvider.GetRequiredService<MaxStartedHandler>();
+        Assert.That(handler.Received, Is.Not.Null);
+        Assert.That(handler.Received.Payload, Is.EqualTo(payload));
+        Assert.That(handler.Received.UserLocale, Is.EqualTo("ru"));
+        Assert.That(_scope.ServiceProvider.GetRequiredService<MaxTestCommand>().Calls, Is.Zero);
+    }
+
+    [Event(Type = EventType.BotStarted, Name = "max_started_event_test", Authorized = false)]
+    public sealed class MaxStartedHandler : IQueryCommand<MaxTypes.BotStartedUpdate>
+    {
+        public MaxTypes.BotStartedUpdate Received { get; private set; }
+        public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.BotStartedUpdate> query)
+        {
+            Received = query.Query;
+            return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());
+        }
+    }
+
     private static MaxTypes.Update MaxUpdate(string text, string chatType = "dialog") =>
         JsonSerializer.Deserialize<MaxTypes.Update>(JsonSerializer.Serialize(new
         {

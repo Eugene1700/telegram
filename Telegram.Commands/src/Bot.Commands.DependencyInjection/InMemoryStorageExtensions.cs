@@ -12,7 +12,8 @@ public static class InMemoryStorageExtensions
     public static IServiceCollection UseInMemoryStorage(this IServiceCollection services)
     {
         services.TryAddSingleton<InMemorySessionStorage>();
-        services.Replace(ServiceDescriptor.Scoped<ISessionsStore, InMemorySessionsStore>());
+        services.TryAddScoped<InMemorySessionsStore>();
+        services.Replace(ServiceDescriptor.Scoped<ISessionsStore>(sp => sp.GetRequiredService<InMemorySessionsStore>()));
         return services;
     }
 }

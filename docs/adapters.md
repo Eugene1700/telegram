@@ -49,6 +49,13 @@ Register with `UseMaxCommandsServices()` and resolve
 | `MessageCreated` | `Max.Bot.Types.Message` | Commands or input to an active session |
 | `MessageCallback` | `Max.Bot.Types.CallbackQuery` | Command payload or Fluent callback |
 | `UserAdded` | `Max.Bot.Types.UserAddedUpdate` | `EventType.ChatMemberAdded` |
+| `BotStarted` | `Max.Bot.Types.BotStartedUpdate` | `EventType.BotStarted` |
+
+Handle a Max dialog start with `[Event(Type = EventType.BotStarted, Authorized = false)]`
+on an `IQueryCommand<Max.Bot.Types.BotStartedUpdate>`. The context exposes the
+chat ID, initiating user and unchanged start payload through `GetData()` (empty
+when absent). `Query` retains the SDK's locale and timestamp. This is a private
+dialog event, not an implicit `/start` command.
 | Other update types | — | Ignored by this resolver |
 
 The adapter supports the shapes used in these JSON updates:

@@ -113,3 +113,31 @@ and chat moves. The standalone
 [SurveyComparison](examples/SurveyComparison/README.md) runs the same questionnaire
 through Bot.Commands and aiogram using actual subprocess restarts and compares
 visible output. Its verification script is separate from dotnet test.
+
+## Nested Fluent routing
+
+FluentRoutingTests checks the serialized session route collection, parent links,
+detached caller snapshots without nested collections, invalid route/result handling
+and target authorization. The update transaction rolls back the destination
+session saved by `Next` when authorization fails. The standalone
+[FluentRouting example](examples/FluentRouting/README.md) checks 17 updates with
+actual process restarts, plus the same sequence using in-memory storage. It
+covers message and callback transitions, two nested callers and cancellation
+without applying the child's success result. It does not test concurrent or
+duplicate updates, live delivery or crashes during execution.
+
+`InMemoryRoutingBehaviorTests` executes the actual SimpleHandlers `/routeorder`
+scenario through both Telegram and Max resolvers. Independent service providers
+share an in-memory backend. It checks nested return/cancellation, concurrent
+duplicate callbacks, distinct overlapping updates, progress for other users/bots,
+failed parent prompts, exceptions after resolver session writes, cancelled lock
+waits, retries and duplicate completion after the session ends. Assertions cover
+messages, command identity, persisted parent/child data and continuation state.
+These are process-local behavior checks, not PostgreSQL transaction tests or
+evidence of distributed durability. External side effects remain outside rollback.
+
+The dynamic-routing test calls the same SimpleHandlers city flow from two
+different callers, resumes at different states on a fresh DI container, and
+checks caller identity, distinct route IDs and returned data without registering
+route links. MessengerRoutingTests also covers Max `BotStarted`: typed event
+dispatch, private-chat identity, locale and unchanged/absent start payload.

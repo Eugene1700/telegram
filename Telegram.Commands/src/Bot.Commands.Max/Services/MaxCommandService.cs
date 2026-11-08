@@ -19,6 +19,9 @@ public class MaxCommandService(
     {
         switch (update.Type)
         {
+            case UpdateType.BotStarted:
+                await QueryHandler(new BotStartedUpdateContext(update.BotStartedUpdate));
+                break;
             case UpdateType.MessageCreated:
                 var messageQueryContext = new MessageCreatedQueryContext(update.Chat, update.Message);
                 await QueryHandler(messageQueryContext, messageMatchers);
