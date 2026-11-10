@@ -6,5 +6,5 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "dropdown_behavior", Authorized = true, Swarms = new[] { "telegram" })]
+[Command(Name = "dropdown_behavior", Authorized = true, Platform = "telegram")]
 public sealed class TelegramDropDownBehavior : DropDownBehavior { }

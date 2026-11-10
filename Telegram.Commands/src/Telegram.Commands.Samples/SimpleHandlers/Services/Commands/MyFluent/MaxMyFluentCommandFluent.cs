@@ -6,5 +6,5 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "myfluent", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "myfluent", Authorized = true, Platform = "max")]
 public sealed class MaxMyFluentCommandFluent(ISampleMessageSender sender) : MyFluentCommandFluent<global::Max.Bot.Types.Message, global::Max.Bot.Types.CallbackQuery>(sender) { }

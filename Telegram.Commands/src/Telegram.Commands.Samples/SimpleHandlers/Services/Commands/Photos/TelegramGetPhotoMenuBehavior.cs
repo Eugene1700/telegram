@@ -6,5 +6,5 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "getphotomenu_behavior", Authorized = true, Swarms = new[] { "telegram" })]
+[Command(Name = "getphotomenu_behavior", Authorized = true, Platform = "telegram")]
 public sealed class TelegramGetPhotoMenuBehavior : GetPhotoMenuBehavior { }

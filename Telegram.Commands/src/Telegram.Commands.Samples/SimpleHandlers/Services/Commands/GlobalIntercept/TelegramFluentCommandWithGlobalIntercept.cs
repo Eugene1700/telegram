@@ -6,5 +6,5 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "global", Authorized = true, Swarms = new[] { "telegram" })]
+[Command(Name = "global", Authorized = true, Platform = "telegram")]
 public sealed class TelegramFluentCommandWithGlobalIntercept(ISampleMessageSender sender) : FluentCommandWithGlobalIntercept(sender) { }

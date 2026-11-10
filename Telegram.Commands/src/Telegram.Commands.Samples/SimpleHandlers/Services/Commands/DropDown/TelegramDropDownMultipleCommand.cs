@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "dropdownmultiple", Authorized = true, Swarms = new[] { "telegram" })]
+[Command(Name = "dropdownmultiple", Authorized = true, Platform = "telegram")]
 public sealed class TelegramDropDownMultipleCommand(ISampleMessageSender sender) : DropDownMultipleCommand(sender), IQueryCommand<global::Telegram.Bot.Types.Message>
 {
     Task<ICommandExecutionResult> IQueryCommand<global::Telegram.Bot.Types.Message>.Execute(IQueryContext<global::Telegram.Bot.Types.Message> query)

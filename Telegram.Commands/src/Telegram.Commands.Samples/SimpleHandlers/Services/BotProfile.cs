@@ -9,6 +9,7 @@ namespace SimpleHandlers.Services
         public string BaseUrl { get; set; }
         public string UpdateRoute { get; set; } = Settings.RouteToUpdate;
         public string BotName { get; set; }
+        public string Platform { get; set; }
         
         public GroupMessageHandlingStrategy GroupMessageHandlingStrategy => 
             GroupMessageHandlingStrategy.Direct;

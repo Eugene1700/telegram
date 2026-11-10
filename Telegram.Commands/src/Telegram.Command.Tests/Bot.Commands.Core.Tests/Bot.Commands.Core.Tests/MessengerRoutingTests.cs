@@ -17,6 +17,7 @@ public class MessengerRoutingTests
 {
     private ServiceProvider _provider;
     private IServiceScope _scope;
+    private Mock<IBotProfile> _profile;
 
     [SetUp]
     public void Setup()
@@ -25,11 +26,39 @@ public class MessengerRoutingTests
         services.AddSingleton<IClock>(Mock.Of<IClock>(c => c.Now == DateTime.UtcNow));
         services.AddScoped<ISessionsStore, SessionStoreMock>();
         services.AddSingleton(Mock.Of<IAuthProvider>());
-        services.AddSingleton(Mock.Of<IBotProfile>(p => p.BotName == "testbot"));
+        _profile = new Mock<IBotProfile>();
+        _profile.SetupGet(p => p.BotName).Returns("testbot");
+        services.AddSingleton(_profile.Object);
         services.UseTelegramCommandsServices();
         services.UseMaxCommandsServices();
         _provider = services.BuildServiceProvider();
         _scope = _provider.CreateScope();
+    }
+
+    private IBotCommandResolver<TUpdate> Resolver<TUpdate>(string platform)
+    {
+        _profile.SetupGet(p => p.Platform).Returns(platform);
+        return _scope.ServiceProvider.GetRequiredService<IBotCommandResolver<TUpdate>>();
+    }
+
+    [Test]
+    public async Task ProfileDeterminesPlatformIndependentlyOfAdapter()
+    {
+        await Resolver<Tg.Update>("max")
+            .Handle(new Tg.Update { Message = TelegramMessage("/platform_shared_test") });
+        Assert.That(_scope.ServiceProvider.GetRequiredService<MaxSharedHandler>().Calls, Is.EqualTo(1));
+        Assert.That(_scope.ServiceProvider.GetRequiredService<TelegramSharedHandler>().Calls, Is.Zero);
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    public async Task UnspecifiedProfilePlatformAcceptsOnlySharedCommands(string platform)
+    {
+        var resolver = Resolver<Tg.Update>(platform);
+        await resolver.Handle(new Tg.Update { Message = TelegramMessage("/platform_empty_test") });
+        Assert.That(_scope.ServiceProvider.GetRequiredService<EmptyPlatformHandler>().Calls, Is.EqualTo(1));
+        await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(() =>
+            resolver.Handle(new Tg.Update { Message = TelegramMessage("/platform_shared_test") }));
     }
 
     [TearDown]
@@ -42,13 +71,69 @@ public class MessengerRoutingTests
     [Test]
     public async Task SameNameSelectsCommandForItsMessenger()
     {
-        await _scope.ServiceProvider.GetRequiredService<IBotCommandResolver<Tg.Update>>()
+        await Resolver<Tg.Update>("telegram")
             .Handle(new Tg.Update { Message = TelegramMessage("/adapter_test") });
-        await _scope.ServiceProvider.GetRequiredService<IBotCommandResolver<MaxTypes.Update>>()
+        await Resolver<MaxTypes.Update>("max")
             .Handle(MaxUpdate("/adapter_test"));
         Assert.That(_scope.ServiceProvider.GetRequiredService<TelegramTestCommand>().Calls, Is.EqualTo(1));
         Assert.That(_scope.ServiceProvider.GetRequiredService<MaxTestCommand>().Calls, Is.EqualTo(1));
     }
+
+    [Test]
+    public async Task PlatformSelectsBetweenSharedHandlersWithoutSwarms()
+    {
+        await Resolver<Tg.Update>("telegram")
+            .Handle(new Tg.Update { Message = TelegramMessage("/platform_shared_test") });
+        await Resolver<MaxTypes.Update>("max")
+            .Handle(MaxUpdate("/platform_shared_test"));
+        Assert.That(_scope.ServiceProvider.GetRequiredService<TelegramSharedHandler>().Calls, Is.EqualTo(1));
+        Assert.That(_scope.ServiceProvider.GetRequiredService<MaxSharedHandler>().Calls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task EmptyPlatformIsSharedAndDoesNotLosePriorityToSpecificPlatform()
+    {
+        await Resolver<Tg.Update>("telegram")
+            .Handle(new Tg.Update { Message = TelegramMessage("/platform_empty_test") });
+        await Resolver<MaxTypes.Update>("max")
+            .Handle(MaxUpdate("/platform_empty_test"));
+        Assert.That(_scope.ServiceProvider.GetRequiredService<EmptyPlatformHandler>().Calls, Is.EqualTo(2));
+        await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(() =>
+            Resolver<Tg.Update>("telegram")
+                .Handle(new Tg.Update { Message = TelegramMessage("/platform_ambiguous_test") }));
+    }
+
+    [Test]
+    public async Task MatchingPlatformStillRequiresCompatibleQueryType()
+    {
+        await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(() =>
+            Resolver<Tg.Update>("telegram")
+                .Handle(new Tg.Update { Message = TelegramMessage("/platform_wrong_query_test") }));
+    }
+
+    public abstract class SharedHandler : IQueryCommand<Tg.Message>, IQueryCommand<MaxTypes.Message>
+    {
+        public int Calls { get; private set; }
+        public Task<ICommandExecutionResult> Execute(IQueryContext<Tg.Message> query) => Count();
+        public Task<ICommandExecutionResult> Execute(IQueryContext<MaxTypes.Message> query) => Count();
+        private Task<ICommandExecutionResult> Count()
+        {
+            Calls++;
+            return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());
+        }
+    }
+    [Command(Name = "platform_shared_test", Platform = "TeLeGrAm", Authorized = false)]
+    public sealed class TelegramSharedHandler : SharedHandler { }
+    [Command(Name = "platform_shared_test", Platform = "MAX", Authorized = false)]
+    public sealed class MaxSharedHandler : SharedHandler { }
+    [Command(Name = "platform_empty_test", Platform = "", Authorized = false)]
+    public sealed class EmptyPlatformHandler : SharedHandler { }
+    [Command(Name = "platform_ambiguous_test", Authorized = false)]
+    public sealed class UnqualifiedHandler : SharedHandler { }
+    [Command(Name = "platform_ambiguous_test", Platform = "telegram", Authorized = false)]
+    public sealed class QualifiedHandler : SharedHandler { }
+    [Command(Name = "platform_wrong_query_test", Platform = "telegram", Authorized = false)]
+    public sealed class WrongQueryHandler : MaxTestCommand { }
 
     [TestCase("/adapter_test@testbot argument", 1)]
     [TestCase("/adapter_test@other argument", 0)]
@@ -57,7 +142,7 @@ public class MessengerRoutingTests
     {
         var message = TelegramMessage(text);
         message.Chat.Type = global::Telegram.Bot.Types.Enums.ChatType.Group;
-        await _scope.ServiceProvider.GetRequiredService<IBotCommandResolver<Tg.Update>>()
+        await Resolver<Tg.Update>("telegram")
             .Handle(new Tg.Update { Message = message });
         Assert.That(_scope.ServiceProvider.GetRequiredService<TelegramTestCommand>().Calls, Is.EqualTo(expected));
     }
@@ -65,7 +150,7 @@ public class MessengerRoutingTests
     [Test]
     public async Task MaxGroupDoesNotRequireTelegramMention()
     {
-        await _scope.ServiceProvider.GetRequiredService<IBotCommandResolver<MaxTypes.Update>>()
+        await Resolver<MaxTypes.Update>("max")
             .Handle(MaxUpdate("/adapter_test argument", "chat"));
         Assert.That(_scope.ServiceProvider.GetRequiredService<MaxTestCommand>().Calls, Is.EqualTo(1));
     }
@@ -75,7 +160,7 @@ public class MessengerRoutingTests
     {
         var message = TelegramMessage("");
         message.Chat.Type = global::Telegram.Bot.Types.Enums.ChatType.Group;
-        await _scope.ServiceProvider.GetRequiredService<IBotCommandResolver<Tg.Update>>()
+        await Resolver<Tg.Update>("telegram")
             .Handle(new Tg.Update { CallbackQuery = new Tg.CallbackQuery
             {
                 Id = "callback", From = new Tg.User { Id = 2 }, Message = message,
@@ -106,8 +191,9 @@ public class MessengerRoutingTests
     {
         var message = TelegramMessage(null);
         message.NewChatMembers = new[] { new Tg.User { Id = 3 } };
-        await _scope.ServiceProvider.GetRequiredService<IBotCommandResolver<Tg.Update>>()
+        await Resolver<Tg.Update>("telegram")
             .Handle(new Tg.Update { Message = message });
+        Assert.That(_scope.ServiceProvider.GetRequiredService<ForeignPlatformEvent>().Calls, Is.Zero);
     }
 
     [Test]
@@ -134,6 +220,9 @@ public class MessengerRoutingTests
         Assert.That(context.GetChatId(), Is.EqualTo(1));
         Assert.That(context.GetEventType(), Is.EqualTo(EventType.ChatMemberAdded));
     }
+
+    [Event(Type = EventType.ChatMemberAdded, Platform = "max", Authorized = false)]
+    public sealed class ForeignPlatformEvent : SharedHandler { }
 
     private static Tg.Message TelegramMessage(string text) => new()
     {

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Configuration;
 using Bot.Commands.Abstract.Interfaces;
 using EntityStorage;
@@ -34,9 +35,10 @@ public class BotSessionStoreTests
             new Dictionary<string, string> { ["BotProfile:BotName"] = "bot-a", ["BotProfile:RegisterWebhook"] = "false" }).Build();
         var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
         new Startup(configuration).ConfigureServices(services);
+        services.RemoveAll<ICommandMatcher<global::Telegram.Bot.Types.Message>>();
         services.AddSingleton(storage.Object);
         var botName = "bot-a";
-        services.AddScoped<IBotProfile>(_ => new BotProfile { BotName = botName, Swarms = new[] { "telegram" } });
+        services.AddScoped<IBotProfile>(_ => new BotProfile { BotName = botName, Platform = "telegram" });
         var sent = new List<(string Bot, string Text)>();
         services.AddScoped<ISampleMessageSender>(sp =>
         {

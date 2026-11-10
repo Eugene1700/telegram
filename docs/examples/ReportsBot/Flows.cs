@@ -110,9 +110,9 @@ public abstract class ReportFlow<TMessage, TCallback>(IOutput output, ReportRepo
     }
 }
 
-[Command(Name = "report", Authorized = false, Swarms = new[] { "telegram" })]
+[Command(Name = "report", Authorized = false, Platform = "telegram")]
 public sealed class TelegramReport(IOutput output, ReportRepository reports) : ReportFlow<Tg.Message, Tg.CallbackQuery>(output, reports);
-[Command(Name = "report", Authorized = false, Swarms = new[] { "max" })]
+[Command(Name = "report", Authorized = false, Platform = "max")]
 public sealed class MaxReport(IOutput output, ReportRepository reports) : ReportFlow<Mx.Message, Mx.CallbackQuery>(output, reports);
 
 public enum ArchiveStep { Browse, Done }
@@ -152,9 +152,9 @@ public abstract class ArchiveFlow<TMessage, TCallback>(IOutput output, ReportRep
     }
 }
 
-[Command(Name = "archive", Authorized = false, Swarms = new[] { "telegram" })]
+[Command(Name = "archive", Authorized = false, Platform = "telegram")]
 public sealed class TelegramArchive(IOutput output, ReportRepository reports) : ArchiveFlow<Tg.Message, Tg.CallbackQuery>(output, reports);
-[Command(Name = "archive", Authorized = false, Swarms = new[] { "max" })]
+[Command(Name = "archive", Authorized = false, Platform = "max")]
 public sealed class MaxArchive(IOutput output, ReportRepository reports) : ArchiveFlow<Mx.Message, Mx.CallbackQuery>(output, reports);
 
 [Command(Name = "help", Authorized = false)]

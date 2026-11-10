@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "showdropdown_callback", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "showdropdown_callback", Authorized = true, Platform = "max")]
 public sealed class MaxShowDropDownCallback(ISampleMessageSender sender)
     : ShowDropDownCallback(sender), ISessionCommand<global::Max.Bot.Types.CallbackQuery, DropDownSessionObject>
 {

@@ -7,6 +7,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using SimpleHandlers;
 using SimpleHandlers.Services;
@@ -36,6 +37,8 @@ public class FluentPersistenceTests
         }).Build();
         var services = new ServiceCollection();
         new Startup(config).ConfigureServices(services);
+        services.RemoveAll<ICommandMatcher<global::Telegram.Bot.Types.Message>>();
+        services.RemoveAll<ICommandMatcher<Mx.Message>>();
         services.AddLogging();
         var sender = new Mock<ISampleMessageSender>();
         sender.Setup(s => s.Send(It.IsAny<long>(), It.IsAny<Bot.Commands.Abstract.Messages.IBotMessage>()))

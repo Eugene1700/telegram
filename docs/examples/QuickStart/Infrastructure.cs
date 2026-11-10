@@ -14,6 +14,7 @@ public sealed class DemoProfile : IBotProfile
     public string BaseUrl => "";
     public string UpdateRoute => "/updates";
     public string BotName => "example_bot";
+    public string Platform => null;
     public GroupMessageHandlingStrategy GroupMessageHandlingStrategy => GroupMessageHandlingStrategy.Direct;
     public string[] Swarms => null;
 }

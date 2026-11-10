@@ -6,5 +6,5 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "dropdown_behavior", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "dropdown_behavior", Authorized = true, Platform = "max")]
 public sealed class MaxDropDownBehavior : DropDownBehavior { }

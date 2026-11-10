@@ -57,13 +57,44 @@ The attribute belongs on a concrete command class. `Name` excludes the leading
 slash. Defaults are `Authorized = true` and `Area = ChatArea.Private`.
 
 Commands are discovered from loaded assemblies. Selection uses the command name,
-the incoming SDK query type, and the bot's swarm configuration. Separate Telegram
+the command's platform, incoming SDK query type, and the bot's swarm configuration. Separate Telegram
 and Max command classes may share a name. One class may also implement both typed
 interfaces; see [the shared example](examples/QuickStart/Commands.cs).
+
+Command and event metadata is cached across requests and refreshed when the loaded
+assembly list changes. Platform,
+swarm, and query-type filters run after lookup; request arguments are not cached.
 
 Command names are matched case-sensitively. Telegram bot mentions are checked
 case-insensitively. Duplicate compatible candidates are an error; a matching swarm
 does not establish priority between multiple remaining candidates.
+
+### Matchers
+
+Implement `ICommandMatcher<TQuery, TCommand>` to bind a matcher to a command type:
+
+```csharp
+public sealed class ProfileMatcher : ICommandMatcher<Message, SharedProfileCommand>
+{
+    public bool IsMatch(IQueryContext<Message> query) => query.GetData() == "register";
+}
+```
+
+Register it as `ICommandMatcher<Message>` so the adapter can receive a collection
+of matchers for different commands. The command type comes from `TCommand`;
+implementations do not need a `CommandType` property. A concrete type selects that
+exact command, while an abstract base selects its concrete implementations.
+Command names are not used to find matcher candidates.
+
+A nonempty matcher list replaces name-based routing for incoming commands,
+including slash input. A failed match does not fall back to a name. With no
+matchers (null or empty), command names are used as before. Events and active
+session restoration keep their existing routing; incoming commands intercepted
+by behavior sessions use the same matcher policy.
+
+Platform, swarm, query-type, authorization, and chat-area restrictions still apply.
+Multiple matching implementations remain an error. A no-match result is ignored
+in group chats and raises an extraction error in private chats without a session.
 
 ### Command arguments
 
@@ -77,6 +108,19 @@ var arguments = this.ExtractData(context); // "weekly"
 This removes the first whitespace-delimited command token and trims the remainder.
 It is not a shell-style argument parser: quoting, named options, and validation
 belong in the application. `context.GetData()` returns the full original payload.
+
+### Platform
+
+Set `Platform = "telegram"` or `Platform = "max"` on a command attribute when
+implementations sharing a name must be separated by messenger. Null (the default)
+and empty strings mean the command is shared. Set `IBotProfile.Platform` to the
+bot's platform. Core compares these names case-insensitively; SDK query compatibility
+is still required. Platform filtering applies to ordinary commands, sessions,
+behaviors, matchers, and events. A platform-specific command has no priority over
+a shared command: multiple compatible candidates remain an error.
+
+A null or empty `IBotProfile.Platform` accepts only unqualified commands. Adapters
+do not choose the platform. Swarms remain an independent filter for groups of bots.
 
 ### Swarms
 

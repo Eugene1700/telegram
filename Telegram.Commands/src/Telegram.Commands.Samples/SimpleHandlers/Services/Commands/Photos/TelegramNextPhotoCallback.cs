@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "nextphoto_callback", Authorized = true, Swarms = new[] { "telegram" })]
+[Command(Name = "nextphoto_callback", Authorized = true, Platform = "telegram")]
 public sealed class TelegramNextPhotoCallback(ISampleMessageSender sender)
     : NextPhotoCallback(sender), ISessionCommand<global::Telegram.Bot.Types.CallbackQuery, List<PhotoSessionObject>>
 {

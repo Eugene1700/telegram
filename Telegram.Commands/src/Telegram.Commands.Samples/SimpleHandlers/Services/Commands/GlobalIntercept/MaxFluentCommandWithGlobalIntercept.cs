@@ -6,5 +6,5 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "global", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "global", Authorized = true, Platform = "max")]
 public sealed class MaxFluentCommandWithGlobalIntercept(ISampleMessageSender sender) : FluentCommandWithGlobalIntercept(sender) { }

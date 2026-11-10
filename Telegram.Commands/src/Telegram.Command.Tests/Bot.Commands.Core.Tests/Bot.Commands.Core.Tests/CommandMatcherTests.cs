@@ -28,44 +28,84 @@ public class CommandMatcherTests
     }
 
     [Test]
-    public async Task ExplicitCommandWinsAndMatcherReceivesOriginalContext()
+    public async Task MatcherReplacesNameLookupAndReceivesOriginalContext()
     {
-        var matcher = new Matcher(typeof(Funnel), _ => true);
+        var matcher = new Matcher<Funnel>(_ => true);
         using var provider = Provider(matcher);
         using var scope = provider.CreateScope();
         var resolver = scope.ServiceProvider.GetRequiredService<Resolver>();
         await resolver.Handle(new CoreBoundaryTests.CustomContext("/matcher_exact"));
-        Assert.That(scope.ServiceProvider.GetRequiredService<Exact>().Calls, Is.EqualTo(1));
-        Assert.That(matcher.Calls, Is.Zero);
+        Assert.That(scope.ServiceProvider.GetRequiredService<Exact>().Calls, Is.Zero);
+        Assert.That(matcher.Calls, Is.EqualTo(1));
         var query = new CoreBoundaryTests.CustomContext("interested in your offer");
         await resolver.Handle(query);
         Assert.That(matcher.LastContext, Is.SameAs(query));
-        Assert.That(scope.ServiceProvider.GetRequiredService<Funnel>().Calls, Is.EqualTo(1));
+        Assert.That(scope.ServiceProvider.GetRequiredService<Funnel>().Calls, Is.EqualTo(2));
     }
 
     [Test]
-    public async Task ActiveSessionKeepsInputAndUnknownSlashDoesNotTriggerMatcher()
+    public async Task ActiveSessionKeepsInputAndUnknownSlashCanTriggerMatcher()
     {
-        var matcher = new Matcher(typeof(Funnel), _ => true);
+        var matcher = new Matcher<Funnel>(_ => true);
         using var provider = Provider(matcher);
         using var scope = provider.CreateScope();
         var resolver = scope.ServiceProvider.GetRequiredService<Resolver>();
-        await Assert.ThrowsAsync<CommandExtractionException>(() => resolver.Handle(new CoreBoundaryTests.CustomContext("/missing")));
-        Assert.That(matcher.Calls, Is.Zero);
+        await resolver.Handle(new CoreBoundaryTests.CustomContext("/missing"));
+        Assert.That(matcher.Calls, Is.EqualTo(1));
         var store = provider.GetRequiredService<SessionStoreMock>();
         var session = new CommandSession { ChatId = 10, UserId = 20, CommandQuery = "/matcher_session", Data = "stored" };
         store.SetSessionInfo(session);
         store.SetSessionInfoWithData(session);
         await resolver.Handle(new CoreBoundaryTests.CustomContext("interested"));
         Assert.That(scope.ServiceProvider.GetRequiredService<Session>().Calls, Is.EqualTo(1));
-        Assert.That(matcher.Calls, Is.Zero);
+        Assert.That(matcher.Calls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task UnmatchedInputDoesNotFallBackToNameLookup()
+    {
+        using var provider = Provider(new Matcher<Funnel>(_ => false));
+        using var scope = provider.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<Resolver>()
+            .Handle(new CoreBoundaryTests.CustomContext("/matcher_exact"));
+        Assert.That(scope.ServiceProvider.GetRequiredService<Exact>().Calls, Is.Zero);
+    }
+
+    [Test]
+    public async Task EmptyMatcherListUsesNameLookup()
+    {
+        using var provider = Provider();
+        using var scope = provider.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<Resolver>()
+            .Handle(new CoreBoundaryTests.CustomContext("/matcher_exact"));
+        Assert.That(scope.ServiceProvider.GetRequiredService<Exact>().Calls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ConcreteMatcherDoesNotSelectUnrelatedCommandWithSameName()
+    {
+        using var provider = Provider(new Matcher<ConcreteTarget>(_ => true));
+        using var scope = provider.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<Resolver>().Handle(new CoreBoundaryTests.CustomContext("input"));
+        Assert.That(scope.ServiceProvider.GetRequiredService<ConcreteTarget>().Calls, Is.EqualTo(1));
+        Assert.That(scope.ServiceProvider.GetRequiredService<UnrelatedTarget>().Calls, Is.Zero);
+    }
+
+    [Test]
+    public async Task AbstractMatcherSelectsImplementationRegardlessOfAttributeName()
+    {
+        using var provider = Provider(new Matcher<AbstractTarget>(_ => true));
+        using var scope = provider.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<Resolver>().Handle(new CoreBoundaryTests.CustomContext("input"));
+        Assert.That(scope.ServiceProvider.GetRequiredService<ConcreteTarget>().Calls, Is.EqualTo(1));
+        Assert.That(scope.ServiceProvider.GetRequiredService<UnrelatedTarget>().Calls, Is.Zero);
     }
 
     [Test]
     public async Task MultipleMatchesAreRejectedAndWrongSwarmIsNotEvaluated()
     {
-        var other = new Matcher(typeof(OtherSwarm), _ => true);
-        using var provider = Provider(new Matcher(typeof(Exact), _ => true), new Matcher(typeof(Funnel), _ => true), other);
+        var other = new Matcher<OtherSwarm>(_ => true);
+        using var provider = Provider(new Matcher<Exact>(_ => true), new Matcher<Funnel>(_ => true), other);
         using var scope = provider.CreateScope();
         await Assert.ThrowsAsync<CommandExtractionException>(() => scope.ServiceProvider.GetRequiredService<Resolver>()
             .Handle(new CoreBoundaryTests.CustomContext("offer")));
@@ -77,7 +117,7 @@ public class CommandMatcherTests
     [Test]
     public async Task MatchedCommandStillRequiresAuthorization()
     {
-        using var provider = Provider(new Matcher(typeof(Protected), _ => true));
+        using var provider = Provider(new Matcher<Protected>(_ => true));
         using var scope = provider.CreateScope();
         await Assert.ThrowsAsync<CommandPermissionException>(() => scope.ServiceProvider.GetRequiredService<Resolver>()
             .Handle(new CoreBoundaryTests.CustomContext("offer")));
@@ -89,9 +129,9 @@ public class CommandMatcherTests
         public Task Handle(CoreBoundaryTests.CustomContext context) => QueryHandler(context, matchers);
     }
 
-    private sealed class Matcher(Type commandType, Func<string, bool> match) : ICommandMatcher<string>
+    private sealed class Matcher<TCommand>(Func<string, bool> match) : ICommandMatcher<string, TCommand>
+        where TCommand : class
     {
-        public Type CommandType => commandType;
         public int Calls { get; private set; }
         public object LastContext { get; private set; }
         public bool IsMatch(IQueryContext<string> query)
@@ -111,6 +151,13 @@ public class CommandMatcherTests
             return Task.FromResult<ICommandExecutionResult>(CommandExecutionResult.Freeze());
         }
     }
+    [Command(Name = "matcher_abstract_name")]
+    public abstract class AbstractTarget : CountingCommand { }
+    [Command(Name = "matcher_same_name", Authorized = false, Area = ChatArea.Group)]
+    public sealed class ConcreteTarget : AbstractTarget { }
+    [Command(Name = "matcher_same_name", Authorized = false, Area = ChatArea.Group)]
+    public sealed class UnrelatedTarget : CountingCommand { }
+
     [Command(Name = "matcher_exact", Authorized = false, Area = ChatArea.Group, Swarms = new[] { "matcher-test" })]
     public sealed class Exact : CountingCommand { }
     [Command(Name = "matcher_funnel", Authorized = false, Area = ChatArea.Group, Swarms = new[] { "matcher-test" })]

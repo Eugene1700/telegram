@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "nextphoto_callback", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "nextphoto_callback", Authorized = true, Platform = "max")]
 public sealed class MaxNextPhotoCallback(ISampleMessageSender sender)
     : NextPhotoCallback(sender), ISessionCommand<global::Max.Bot.Types.CallbackQuery, List<PhotoSessionObject>>
 {

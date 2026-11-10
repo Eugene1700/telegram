@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "dropdownmultiple", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "dropdownmultiple", Authorized = true, Platform = "max")]
 public sealed class MaxDropDownMultipleCommand(ISampleMessageSender sender) : DropDownMultipleCommand(sender), IQueryCommand<global::Max.Bot.Types.Message>
 {
     Task<ICommandExecutionResult> IQueryCommand<global::Max.Bot.Types.Message>.Execute(IQueryContext<global::Max.Bot.Types.Message> query)

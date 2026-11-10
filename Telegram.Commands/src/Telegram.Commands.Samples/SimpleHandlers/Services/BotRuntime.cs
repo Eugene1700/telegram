@@ -14,7 +14,7 @@ public sealed class BotRuntime(IHttpContextAccessor accessor)
         {
             Key = section["Token"], BaseUrl = section["BaseUrl"], BotName = section["BotName"],
             UpdateRoute = max ? Settings.MaxRouteToUpdate : Settings.RouteToUpdate,
-            Swarms = new[] { max ? "max" : "telegram" }
+            Platform = section["Platform"] ?? (max ? "max" : "telegram")
         };
     }
 }

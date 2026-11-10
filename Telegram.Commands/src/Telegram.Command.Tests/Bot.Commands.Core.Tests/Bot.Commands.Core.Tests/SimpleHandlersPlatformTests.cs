@@ -15,13 +15,20 @@ namespace Bot.Commands.Core.Tests;
 
 public class SimpleHandlersPlatformTests
 {
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task SharedCommandsHandleMessagesSessionsAndCallbacks(bool max)
+    [TestCase(false, false)]
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    public async Task SharedCommandsHandleMessagesSessionsAndCallbacks(bool max, bool useMatchers)
     {
         var configuration = Configuration();
         var services = new ServiceCollection();
         new Startup(configuration).ConfigureServices(services);
+        if (!useMatchers)
+        {
+            services.RemoveAll<ICommandMatcher<Tg.Message>>();
+            services.RemoveAll<ICommandMatcher<Mx.Message>>();
+        }
         services.AddLogging();
         var sent = new RecordingSender();
         services.AddSingleton<ISampleMessageSender>(sent);
@@ -54,6 +61,8 @@ public class SimpleHandlersPlatformTests
         {
             // Each update gets a fresh DI scope, just like a webhook request.
             using var scope = provider.CreateScope();
+            Assert.That(scope.ServiceProvider.GetRequiredService<IBotProfile>().Swarms, Is.Null.Or.Empty);
+            Assert.That(scope.ServiceProvider.GetRequiredService<IBotProfile>().Platform, Is.EqualTo(max ? "max" : "telegram"));
             if (max)
             {
                 var json = callback
@@ -82,6 +91,21 @@ public class SimpleHandlersPlatformTests
             }
         }
 
+        if (useMatchers)
+        {
+            await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(() => Send("/start"));
+            await Send("register");
+            await Send("Funnel User");
+            Assert.That(sent.Messages.Last().Text, Is.EqualTo("Profile saved: Funnel User"));
+            await Send("register");
+            var callbackPayload = sent.Messages.Last().Callbacks.SelectMany(row => row).Single().CallbackText;
+            await Send(callbackPayload, callback: true);
+            Assert.That(sent.Messages.Last().Text, Is.EqualTo("Profile saved: Alex"));
+            await Assert.ThrowsAsync<Bot.Commands.Core.Exceptions.CommandExtractionException>(() => Send("register", callback: true));
+            Assert.That(executed.All(t => t.Name.StartsWith(max ? "Max" : "Telegram", StringComparison.Ordinal)), Is.True);
+            return;
+        }
+
         await Send("/start");
         Assert.That(sent.Messages.Last().Text, Does.Contain("/profile"));
         await Send("/ask");
@@ -100,9 +124,6 @@ public class SimpleHandlersPlatformTests
                 .First(c => c.Text == label);
             await Send(button.CommandDescriptor == null ? button.CallbackText : $"/{button.CommandDescriptor.Name} {button.CallbackText}", callback: true);
         }
-        await Send("register");
-        await Send("Funnel User");
-        Assert.That(sent.Messages.Last().Text, Is.EqualTo("Profile saved: Funnel User"));
         foreach (var command in new[] { "/dropdown", "/dropdownmultiple" })
         {
             await Send(command);

@@ -5,6 +5,7 @@ namespace Bot.Commands.Abstract.Interfaces
     public interface ICommandDescriptor
     {
         string Name { get; }
+        string Platform { get; }
         public ChatArea Area { get; }
         public string[] Swarms { get; }
         bool Authorized { get; }

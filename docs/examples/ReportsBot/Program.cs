@@ -140,11 +140,12 @@ namespace ReportsBot
 
     public sealed class Profile(string platform, string name) : IBotProfile
     {
+        public string Platform => platform;
         public string Key => "";
         public string BaseUrl => "";
         public string UpdateRoute => "/updates";
         public string BotName => name;
         public GroupMessageHandlingStrategy GroupMessageHandlingStrategy => GroupMessageHandlingStrategy.Direct;
-        public string[] Swarms => new[] { platform };
+        public string[] Swarms => null;
     }
 }

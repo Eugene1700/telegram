@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "selectdropdownitem_callback", Authorized = true, Swarms = new[] { "telegram" })]
+[Command(Name = "selectdropdownitem_callback", Authorized = true, Platform = "telegram")]
 public sealed class TelegramSelectDropDownItemCallback(ISampleMessageSender sender)
     : SelectDropDownItemCallback(sender), ISessionCommand<global::Telegram.Bot.Types.CallbackQuery, DropDownSessionObject>
 {

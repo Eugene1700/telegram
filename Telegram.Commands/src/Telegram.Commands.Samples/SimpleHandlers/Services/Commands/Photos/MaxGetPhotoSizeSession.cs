@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "getphotosize_session", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "getphotosize_session", Authorized = true, Platform = "max")]
 public sealed class MaxGetPhotoSizeSession(ISampleMessageSender sender)
     : GetPhotoSizeSession(sender), ISessionCommand<global::Max.Bot.Types.Message, List<PhotoSessionObject>>
 {

@@ -6,5 +6,5 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "profile", Authorized = false, Swarms = new[] { "telegram" })]
+[Command(Name = "profile", Authorized = false, Platform = "telegram")]
 public sealed class TelegramSharedProfileCommand(ISampleMessageSender sender) : SharedProfileCommand(sender) { }

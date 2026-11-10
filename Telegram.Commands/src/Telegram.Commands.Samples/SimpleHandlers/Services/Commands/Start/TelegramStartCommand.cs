@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "start", Authorized = false, Swarms = new[] { "telegram" })]
+[Command(Name = "start", Authorized = false, Platform = "telegram")]
 public sealed class TelegramStartCommand(ISampleMessageSender sender) : StartCommand(sender), IQueryCommand<global::Telegram.Bot.Types.Message>
 {
     Task<ICommandExecutionResult> IQueryCommand<global::Telegram.Bot.Types.Message>.Execute(IQueryContext<global::Telegram.Bot.Types.Message> query)

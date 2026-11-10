@@ -139,52 +139,70 @@ public abstract class CommandServiceBase
             var comDesc = FindCommand<TQuery>(commandStr, chatId);
             if (!comDesc.IsBehaviorCommand)
                 return CommandDescriptorComposition.CreateSessionResult(comDesc);
-            if (!TryGetQueryCommandStr(query, out var currentCommandStr))
-                return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
-            var queryCommandDesc = FindCommand<TQuery>(currentCommandStr, chatId);
-            if (queryCommandDesc.IsBehaviorCommand)
+            var queryCommandDesc = FindIncomingCommand(query, matchers);
+            if (queryCommandDesc == null || queryCommandDesc.IsBehaviorCommand)
                 return CommandDescriptorComposition.CreateBehaviorResult(comDesc);
             return CommandDescriptorComposition.CreateBehaviorResult(comDesc, queryCommandDesc);
         }
 
-        if (!TryGetQueryCommandStr(query, out commandStr))
+        var queryComDesc = FindIncomingCommand(query, matchers);
+        if (queryComDesc == null)
         {
-            // A rejected slash command (for example, addressed to another bot) must not start a funnel.
-            if (query.GetData()?.StartsWith("/", StringComparison.Ordinal) != true)
-            {
-                var matched = FindMatchedCommand(query, matchers);
-                if (matched != null) return CommandDescriptorComposition.CreateQueryResult(matched);
-            }
             if (query.IsGroupMessage())
                 return null;
             else
                 throw new CommandExtractionException("Could not extract command", chatId);
         }
 
-        var queryComDesc = FindCommand<TQuery>(commandStr, chatId);
         return CommandDescriptorComposition.CreateQueryResult(queryComDesc);
     }
 
-    private FullCommandDescriptor FindMatchedCommand<TQuery>(IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers)
+    private FullCommandDescriptor FindIncomingCommand<TQuery>(
+        IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers)
     {
-        var matched = new List<FullCommandDescriptor>();
-        foreach (var matcher in matchers ?? Array.Empty<ICommandMatcher<TQuery>>())
-        {
-            var descriptor = BotCommandExtensions.GetCommandInfo(matcher.CommandType);
-            var candidates = FindCommandByName("/" + descriptor.Name)
-                .Where(d => d.SupportsQuery(typeof(TQuery)) && (d.IsQueryCommand || d.IsBehaviorCommand))
-                .Where(d => _botProfile.Swarms == null || _botProfile.Swarms.Length == 0 ||
-                    d.Descriptor.Swarms == null || d.Descriptor.Swarms.Any(s => _botProfile.Swarms.Contains(s)))
-                .ToArray();
-            if (candidates.Length > 0 && matcher.IsMatch(query)) matched.AddRange(candidates);
-        }
-        var distinct = matched.GroupBy(d => d.Type).Select(g => g.First()).ToArray();
-        if (distinct.Length > 1)
-            throw new CommandExtractionException("Multiple commands matched this update", query.GetChatId());
-        return distinct.SingleOrDefault();
+        var configuredMatchers = matchers?.ToArray();
+        if (configuredMatchers?.Length > 0)
+            return FindMatchedCommand(query, configuredMatchers);
+
+        return TryGetQueryCommandStr(query, out var commandStr)
+            ? FindCommand<TQuery>(commandStr, query.GetChatId())
+            : null;
     }
 
-    private static CommandDescriptorComposition GetEvent<TQuery>(IQueryContext<TQuery> query)
+    private FullCommandDescriptor FindMatchedCommand<TQuery>(
+        IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers)
+    {
+        if (matchers == null)
+            return null;
+
+        var matchedCommands = new List<FullCommandDescriptor>();
+        foreach (var matcher in matchers)
+        {
+            var candidates = CommandCatalog.Shared.FindCommands(matcher.CommandType);
+            candidates = ApplyPlatform(candidates);
+            candidates = ApplySwarm(candidates);
+            candidates = candidates
+                .Where(command => command.SupportsQuery(typeof(TQuery)))
+                .Where(command => command.IsQueryCommand || command.IsBehaviorCommand)
+                .ToArray();
+
+            if (candidates.Length == 0)
+                continue;
+
+            if (!matcher.IsMatch(query))
+                continue;
+
+            matchedCommands.AddRange(candidates);
+        }
+
+        var distinctCommands = matchedCommands.DistinctBy(command => command.Type).ToArray();
+        if (distinctCommands.Length > 1)
+            throw new CommandExtractionException("Multiple commands matched this update", query.GetChatId());
+
+        return distinctCommands.SingleOrDefault();
+    }
+
+    private CommandDescriptorComposition GetEvent<TQuery>(IQueryContext<TQuery> query)
     {
         if (!query.IsEvent())
             return null;
@@ -194,24 +212,17 @@ public abstract class CommandServiceBase
         {
             return null;
         }
-        var descriptor = CommandTypeDiscovery.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && !t.ContainsGenericParameters &&
-                t.GetCustomAttribute<EventAttribute>()?.Type == eventType.Value)
-            .Select(t => new FullCommandDescriptor(t))
+        var descriptor = ApplyPlatform(CommandCatalog.Shared.FindEvents(eventType.Value))
             .SingleOrDefault(d => d.SupportsQuery(typeof(TQuery)));
         return descriptor == null ? null : CommandDescriptorComposition.CreateQueryResult(descriptor);
     }
 
     private FullCommandDescriptor FindCommand<TQuery>(string commandStr, long chatId)
     {
-        var commandTypes = FindCommandByName(commandStr).Where(d => d.SupportsQuery(typeof(TQuery))).ToArray();
-        var comDesc = ApplySwarm(chatId, commandTypes);
-        if (comDesc == null)
-        {
-            throw new CommandExtractionException("Command without attribute", chatId);
-        }
-
-        return comDesc;
+        var commandTypes = ApplyPlatform(FindCommandByName(commandStr))
+            .Where(d => d.SupportsQuery(typeof(TQuery))).ToArray();
+        var candidates = ApplySwarm(commandTypes);
+        return RequireSingleCommand(chatId, candidates);
     }
 
     private void AssertChatType<TQuery>(IQueryContext<TQuery> query, CommandDescriptorComposition commandDescriptorComposition)
@@ -284,48 +295,31 @@ public abstract class CommandServiceBase
     }
     private static FullCommandDescriptor[] FindCommandByName(string queryString)
     {
-        //todo need cache
-        var commandTypes = CommandTypeDiscovery.GetTypes()
-            .Where(p =>
-            {
-                var attrLoc = p.GetCustomAttribute<CommandAttribute>();
-                return p.IsClass && !p.IsAbstract && !p.ContainsGenericParameters &&
-                    attrLoc != null && !(attrLoc is EventAttribute) && attrLoc.MatchCommand(queryString);
-            }).Select(x => new FullCommandDescriptor(x)).ToArray();
-
-        return commandTypes;
+        return CommandCatalog.Shared.FindCommands(queryString);
     }
 
-    private FullCommandDescriptor ApplySwarm(long chatId, FullCommandDescriptor[] suspectedCommands)
+    private FullCommandDescriptor[] ApplyPlatform(FullCommandDescriptor[] suspectedCommands)
+    {
+        var platform = _botProfile.Platform;
+        return suspectedCommands.Where(command => string.IsNullOrEmpty(command.Descriptor.Platform) ||
+            string.Equals(command.Descriptor.Platform, platform, StringComparison.OrdinalIgnoreCase)).ToArray();
+    }
+
+    private FullCommandDescriptor[] ApplySwarm(FullCommandDescriptor[] suspectedCommands)
     {
         var swarms = _botProfile.Swarms;
-        if (_botProfile.Swarms != null && (_botProfile?.Swarms.Any() ?? false))
-        {
-            var descs = suspectedCommands
-                .Where(x =>
-                    x.Descriptor.Swarms == null || x.Descriptor.Swarms.Any(y => swarms.Contains(y))).ToArray();
-            if (descs.Length == 1)
-                return descs[0];
+        if (swarms == null || swarms.Length == 0)
+            return suspectedCommands;
 
-            throw new CommandExtractionException("Too many commands for query", chatId);
-        }
-
-        if (suspectedCommands.Length == 1)
-            return suspectedCommands[0];
-
-        throw new CommandExtractionException("Too many commands for query", chatId);
+        return suspectedCommands.Where(command => command.Descriptor.Swarms == null ||
+            command.Descriptor.Swarms.Any(swarm => swarms.Contains(swarm))).ToArray();
     }
 
-    protected static Type FindEventByType(EventType eventType)
+    private static FullCommandDescriptor RequireSingleCommand(long chatId, FullCommandDescriptor[] candidates)
     {
-        //todo need cache
-        var commandType = CommandTypeDiscovery.GetTypes()
-            .SingleOrDefault(p =>
-            {
-                var attrLoc = p.GetCustomAttribute<EventAttribute>();
-                return p.IsClass && !p.IsAbstract && attrLoc != null && attrLoc.Type == eventType;
-            });
+        if (candidates.Length == 1)
+            return candidates[0];
 
-        return commandType;
+        throw new CommandExtractionException("Too many commands for query", chatId);
     }
 }

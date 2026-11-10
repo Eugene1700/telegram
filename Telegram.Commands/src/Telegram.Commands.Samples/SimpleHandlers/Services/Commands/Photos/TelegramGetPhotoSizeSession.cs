@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "getphotosize_session", Authorized = true, Swarms = new[] { "telegram" })]
+[Command(Name = "getphotosize_session", Authorized = true, Platform = "telegram")]
 public sealed class TelegramGetPhotoSizeSession(ISampleMessageSender sender)
     : GetPhotoSizeSession(sender), ISessionCommand<global::Telegram.Bot.Types.Message, List<PhotoSessionObject>>
 {

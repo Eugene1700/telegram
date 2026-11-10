@@ -58,7 +58,7 @@ files API for uploads. Use a dedicated bot configured for polling, without a
 competing update consumer. Callback actions edit the menu. No token is bundled.
 
 Run each bot as a separate process. Each process has its own profile, session store
-and archive; Telegram and Max command implementations are selected with swarms.
+and archive; Telegram and Max command implementations are selected with the command attribute's `Platform`.
 
 ## Automated offline check
 

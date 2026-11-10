@@ -107,8 +107,8 @@ To leave a flow through a command button, specify the target type directly:
 The overloads also accept `CallbackData` or a `(state, data) => CallbackData`
 provider. They are available for regular rows, generated keyboards, and dynamic
 message rows. The target must have `CommandAttribute`; an attributed abstract
-base is valid. Only its command descriptor is captured, so the current bot's
-swarm still selects the concrete implementation. Existing descriptor-based
+base is valid. Only its command descriptor is captured, so the current platform
+and any configured swarms select the concrete implementation. Existing descriptor-based
 overloads remain available.
 
 Message providers return `ITextMessage`; senders receive the constructed `IBotMessage`

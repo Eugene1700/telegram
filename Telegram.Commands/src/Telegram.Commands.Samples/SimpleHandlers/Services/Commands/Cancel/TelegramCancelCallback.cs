@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "cancel_callback", Authorized = true, Swarms = new[] { "telegram" })]
+[Command(Name = "cancel_callback", Authorized = true, Platform = "telegram")]
 public sealed class TelegramCancelCallback(ISampleMessageSender sender)
     : CancelCallback(sender), IQueryCommand<global::Telegram.Bot.Types.CallbackQuery>
 {

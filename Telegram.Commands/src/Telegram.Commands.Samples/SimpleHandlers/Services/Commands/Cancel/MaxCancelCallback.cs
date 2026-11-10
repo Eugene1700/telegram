@@ -6,7 +6,7 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "cancel_callback", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "cancel_callback", Authorized = true, Platform = "max")]
 public sealed class MaxCancelCallback(ISampleMessageSender sender)
     : CancelCallback(sender), IQueryCommand<global::Max.Bot.Types.CallbackQuery>
 {

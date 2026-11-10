@@ -6,5 +6,5 @@ using SimpleHandlers.Services.Commands.Models;
 using Bot.Commands.Abstract.Attributes;
 namespace SimpleHandlers.Services.Commands;
 
-[Command(Name = "getphotomenu_behavior", Authorized = true, Swarms = new[] { "max" })]
+[Command(Name = "getphotomenu_behavior", Authorized = true, Platform = "max")]
 public sealed class MaxGetPhotoMenuBehavior : GetPhotoMenuBehavior { }

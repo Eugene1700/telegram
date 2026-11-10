@@ -11,7 +11,7 @@ Each folder contains the shared command logic, concrete Telegram/Max commands,
 and its session data and state types. Shared helpers live in `Shared`.
 The folder move preserves existing namespaces.
 
-`Profile/ProfileFunnelMatcher.cs` implements `ICommandMatcher<TQuery>`.
+`Profile/ProfileFunnelMatcher.cs` implements `ICommandMatcher<TQuery, SharedProfileCommand>`.
 Register closed types for each supported input, for example:
 
 ```csharp
@@ -23,9 +23,17 @@ services.AddScoped<ICommandMatcher<Max.Bot.Types.Message>,
 
 `IsMatch(IQueryContext<TQuery> query)` receives a typed context. Message and callback
 matchers are injected separately by each adapter; message matchers never handle
-callback updates. Matchers run only without an active session or slash command.
+callback updates. A nonempty matcher list replaces name-based routing for incoming
+commands, including slash commands; a failed match does not fall back to a name.
+Active sessions still resolve their saved command. Behavior sessions use matchers
+to select incoming commands to intercept.
 Ambiguous matches are rejected; swarm, authorization and chat-area checks remain
 in effect.
+
+The sample registers only the profile funnel matcher for messages. In this mode,
+start with `register` or `хочу зарегистрироваться`; slash commands do not start
+other flows. Remove these two matcher registrations to use the slash-command
+walkthrough below, or provide explicit matchers for the other entry commands.
 
 ## Configure and run
 
@@ -40,6 +48,7 @@ Telegram `BotProfile` values when adding Max.
 | `MaxBotProfile:Enabled` | Max webhook handler and registration; defaults to `false` |
 | `Token` in each profile | The corresponding bot token |
 | `BotName` in each profile | Bot name; Telegram uses it for mention matching |
+| `Platform` in each profile | Command platform; defaults to `telegram` / `max` for the corresponding profile |
 | `BaseUrl` in each profile | Public HTTPS base URL reachable by that messenger |
 | `RegisterWebhook` in each profile | Register at application startup; defaults to `true` |
 | `MaxBotProfile:WebhookSecret` | Shared secret registered with Max and checked on incoming requests |
@@ -81,9 +90,9 @@ each receives its SDK client directly. Controllers declare their resolver and cl
 as action parameters. `WebhookAccessFilter` checks platform availability and the Max
 secret before those dependencies are resolved. Max's **Start** event sends the introductory message as well.
 
-The older photo, dropdown, `/myfluent`, and `/global` demonstrations remain
-Telegram-specific. Their behavior commands are restricted to the `telegram` swarm,
-so Max cannot accidentally execute a handler requiring a Telegram client.
+Concrete Telegram and Max commands declare `Platform` in their command attributes.
+`BotProfile.Platform` selects implementations, including behavior and Fluent commands.
+The bot profiles do not need platform swarms.
 
 ## Profiles and sessions
 

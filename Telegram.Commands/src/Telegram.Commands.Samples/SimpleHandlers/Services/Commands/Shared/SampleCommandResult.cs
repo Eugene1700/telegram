@@ -1,7 +1,7 @@
 using Bot.Commands.Abstract.Interfaces;
 using Bot.Commands.Core;
 namespace SimpleHandlers.Services.Commands;
-// Only metadata is persisted. The resolver selects the concrete command in the current bot's swarm.
+// Only metadata is persisted. The resolver selects the concrete command for the current platform and any configured swarms.
 internal sealed class SampleCommandResult : ICommandExecutionResult
 {
     public object Data { get; init; }

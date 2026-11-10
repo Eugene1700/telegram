@@ -6,6 +6,7 @@ namespace Bot.Commands.Abstract.Attributes
     public class CommandAttribute : Attribute, ICommandDescriptor
     {
         public string Name { get; set; }
+        public string Platform { get; set; }
         public bool Authorized { get; set; }
         public ChatArea Area { get; set; }
         public string[] Swarms { get; set; }

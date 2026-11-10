@@ -6,6 +6,7 @@ namespace Bot.Commands.Abstract.Interfaces
         string BaseUrl { get; }
         string UpdateRoute { get; }
         string BotName { get; }
+        string Platform { get; }
         GroupMessageHandlingStrategy GroupMessageHandlingStrategy { get; }
         string[] Swarms { get; }
     }
