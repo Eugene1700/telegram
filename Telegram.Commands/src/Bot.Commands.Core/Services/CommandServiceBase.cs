@@ -17,15 +17,17 @@ public abstract class CommandServiceBase
     private readonly SessionManager _sessionManager;
     private readonly IAuthProvider _authProvider;
     private readonly IBotProfile _botProfile;
+    private readonly CommandCatalog _commandCatalog;
     protected IBotProfile BotProfile => _botProfile;
 
     protected CommandServiceBase(CommandExecutionService commandExecutionService, SessionManager sessionManager,
-        IAuthProvider authProvider, IBotProfile botProfile)
+        IAuthProvider authProvider, IBotProfile botProfile, CommandCatalog commandCatalog = null)
     {
         _commandExecutionService = commandExecutionService;
         _sessionManager = sessionManager;
         _authProvider = authProvider;
         _botProfile = botProfile;
+        _commandCatalog = commandCatalog ?? new CommandCatalog();
     }
 
     protected Task QueryHandler<TQuery>(IQueryContext<TQuery> query, IEnumerable<ICommandMatcher<TQuery>> matchers = null)
@@ -178,7 +180,7 @@ public abstract class CommandServiceBase
         var matchedCommands = new List<FullCommandDescriptor>();
         foreach (var matcher in matchers)
         {
-            var candidates = CommandCatalog.Shared.FindCommands(matcher.CommandType);
+            var candidates = _commandCatalog.FindCommands(matcher.CommandType);
             candidates = ApplyPlatform(candidates);
             candidates = ApplySwarm(candidates);
             candidates = candidates
@@ -212,7 +214,7 @@ public abstract class CommandServiceBase
         {
             return null;
         }
-        var descriptor = ApplyPlatform(CommandCatalog.Shared.FindEvents(eventType.Value))
+        var descriptor = ApplyPlatform(_commandCatalog.FindEvents(eventType.Value))
             .SingleOrDefault(d => d.SupportsQuery(typeof(TQuery)));
         return descriptor == null ? null : CommandDescriptorComposition.CreateQueryResult(descriptor);
     }
@@ -293,9 +295,9 @@ public abstract class CommandServiceBase
             return false;
         return true;
     }
-    private static FullCommandDescriptor[] FindCommandByName(string queryString)
+    private FullCommandDescriptor[] FindCommandByName(string queryString)
     {
-        return CommandCatalog.Shared.FindCommands(queryString);
+        return _commandCatalog.FindCommands(queryString);
     }
 
     private FullCommandDescriptor[] ApplyPlatform(FullCommandDescriptor[] suspectedCommands)

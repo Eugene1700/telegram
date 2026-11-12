@@ -3,6 +3,7 @@ using global::Max.Bot.Types;
 using global::Max.Bot.Types.Enums;
 using Bot.Commands.Abstract.Interfaces;
 using Bot.Commands.Core.Services;
+using Bot.Commands.Core;
 
 namespace Bot.Commands.Max.Services;
 
@@ -11,9 +12,10 @@ public class MaxCommandService(
     SessionManager sessionManager,
     IAuthProvider authProvider,
     IBotProfile botProfile,
-    IEnumerable<ICommandMatcher<Message>>? messageMatchers = null)
+    IEnumerable<ICommandMatcher<Message>>? messageMatchers = null,
+    CommandCatalog? commandCatalog = null)
     : CommandServiceBase(commandExecutionService,
-        sessionManager, authProvider, botProfile), IBotCommandResolver<Update>
+        sessionManager, authProvider, botProfile, commandCatalog), IBotCommandResolver<Update>
 {
     public async Task Handle(Update update)
     {

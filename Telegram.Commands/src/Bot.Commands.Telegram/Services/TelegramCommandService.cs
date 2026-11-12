@@ -6,6 +6,7 @@ using Bot.Commands.Abstract.Commands;
 using Bot.Commands.Abstract.Interfaces;
 using Bot.Commands.Core.Exceptions;
 using Bot.Commands.Core.Services;
+using Bot.Commands.Core;
 using Bot.Commands.Telegram.Models;
 
 namespace Bot.Commands.Telegram.Services
@@ -15,9 +16,10 @@ namespace Bot.Commands.Telegram.Services
         SessionManager sessionManager,
         IBotProfile botProfile,
         CommandExecutionService commandExecutionService,
-        IEnumerable<ICommandMatcher<Message>>? messageMatchers = null)
+        IEnumerable<ICommandMatcher<Message>>? messageMatchers = null,
+        CommandCatalog? commandCatalog = null)
         : CommandServiceBase(commandExecutionService, sessionManager,
-            authProvider, botProfile), IBotCommandResolver<Update>
+            authProvider, botProfile, commandCatalog), IBotCommandResolver<Update>
     {
         protected override bool TryGetQueryCommandStr<TQuery>(IQueryContext<TQuery> query, out string commandStr)
         {

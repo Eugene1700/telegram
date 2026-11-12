@@ -45,7 +45,7 @@ namespace SimpleHandlers.Services.Commands
                 .Exit<object>(FluentCommandWithGlobalInterceptStates.Stop, Stop).Build();
         }
 
-        private async Task<ICommandExecutionResult> Stop(object arg1, FluentCommandWithGlobalInterceptStates state,
+        private async Task<ICommandExecutionResult> Stop<TQuery>(TQuery arg1, FluentCommandWithGlobalInterceptStates state,
             FluentCommandWithGlobalInterceptObject arg2)
         {
             return CommandExecutionResult.Break();

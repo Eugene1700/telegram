@@ -130,6 +130,23 @@ Command discovery scans currently loaded assemblies that depend directly or tran
 on `Bot.Commands.Abstract` for concrete attributed classes. Unrelated SDK and database
 assemblies are not inspected; loader errors in command assemblies remain visible.
 Load assemblies containing commands before calling the registration extension.
+
+To restrict both DI registration and command lookup, pass assemblies explicitly:
+
+```csharp
+services.UseTelegramCommandsServices(new[] { typeof(MyCommand).Assembly });
+// Reuses the configured catalog when no assembly list is supplied.
+services.UseMaxCommandsServices();
+```
+
+`UseBotCommandsServices` also accepts this optional assembly list. Without a list,
+the catalog uses `AppDomain.CurrentDomain.GetAssemblies()`. An explicitly empty
+list selects no assemblies. Each DI container owns a singleton `CommandCatalog`;
+a subsequent explicit list replaces its configuration, while calls without a list
+preserve it. Pass the combined list when both adapters need commands from different
+assemblies. Custom resolvers can inject `CommandCatalog` and forward it to the
+`CommandServiceBase` constructor. DI registrations are made at setup time, so load
+command assemblies before registration even in CurrentDomain mode.
 Constructor dependencies must also be registered. The built-in factory resolves
 commands by their concrete type.
 

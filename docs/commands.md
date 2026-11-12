@@ -61,8 +61,10 @@ the command's platform, incoming SDK query type, and the bot's swarm configurati
 and Max command classes may share a name. One class may also implement both typed
 interfaces; see [the shared example](examples/QuickStart/Commands.cs).
 
-Command and event metadata is cached across requests and refreshed when the loaded
-assembly list changes. Platform,
+Command and event metadata is cached across requests. With an explicit assembly
+list, the cache is built once. In CurrentDomain mode, an AssemblyLoad event marks
+the cache stale; the next lookup rebuilds it. Lookups do not enumerate assemblies
+unless a rebuild is needed. Platform,
 swarm, and query-type filters run after lookup; request arguments are not cached.
 
 Command names are matched case-sensitively. Telegram bot mentions are checked
